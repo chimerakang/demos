@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FACTOR X-66 Controller</title>
+<style>
+:root{
+  --bg:#16181f;
+  --panel:#1e2130;
+  --panel2:#252840;
+  --panel3:#2d3250;
+  --border:#323652;
+  --border-hi:#4a5080;
+  --amber:#f59e0b;
+  --amber-lo:rgba(245,158,11,.15);
+  --amber-glow:rgba(245,158,11,.35);
+  --blue:#60a5fa;
+  --blue-lo:rgba(96,165,250,.12);
+  --blue-glow:rgba(96,165,250,.3);
+  --green:#22c55e;
+  --red:#ef4444;
+  --orange:#f97316;
+  --t1:#f0f2f8;
+  --t2:#9aa3c0;
+  --t3:#505878;
+  --t4:#2c3248;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --tr:140ms ease;
+}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:var(--font);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%,rgba(96,165,250,.07) 0%,transparent 70%),
+    linear-gradient(180deg,#0f1118 0%,#161924 100%);
+  color:var(--t1);
+  height:100dvh;
+  box-sizing:border-box;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  padding:10px 12px 8px;
+  gap:9px;
+}
+
+/* ── SCREEN NAV ── */
+.screen-nav{
+  display:flex;gap:5px;justify-content:center;flex-wrap:wrap;
+}
+
+/* ── PER-SCREEN GRID LAYOUT ── */
+/* Screen 1: topbar | main-layout | eq-bar | bottombar */
+#s-main{display:grid;grid-template-rows:48px 1fr auto 44px;}
+/* Screen 2: topbar | stream-layout | bottombar */
+#s-stream{display:grid;grid-template-rows:48px 1fr 48px;}
+/* Screen 3: topbar | disc-layout */
+#s-disc{display:grid;grid-template-rows:48px 1fr;}
+/* Screen 4: topbar | eq-overlay */
+#s-eq{display:grid;grid-template-rows:48px 1fr;}
+.snav{
+  padding:6px 16px;border-radius:18px;font-size:11.5px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--t3);
+  background:var(--panel);letter-spacing:.03em;transition:all var(--tr);
+}
+.snav:hover{color:var(--t2);}
+.snav.active{
+  background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.05));
+  border-color:var(--amber);color:var(--amber);
+  box-shadow:0 0 14px var(--amber-glow),inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* ── APP FRAME ── */
+.app-frame{
+  min-height:0;
+  background:var(--panel);
+  border-radius:12px;
+  border:1px solid var(--border);
+  overflow:hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.03),
+    0 20px 60px rgba(0,0,0,.7),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  /* subtle carbon texture */
+  background-image:
+    linear-gradient(var(--panel),var(--panel)),
+    repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px),
+    repeating-linear-gradient(90deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);
+}
+
+/* ── TOP BAR ── */
+.topbar{
+  flex-shrink:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%),var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;height:48px;padding:0 14px;gap:7px;
+}
+.brand{
+  font-size:13px;font-weight:800;color:var(--t2);
+  letter-spacing:2.5px;margin-right:10px;flex-shrink:0;text-transform:uppercase;
+}
+.brand em{
+  color:var(--amber);font-style:normal;
+  text-shadow:0 0 12px var(--amber-glow);
+}
+
+/* Zone tabs */
+.ztab{
+  padding:5px 11px;border-radius:7px;font-size:11.5px;font-weight:600;
+  cursor:pointer;border:1px solid transparent;color:var(--t3);
+  transition:all var(--tr);flex-shrink:0;
+}
+.ztab:hover{color:var(--t2);background:var(--panel2);}
+.ztab.on{color:var(--t2);background:var(--panel2);border-color:var(--border);}
+.ztab.cur{
+  background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.05));
+  border-color:var(--amber);color:var(--amber);
+  box-shadow:0 0 8px var(--amber-glow);
+}
+
+/* Unit tabs */
+.utab{
+  padding:4px 9px;border-radius:6px;font-size:11px;
+  cursor:pointer;border:1px solid transparent;color:var(--t4);transition:all var(--tr);
+}
+.utab:hover{color:var(--t3);}
+.utab.on{border-color:var(--border);color:var(--t2);background:var(--panel2);}
+.topbar-sep{width:1px;height:20px;background:var(--border);margin:0 3px;flex-shrink:0;}
+
+/* LED status */
+.conn-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  margin-left:auto;flex-shrink:0;
+  box-shadow:0 0 0 2px rgba(34,197,94,.15),0 0 10px rgba(34,197,94,.7);
+  animation:led-pulse 2.4s ease-in-out infinite;
+}
+@keyframes led-pulse{0%,100%{box-shadow:0 0 0 2px rgba(34,197,94,.15),0 0 8px rgba(34,197,94,.6);}50%{box-shadow:0 0 0 2px rgba(34,197,94,.2),0 0 16px rgba(34,197,94,.9);}}
+.conn-ip{font-size:11px;color:var(--green);margin-left:5px;flex-shrink:0;font-weight:600;font-family:monospace;}
+
+/* ── BOTTOM BAR ── */
+.bottombar{
+  flex-shrink:0;
+  background:linear-gradient(0deg,rgba(0,0,0,.3) 0%,transparent 100%),var(--panel);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;padding:0 14px;height:44px;
+}
+.bbot{
+  padding:5px 13px;border-radius:7px;font-size:11.5px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--t3);transition:all var(--tr);
+}
+.bbot:hover{color:var(--t2);border-color:var(--border-hi);}
+.bbot.pri{
+  background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.06));
+  border-color:var(--amber);color:var(--amber);
+}
+.bbot.pri:hover{box-shadow:0 0 10px var(--amber-glow);}
+.pill{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 11px;border-radius:18px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--t3);transition:all var(--tr);
+}
+.pill.on{background:var(--amber-lo);border-color:var(--amber);color:var(--amber);}
+.sec-lbl{
+  font-size:9.5px;color:var(--t3);letter-spacing:.14em;
+  text-transform:uppercase;margin-bottom:7px;font-weight:700;
+}
+
+/* Icon buttons */
+.icoBtn{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:1px solid;flex-shrink:0;transition:all var(--tr);
+}
+.mute-ico{background:rgba(245,158,11,.1);border-color:#6b4800;}
+.mute-ico:hover{border-color:var(--amber);box-shadow:0 0 10px var(--amber-glow);}
+.mute-ico.on{background:rgba(239,68,68,.12);border-color:#7f1d1d;}
+.pwr-ico{background:rgba(34,197,94,.08);border-color:#14532d;}
+.pwr-ico:hover{border-color:var(--green);box-shadow:0 0 10px rgba(34,197,94,.25);}
+.pwr-ico.off{background:rgba(239,68,68,.08);border-color:#7f1d1d;opacity:.6;}
+
+/* ═══════════════════════════════════
+   SCREEN 1 — MAIN CONTROL
+   ═══════════════════════════════════ */
+.main-layout{display:flex;min-height:0;overflow:hidden;}
+
+/* Left sidebar */
+.left-col{
+  width:200px;flex-shrink:0;
+  background:linear-gradient(180deg,var(--panel2) 0%,var(--panel) 100%);
+  border-right:1px solid var(--border);
+  padding:14px;display:flex;flex-direction:column;gap:14px;
+  overflow-y:auto;
+}
+
+/* Source buttons — hardware look */
+.src-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.sb{
+  background:linear-gradient(180deg,var(--panel3) 0%,var(--panel2) 100%);
+  border:1px solid var(--border);border-radius:8px;
+  padding:9px 3px;text-align:center;cursor:pointer;transition:all var(--tr);
+  box-shadow:0 2px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05);
+  position:relative;overflow:hidden;
+}
+.sb::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,.08);}
+.sb:hover{border-color:var(--border-hi);background:linear-gradient(180deg,var(--panel3) 0%,#323660 100%);}
+.sb.on{
+  background:linear-gradient(180deg,rgba(245,158,11,.25) 0%,rgba(245,158,11,.08) 100%);
+  border-color:var(--amber);
+  box-shadow:0 0 12px var(--amber-glow),0 2px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1);
+}
+.sb-n{font-size:12px;font-weight:700;color:var(--t3);}
+.sb.on .sb-n{color:var(--amber);}
+.sb-nm{font-size:9px;color:var(--t4);margin-top:2px;}
+.sb.on .sb-nm{color:#c07a00;}
+
+/* Action buttons */
+.act-btn{
+  background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;font-size:11px;font-weight:600;color:var(--t3);
+  cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;
+  transition:all var(--tr);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.act-btn:hover{border-color:var(--border-hi);color:var(--t2);}
+.act-btn.danger{color:#f87171;border-color:#3f1818;}
+.act-btn.danger:hover{background:rgba(239,68,68,.07);border-color:var(--red);}
+.act-btn.party{color:#c084fc;border-color:#3b2a5e;}
+.act-btn.party.on{background:rgba(192,132,252,.1);border-color:#7c3aed;color:#d8b4fe;}
+
+/* Center — fader column */
+.center-col{
+  flex:1;display:flex;flex-direction:column;
+  padding:14px 18px;min-height:0;overflow:hidden;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%,rgba(245,158,11,.04) 0%,transparent 70%),
+    var(--panel);
+}
+.zone-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;flex-shrink:0;
+}
+.zone-name{font-size:20px;font-weight:800;color:var(--t1);letter-spacing:-.02em;}
+
+/* Fader + VU area */
+.fader-area{
+  flex:1;min-height:0;
+  display:flex;align-items:stretch;justify-content:center;gap:20px;
+  padding:14px 0;
+}
+
+/* VU meter */
+.vu-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:0;}
+.vu-lbl{font-size:9px;color:var(--t3);letter-spacing:.12em;font-weight:700;text-transform:uppercase;flex-shrink:0;}
+.vu-meter{
+  flex:1;min-height:0;display:flex;gap:3px;align-items:flex-end;
+  padding:6px 4px;
+  background:linear-gradient(180deg,#0d0f18 0%,#13161f 100%);
+  border-radius:6px;border:1px solid var(--border);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.6);
+  width:32px;
+}
+.vu-bar{flex:1;border-radius:2px 2px 1px 1px;transition:height .08s ease;}
+
+/* Scale labels */
+.fader-scale{
+  display:flex;flex-direction:column;justify-content:space-between;
+  min-height:0;text-align:right;padding-right:6px;
+}
+.fader-scale span{font-size:9px;color:var(--t4);font-weight:600;}
+
+/* Main fader */
+.fader-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:0;}
+.fader-lbl{font-size:9.5px;color:var(--t3);letter-spacing:.15em;font-weight:700;text-transform:uppercase;flex-shrink:0;}
+.fader-track{
+  flex:1;width:48px;
+  background:linear-gradient(180deg,#0a0c14 0%,#13161f 100%);
+  border-radius:6px;border:1px solid var(--border);
+  cursor:pointer;position:relative;
+  box-shadow:inset 0 3px 10px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.02);
+}
+/* Track fill */
+.fader-fill{
+  position:absolute;bottom:2px;left:3px;right:3px;
+  border-radius:0 0 4px 4px;
+  background:linear-gradient(0deg,var(--amber) 0%,rgba(245,158,11,.3) 100%);
+  pointer-events:none;transition:height .1s;
+}
+/* Knob */
+.fader-knob{
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:44px;height:40px;
+  border-radius:6px;cursor:grab;
+  background:linear-gradient(180deg,#4e5470 0%,#2a2e42 40%,#1e2235 100%);
+  border:1px solid #5a6088;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  box-shadow:
+    0 3px 12px rgba(0,0,0,.8),
+    0 0 18px var(--amber-glow),
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(0,0,0,.4);
+}
+.fader-knob:active{cursor:grabbing;}
+.fader-grip{width:22px;height:1.5px;background:rgba(255,255,255,.15);border-radius:1px;}
+.fader-grip.stripe{background:rgba(245,158,11,.7);height:2px;width:26px;}
+.fader-val{
+  font-size:24px;font-weight:800;color:var(--amber);
+  letter-spacing:-.03em;line-height:1;flex-shrink:0;
+  text-shadow:0 0 20px var(--amber-glow);
+}
+
+/* EQ strip */
+.eq-bar{
+  flex-shrink:0;
+  background:linear-gradient(180deg,rgba(0,0,0,.25) 0%,rgba(0,0,0,.1) 100%),var(--panel2);
+  border-top:1px solid var(--border);
+  padding:9px 18px;display:flex;align-items:center;gap:14px;
+}
+.eq-item{display:flex;align-items:center;gap:9px;flex:1;}
+.eq-nm{font-size:10px;color:var(--t3);width:42px;font-weight:700;letter-spacing:.04em;}
+.eq-v{font-size:11px;color:var(--amber);min-width:22px;text-align:right;font-weight:700;}
+.bal-section{display:flex;align-items:center;gap:9px;flex:1.5;}
+.bal-end{font-size:10px;color:var(--t3);font-weight:700;}
+.bal-v{font-size:11px;color:var(--blue);min-width:28px;text-align:right;font-weight:700;}
+
+/* Range inputs */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  height:3px;border-radius:2px;outline:none;cursor:pointer;flex:1;
+  background:var(--panel3);
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:15px;height:15px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#e0e0e0,#a0a0a0);
+  border:1.5px solid var(--amber);
+  box-shadow:0 0 8px var(--amber-glow),0 1px 3px rgba(0,0,0,.5);
+  cursor:pointer;
+}
+input[type=range].bal::-webkit-slider-thumb{border-color:var(--blue);box-shadow:0 0 8px var(--blue-glow),0 1px 3px rgba(0,0,0,.5);}
+
+/* ═══════════════════════════════════
+   SCREEN 2 — STREAM PLAYER
+   ═══════════════════════════════════ */
+.stream-layout{display:flex;min-height:0;overflow:hidden;}
+.stream-left{
+  width:270px;flex-shrink:0;
+  background:linear-gradient(180deg,var(--panel2) 0%,var(--panel) 100%);
+  border-right:1px solid var(--border);
+  padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;
+}
+.now-playing{
+  background:linear-gradient(135deg,#0f1220 0%,#151a2e 100%);
+  border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.art-cover{
+  width:100px;height:100px;
+  background:linear-gradient(135deg,#1a2a5e,#0f1a3a,#1a0f3a);
+  border-radius:14px;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.7),0 0 30px var(--blue-glow);
+}
+.art-cover::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.12) 0%,transparent 55%);
+}
+.art-spin{animation:spin 8s linear infinite;animation-play-state:paused;}
+.art-spin.playing{animation-play-state:running;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.np-title{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:3px;}
+.np-artist{font-size:12px;color:var(--t2);}
+.np-album{font-size:11px;color:var(--t3);margin-top:2px;}
+.prog-bar{margin-top:13px;}
+.prog-track{height:4px;background:var(--panel3);border-radius:2px;overflow:hidden;margin-bottom:6px;cursor:pointer;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--amber),#fbbf24);width:27%;border-radius:2px;}
+.prog-times{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);font-weight:600;font-family:monospace;}
+.ctrl-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;}
+.ctrl-btn{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--panel2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all var(--tr);
+}
+.ctrl-btn:hover{border-color:var(--border-hi);}
+.ctrl-btn.play{
+  width:46px;height:46px;
+  background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(245,158,11,.08));
+  border-color:var(--amber);box-shadow:0 0 16px var(--amber-glow);
+}
+.ctrl-btn.play:hover{box-shadow:0 0 24px var(--amber-glow);}
+.ctrl-btn.active-loop{border-color:var(--amber);}
+.mode-row{display:flex;gap:5px;flex-wrap:wrap;}
+.mode-btn{
+  padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--t3);
+  background:var(--panel2);transition:all var(--tr);
+}
+.mode-btn:hover{color:var(--t2);}
+.mode-btn.on{background:var(--amber-lo);border-color:var(--amber);color:var(--amber);}
+.vol-row{display:flex;align-items:center;gap:9px;}
+.vol-lbl{font-size:10px;color:var(--t3);width:32px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.vol-val{font-size:12px;color:var(--amber);min-width:28px;text-align:right;font-weight:700;}
+.stream-right{flex:1;padding:18px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
+.ds-tabs{display:flex;gap:6px;}
+.ds-tab{
+  padding:5px 13px;border-radius:7px;font-size:12px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--t3);
+  background:var(--panel2);transition:all var(--tr);
+}
+.ds-tab:hover{color:var(--t2);}
+.ds-tab.on{background:var(--amber-lo);border-color:var(--amber);color:var(--amber);}
+.preset-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+.preset-btn{
+  background:linear-gradient(180deg,var(--panel2) 0%,var(--panel) 100%);
+  border:1px solid var(--border);border-radius:9px;
+  padding:10px 4px;text-align:center;cursor:pointer;transition:all var(--tr);
+  box-shadow:0 2px 0 rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.04);
+}
+.preset-btn:hover{border-color:var(--border-hi);}
+.preset-btn.on{
+  background:linear-gradient(180deg,var(--amber-lo),rgba(245,158,11,.04));
+  border-color:var(--amber);box-shadow:0 0 10px var(--amber-glow);
+}
+.preset-n{font-size:14px;font-weight:700;color:var(--t3);}
+.preset-btn.on .preset-n{color:var(--amber);}
+.preset-lbl{font-size:9px;color:var(--t4);margin-top:3px;}
+.preset-btn.on .preset-lbl{color:#c07a00;}
+.eq-mode-row{display:flex;gap:6px;flex-wrap:wrap;}
+.eq-mode{
+  padding:6px 13px;border-radius:7px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--t3);
+  background:var(--panel2);transition:all var(--tr);
+}
+.eq-mode:hover{color:var(--t2);}
+.eq-mode.on{background:var(--blue-lo);border-color:var(--blue);color:var(--blue);}
+.conn-info{
+  background:var(--panel2);border:1px solid var(--border);border-radius:9px;
+  padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+.conn-info-label{font-size:10px;color:var(--t4);font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+.conn-info-val{font-size:12px;color:var(--t2);margin-top:3px;font-weight:600;font-family:monospace;}
+.conn-info-val.green{color:var(--green);}
+
+/* ═══════════════════════════════════
+   SCREEN 3 — DISCOVERY
+   ═══════════════════════════════════ */
+.disc-layout{
+  padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;
+  background:radial-gradient(ellipse 60% 40% at 50% 20%,rgba(96,165,250,.05) 0%,transparent 70%),var(--panel);
+}
+.disc-card{
+  background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:16px;
+  box-shadow:0 4px 20px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04);
+}
+.disc-card-title{font-size:10px;font-weight:700;color:var(--t3);margin-bottom:14px;letter-spacing:.12em;text-transform:uppercase;}
+.scan-anim{display:flex;align-items:center;gap:10px;}
+.scan-rings{position:relative;width:22px;height:22px;flex-shrink:0;}
+.scan-rings span{
+  position:absolute;inset:50%;transform:translate(-50%,-50%);
+  border-radius:50%;border:1.5px solid var(--blue);
+  animation:ring-out 1.6s ease-out infinite;opacity:0;
+}
+.scan-rings span:nth-child(1){width:6px;height:6px;}
+.scan-rings span:nth-child(2){width:14px;height:14px;animation-delay:.35s;}
+.scan-rings span:nth-child(3){width:22px;height:22px;animation-delay:.7s;}
+@keyframes ring-out{0%{opacity:.9;transform:translate(-50%,-50%) scale(.2);}100%{opacity:0;transform:translate(-50%,-50%) scale(1);}}
+.scan-status{font-size:12px;color:var(--t2);font-weight:600;}
+.rescan-btn{
+  margin-left:auto;padding:5px 13px;border-radius:7px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--t3);
+  background:var(--panel3);transition:all var(--tr);
+}
+.rescan-btn:hover{border-color:var(--blue);color:var(--blue);}
+.dev-row{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--border);
+}
+.dev-row:last-child{border-bottom:none;padding-bottom:0;}
+.dev-icon{
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.dev-icon.x66{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);}
+.dev-icon.ds{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);}
+.dev-info{flex:1;}
+.dev-name{font-size:13px;font-weight:700;color:var(--t1);}
+.dev-ip{font-size:11px;color:var(--t3);margin-top:2px;font-family:monospace;}
+.dev-status{
+  font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+  background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.25);
+}
+.dark-inp{
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:9px 11px;color:var(--t1);font-size:12px;width:100%;outline:none;
+  font-family:monospace;transition:border-color var(--tr);
+}
+.dark-inp:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-lo);}
+
+/* ═══════════════════════════════════
+   SCREEN 4 — EQ PANEL
+   ═══════════════════════════════════ */
+.eq-overlay{
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%,rgba(245,158,11,.05) 0%,transparent 70%),
+    var(--panel);
+  display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;
+}
+.eq-modal{
+  background:linear-gradient(145deg,var(--panel2),var(--panel));
+  border:1px solid var(--border-hi);border-radius:16px;
+  padding:24px;width:100%;max-width:480px;
+  box-shadow:
+    0 32px 80px rgba(0,0,0,.7),
+    0 0 0 1px rgba(255,255,255,.04),
+    0 0 50px var(--amber-glow);
+}
+.eq-title{
+  font-size:15px;font-weight:800;color:var(--t1);
+  margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;
+}
+.eq-close{
+  width:28px;height:28px;border-radius:50%;background:var(--panel3);
+  border:1px solid var(--border);color:var(--t3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all var(--tr);
+}
+.eq-close:hover{background:var(--panel2);color:var(--t1);}
+.bal-full{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.bal-tag{font-size:10px;color:var(--t3);width:16px;font-weight:700;}
+.fader-row{display:grid;grid-template-columns:1fr 1fr;gap:28px;}
+.v-fader-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.v-fader-lbl{font-size:11px;color:var(--t3);font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+.v-scale{display:flex;justify-content:space-between;width:100%;padding:0 6px;}
+.v-scale span{font-size:9px;color:var(--t4);font-weight:600;}
+.v-track{
+  width:100%;height:180px;
+  background:linear-gradient(180deg,#0a0c14 0%,#13161f 100%);
+  border-radius:6px;border:1px solid var(--border);cursor:pointer;position:relative;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.6);
+}
+.v-track::after{
+  content:'';position:absolute;left:8%;right:8%;
+  top:calc(50% - .5px);height:1px;background:var(--border);pointer-events:none;
+}
+.v-knob{
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:72%;height:32px;
+  background:linear-gradient(180deg,#4e5470,#2a2e42 50%,#1e2235);
+  border:1px solid #5a6088;border-radius:5px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:grab;
+  box-shadow:0 2px 8px rgba(0,0,0,.7),0 0 14px var(--amber-glow),inset 0 1px 0 rgba(255,255,255,.15);
+}
+.v-grip{width:18px;height:1.5px;background:rgba(255,255,255,.15);border-radius:1px;}
+.v-grip.c{background:rgba(245,158,11,.65);height:2px;width:22px;}
+.v-val{font-size:14px;font-weight:700;color:var(--amber);text-shadow:0 0 12px var(--amber-glow);}
+.action-row{margin-top:20px;display:flex;gap:10px;}
+.action-btn{
+  flex:1;border-radius:9px;padding:10px;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all var(--tr);border:1px solid;
+}
+.action-btn.apply{
+  background:linear-gradient(135deg,rgba(245,158,11,.22),rgba(245,158,11,.06));
+  border-color:var(--amber);color:var(--amber);
+}
+.action-btn.apply:hover{box-shadow:0 0 14px var(--amber-glow);}
+.action-btn.reset{background:var(--panel3);border-color:var(--border);color:var(--t3);}
+.action-btn.reset:hover{color:var(--t2);}
+
+/* ── BACK LINK STYLE ── */
+.back-link{
+  font-size:12px;color:var(--t3);cursor:pointer;
+  display:flex;align-items:center;gap:4px;transition:color var(--tr);font-weight:600;
+}
+.back-link:hover{color:var(--t2);}
+</style>
+</head>
+<body>
+
+<!-- Screen nav -->
+<div class="screen-nav">
+  <div class="snav active" onclick="show('main')">主控畫面</div>
+  <div class="snav" onclick="show('stream')">串流播放器</div>
+  <div class="snav" onclick="show('disc')">裝置探索</div>
+  <div class="snav" onclick="show('eq')">EQ 面板</div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCREEN 1 · MAIN CONTROL
+     ═══════════════════════════════════ -->
+<div id="s-main" class="app-frame">
+  <div class="topbar">
+    <div class="brand">FACTOR <em>X-66</em></div>
+    <div class="ztab cur" onclick="setZone(0,this)">Zone 1</div>
+    <div class="ztab on"  onclick="setZone(1,this)">Zone 2</div>
+    <div class="ztab on"  onclick="setZone(2,this)">Zone 3</div>
+    <div class="ztab"     onclick="setZone(3,this)">Zone 4</div>
+    <div class="ztab"     onclick="setZone(4,this)">Zone 5</div>
+    <div class="ztab"     onclick="setZone(5,this)">Zone 6</div>
+    <div class="topbar-sep"></div>
+    <div class="utab on" onclick="setUnit(this)">Master</div>
+    <div class="utab"    onclick="setUnit(this)">Slave 1</div>
+    <div class="utab"    onclick="setUnit(this)">Slave 2</div>
+    <div class="conn-dot"></div>
+    <div class="conn-ip">192.168.1.100</div>
+  </div>
+
+  <div class="main-layout">
+    <div class="left-col">
+      <div>
+        <div class="sec-lbl">音源選擇</div>
+        <div class="src-grid">
+          <div class="sb on" onclick="setSrc(this)"><div class="sb-n">1</div><div class="sb-nm">Apple</div></div>
+          <div class="sb"    onclick="setSrc(this)"><div class="sb-n">2</div><div class="sb-nm">Radio</div></div>
+          <div class="sb"    onclick="setSrc(this)"><div class="sb-n">3</div><div class="sb-nm">Stream A</div></div>
+          <div class="sb"    onclick="setSrc(this)"><div class="sb-n">4</div><div class="sb-nm">Stream B</div></div>
+          <div class="sb"    onclick="setSrc(this)"><div class="sb-n">5</div><div class="sb-nm">Aux</div></div>
+          <div class="sb"    onclick="setSrc(this)"><div class="sb-n">6</div><div class="sb-nm">Optical</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="sec-lbl">全區域操作</div>
+        <div class="act-btn" onclick="allOn()">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#22c55e" stroke-width="1.3"/><path d="M4 6.5l2 2 3.5-3" stroke="#22c55e" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          All Zones ON
+        </div>
+        <div class="act-btn danger" onclick="allOff()">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#ef4444" stroke-width="1.3"/><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="#ef4444" stroke-width="1.3" stroke-linecap="round"/></svg>
+          All Zones OFF
+        </div>
+        <div class="act-btn party" id="party-btn" onclick="toggleParty()">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5h10M6.5 2l4 4.5-4 4.5-4-4.5z" stroke="#c084fc" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Party Mode
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: zone name + fader + VU -->
+    <div class="center-col">
+      <div class="zone-header">
+        <div class="zone-name" id="zone-name">客廳</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="icoBtn mute-ico" id="mute-btn" onclick="toggleMute()" title="靜音">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <path d="M3 5.5h2l2.5-2.5v9L5 9H3V5.5z" stroke="#f59e0b" stroke-width="1.3" stroke-linejoin="round"/>
+              <path d="M10.5 5.5c1.3.9 1.3 3.6 0 4.5" stroke="#f59e0b" stroke-width="1.3" stroke-linecap="round" id="wave"/>
+            </svg>
+          </button>
+          <button class="icoBtn pwr-ico" id="pwr-btn" onclick="togglePwr()" title="電源">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <circle cx="7.5" cy="7.5" r="5" stroke="#22c55e" stroke-width="1.3" id="pwr-ring"/>
+              <path d="M7.5 4v3.5" stroke="#22c55e" stroke-width="1.3" stroke-linecap="round" id="pwr-line"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="fader-area">
+        <!-- VU meter left -->
+        <div class="vu-wrap">
+          <div class="vu-lbl">VU</div>
+          <div class="vu-meter" id="vu-left">
+            <div class="vu-bar" id="vl1" style="width:100%;height:10%;background:#22c55e;"></div>
+            <div class="vu-bar" id="vl2" style="width:100%;height:10%;background:#22c55e;"></div>
+          </div>
+        </div>
+
+        <!-- Scale -->
+        <div class="fader-scale">
+          <span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-20</span>
+        </div>
+
+        <!-- Fader -->
+        <div class="fader-wrap">
+          <div class="fader-lbl">Volume</div>
+          <div class="fader-track" id="ftrack" onclick="moveFader(event)">
+            <div class="fader-fill" id="ffill" style="height:63%;"></div>
+            <div class="fader-knob" id="fknob" style="bottom:60%;">
+              <div class="fader-grip"></div>
+              <div class="fader-grip stripe"></div>
+              <div class="fader-grip"></div>
+            </div>
+          </div>
+          <div class="fader-val" id="fval">24</div>
+        </div>
+
+        <!-- Scale right -->
+        <div class="fader-scale">
+          <span>38</span><span>28</span><span>19</span><span>10</span><span>0</span>
+        </div>
+
+        <!-- VU meter right -->
+        <div class="vu-wrap">
+          <div class="vu-lbl">VU</div>
+          <div class="vu-meter" id="vu-right">
+            <div class="vu-bar" id="vr1" style="width:100%;height:10%;background:#22c55e;"></div>
+            <div class="vu-bar" id="vr2" style="width:100%;height:10%;background:#22c55e;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EQ bar -->
+  <div class="eq-bar">
+    <div class="eq-item">
+      <span class="eq-nm">Treble</span>
+      <input type="range" min="0" max="14" value="7" step="1" oninput="document.getElementById('trv').textContent=(v=this.value-7,v>0?'+':'')+v">
+      <span class="eq-v" id="trv">0</span>
+    </div>
+    <div class="eq-item">
+      <span class="eq-nm">Bass</span>
+      <input type="range" min="0" max="14" value="7" step="1" oninput="document.getElementById('bsv').textContent=(v=this.value-7,v>0?'+':'')+v">
+      <span class="eq-v" id="bsv">0</span>
+    </div>
+    <div class="bal-section">
+      <span class="bal-end">L</span>
+      <input type="range" class="bal" min="0" max="20" value="10" step="1" oninput="updateBal(this.value)">
+      <span class="bal-end">R</span>
+      <span class="bal-v" id="balv">C</span>
+    </div>
+  </div>
+
+  <div class="bottombar">
+    <div class="bbot pri" onclick="show('disc')">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="display:inline;margin-right:5px;vertical-align:middle"><circle cx="5.5" cy="5.5" r="4" stroke="#f59e0b" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.5" fill="#f59e0b"/></svg>
+      Connection
+    </div>
+    <span style="font-size:11px;color:var(--t4);font-family:monospace;">192.168.1.100 · 4999</span>
+    <div style="flex:1;"></div>
+    <div class="pill" id="dnd-pill" onclick="toggleDND()">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1"/><path d="M2.5 5h5" stroke="currentColor" stroke-width="1"/></svg>
+      DND
+    </div>
+    <div class="bbot" onclick="show('stream')" style="display:flex;align-items:center;gap:5px;">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#94a3b8" stroke-width="1.2"/><path d="M4.5 6c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5-.7 1.5-1.5 1.5S4.5 6.8 4.5 6z" fill="#94a3b8"/></svg>
+      Digistream
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCREEN 2 · STREAM PLAYER
+     ═══════════════════════════════════ -->
+<div id="s-stream" class="app-frame" style="display:none;">
+  <div class="topbar">
+    <div class="brand">FACTOR <em>X-66</em></div>
+    <div class="back-link" onclick="show('main')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Zone 控制
+    </div>
+    <div style="flex:1;"></div>
+    <div class="ds-tabs">
+      <div class="ds-tab on" onclick="setDs(0,this)">Digistream A · Src 3</div>
+      <div class="ds-tab"    onclick="setDs(1,this)">Digistream B · Src 4</div>
+    </div>
+    <div class="conn-dot" style="margin-left:14px;"></div>
+  </div>
+
+  <div class="stream-layout">
+    <div class="stream-left">
+      <div class="now-playing">
+        <div class="art-cover">
+          <svg class="art-spin" id="art-icon" width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <circle cx="17" cy="17" r="10" stroke="#60a5fa" stroke-width="1.5"/>
+            <circle cx="17" cy="17" r="3.5" fill="#60a5fa"/>
+            <path d="M17 7v10M23.6 11L17 17" stroke="#60a5fa" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="np-title">Wind Of Change</div>
+        <div class="np-artist">Scorpions</div>
+        <div class="np-album">Crazy World · 1990</div>
+        <div class="prog-bar">
+          <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+          <div class="prog-times"><span id="cur-time">1:23</span><span>5:08</span></div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-btn" onclick="ctrlPrev()">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9.5 2.5L5 6.5l4.5 4V2.5z" fill="#94a3b8"/><rect x="2" y="2.5" width="2" height="8" rx="1" fill="#94a3b8"/></svg>
+          </div>
+          <div class="ctrl-btn play" id="play-btn" onclick="togglePlay()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" id="play-icon">
+              <path d="M6 4l6 4-6 4V4z" fill="#f59e0b"/>
+            </svg>
+          </div>
+          <div class="ctrl-btn" onclick="ctrlNext()">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3.5 2.5l4.5 4-4.5 4V2.5z" fill="#94a3b8"/><rect x="9" y="2.5" width="2" height="8" rx="1" fill="#94a3b8"/></svg>
+          </div>
+          <div class="ctrl-btn" id="loop-btn" onclick="toggleLoop()" title="循環">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 5h9M9 3l2 2-2 2M11 8H2M4 6l-2 2 2 2" stroke="#505878" stroke-width="1.3" stroke-linecap="round" id="loop-icon"/></svg>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-lbl">音源模式</div>
+        <div class="mode-row">
+          <div class="mode-btn on" onclick="setMode(this)">Wi-Fi</div>
+          <div class="mode-btn"    onclick="setMode(this)">BT</div>
+          <div class="mode-btn"    onclick="setMode(this)">Line-in</div>
+          <div class="mode-btn"    onclick="setMode(this)">Optical</div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-lbl">音量</div>
+        <div class="vol-row">
+          <span class="vol-lbl">Vol</span>
+          <input type="range" min="0" max="100" value="65" oninput="document.getElementById('svol').textContent=Math.round(this.value)">
+          <span class="vol-val" id="svol">65</span>
+        </div>
+      </div>
+    </div>
+    <div class="stream-right">
+      <div>
+        <div class="sec-lbl">預設電台 Preset 1–6</div>
+        <div class="preset-grid">
+          <div class="preset-btn on" onclick="setPreset(this)"><div class="preset-n">1</div><div class="preset-lbl">Jazz 24</div></div>
+          <div class="preset-btn"    onclick="setPreset(this)"><div class="preset-n">2</div><div class="preset-lbl">BBC R4</div></div>
+          <div class="preset-btn"    onclick="setPreset(this)"><div class="preset-n">3</div><div class="preset-lbl">ICRT</div></div>
+          <div class="preset-btn"    onclick="setPreset(this)"><div class="preset-n">4</div><div class="preset-lbl">Hits FM</div></div>
+          <div class="preset-btn"    onclick="setPreset(this)"><div class="preset-n">5</div><div class="preset-lbl">Classic</div></div>
+          <div class="preset-btn"    onclick="setPreset(this)"><div class="preset-n">6</div><div class="preset-lbl">Rock</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-lbl">EQ 模式</div>
+        <div class="eq-mode-row">
+          <div class="eq-mode"    onclick="setEQ(this)">Off</div>
+          <div class="eq-mode on" onclick="setEQ(this)">Classic</div>
+          <div class="eq-mode"    onclick="setEQ(this)">Popular</div>
+          <div class="eq-mode"    onclick="setEQ(this)">Jazzy</div>
+          <div class="eq-mode"    onclick="setEQ(this)">Vocal</div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-lbl">連線資訊</div>
+        <div class="conn-info">
+          <div><div class="conn-info-label">Digistream A IP</div><div class="conn-info-val">192.168.1.101</div></div>
+          <div><div class="conn-info-label">Firmware</div><div class="conn-info-val">4.6.328252</div></div>
+          <div><div class="conn-info-label">Spotify</div><div class="conn-info-val green">已啟用</div></div>
+          <div><div class="conn-info-label">Internet</div><div class="conn-info-val green">已連線</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottombar">
+    <div class="back-link" onclick="show('main')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      返回主控
+    </div>
+    <div style="flex:1;"></div>
+    <span style="font-size:11px;color:var(--t4);font-family:monospace;">HTTP :80 · polling getPlayerStatus</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCREEN 3 · DEVICE DISCOVERY
+     ═══════════════════════════════════ -->
+<div id="s-disc" class="app-frame" style="display:none;">
+  <div class="topbar">
+    <div class="brand">FACTOR <em>X-66</em></div>
+    <div class="back-link" onclick="show('main')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      返回
+    </div>
+    <div style="flex:1;"></div>
+    <span style="font-size:11px;color:var(--t3);font-weight:700;letter-spacing:.1em;text-transform:uppercase;">裝置探索</span>
+  </div>
+  <div class="disc-layout">
+    <div class="disc-card">
+      <div class="disc-card-title">自動探索（UPnP SSDP）</div>
+      <div class="scan-anim">
+        <div class="scan-rings"><span></span><span></span><span></span></div>
+        <div class="scan-status" id="scan-status">正在掃描區域網路…</div>
+        <div class="rescan-btn" onclick="doScan()">重新掃描</div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="dev-row">
+          <div class="dev-icon x66">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="6" width="14" height="7" rx="1.5" stroke="#f59e0b" stroke-width="1.3"/><path d="M6 6V4.5M9 6V4.5M12 6V4.5M6 13v1.5M9 13v1.5M12 13v1.5" stroke="#f59e0b" stroke-width="1.1" stroke-linecap="round"/></svg>
+          </div>
+          <div class="dev-info"><div class="dev-name">X-66 主機</div><div class="dev-ip">192.168.1.100 · 4999 (Serial2Net)</div></div>
+          <div class="dev-status">已連線</div>
+        </div>
+        <div class="dev-row">
+          <div class="dev-icon ds">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="#22c55e" stroke-width="1.3"/><circle cx="9" cy="9" r="2.5" fill="#22c55e"/></svg>
+          </div>
+          <div class="dev-info"><div class="dev-name">Digistream-1 A</div><div class="dev-ip">192.168.1.101 · 80 (Source 3)</div></div>
+          <div class="dev-status">已連線</div>
+        </div>
+        <div class="dev-row">
+          <div class="dev-icon ds">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="#22c55e" stroke-width="1.3"/><circle cx="9" cy="9" r="2.5" fill="#22c55e"/></svg>
+          </div>
+          <div class="dev-info"><div class="dev-name">Digistream-1 B</div><div class="dev-ip">192.168.1.102 · 80 (Source 4)</div></div>
+          <div class="dev-status">已連線</div>
+        </div>
+      </div>
+    </div>
+    <div class="disc-card">
+      <div class="disc-card-title">手動輸入（備用）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+        <div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:7px;font-weight:600;">X-66 主機 IP</div>
+          <input class="dark-inp" value="192.168.1.100">
+          <div style="font-size:10px;color:var(--t4);margin-top:5px;font-family:monospace;">Port 4999</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:7px;font-weight:600;">Digistream A IP</div>
+          <input class="dark-inp" value="192.168.1.101">
+          <div style="font-size:10px;color:var(--t4);margin-top:5px;font-family:monospace;">Port 80 · Source 3</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:7px;font-weight:600;">Digistream B IP</div>
+          <input class="dark-inp" value="192.168.1.102">
+          <div style="font-size:10px;color:var(--t4);margin-top:5px;font-family:monospace;">Port 80 · Source 4</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="action-btn apply" onclick="doConnect()">連線</button>
+        <button class="action-btn reset">設為靜態 IP</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCREEN 4 · EQ PANEL
+     ═══════════════════════════════════ -->
+<div id="s-eq" class="app-frame" style="display:none;">
+  <div class="topbar">
+    <div class="brand">FACTOR <em>X-66</em></div>
+    <span style="font-size:12px;color:var(--t3);">Zone 1 · 客廳</span>
+    <div style="flex:1;"></div>
+    <span style="font-size:11px;color:var(--t3);font-weight:700;letter-spacing:.1em;text-transform:uppercase;">EQ / Balance</span>
+  </div>
+  <div class="eq-overlay">
+    <div class="eq-modal">
+      <div class="eq-title">
+        EQ 精細調整
+        <button class="eq-close" onclick="show('main')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div style="margin-bottom:22px;">
+        <div class="sec-lbl">Balance（左右平衡）</div>
+        <div class="bal-full">
+          <span class="bal-tag">L</span>
+          <input type="range" class="bal" min="0" max="20" value="10" step="1" style="flex:1;" oninput="updateBal2(this.value)">
+          <span class="bal-tag">R</span>
+          <span style="font-size:14px;color:var(--amber);min-width:30px;text-align:right;font-weight:700;" id="bal2v">C</span>
+        </div>
+      </div>
+      <div class="fader-row">
+        <div class="v-fader-wrap">
+          <div class="v-fader-lbl">Treble</div>
+          <div class="v-scale"><span>+7</span><span>0</span><span>-7</span></div>
+          <div class="v-track" onclick="vfaderClick(event,'tv','tval')">
+            <div class="v-knob" id="tv" style="top:38%;"><div class="v-grip"></div><div class="v-grip c"></div><div class="v-grip"></div></div>
+          </div>
+          <div class="v-val" id="tval">+2</div>
+        </div>
+        <div class="v-fader-wrap">
+          <div class="v-fader-lbl">Bass</div>
+          <div class="v-scale"><span>+7</span><span>0</span><span>-7</span></div>
+          <div class="v-track" onclick="vfaderClick(event,'bv','bval')">
+            <div class="v-knob" id="bv" style="top:50%;"><div class="v-grip"></div><div class="v-grip c"></div><div class="v-grip"></div></div>
+          </div>
+          <div class="v-val" id="bval">0</div>
+        </div>
+      </div>
+      <div class="action-row">
+        <button class="action-btn apply" onclick="show('main')">套用</button>
+        <button class="action-btn reset">重置</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const zones=['客廳','主臥室','餐廳','書房','兒童房','戶外'];
+let isPlaying=false,isMuted=false,isPwr=true,isParty=false;
+
+/* Screen switcher — let CSS grid handle display, only toggle visibility */
+function show(id){
+  ['main','stream','disc','eq'].forEach(s=>{
+    const el=document.getElementById('s-'+s);
+    if(s===id){
+      el.style.removeProperty('display');
+      el.style.opacity='0';
+      requestAnimationFrame(()=>{el.style.transition='opacity .18s ease';el.style.opacity='1';});
+    } else {
+      el.style.display='none';
+    }
+  });
+  document.querySelectorAll('.snav').forEach((n,i)=>{
+    n.classList.toggle('active',['main','stream','disc','eq'][i]===id);
+  });
+}
+
+function setZone(i,el){
+  document.querySelectorAll('.ztab').forEach(t=>t.classList.remove('cur'));
+  el.classList.add('cur');
+  document.getElementById('zone-name').textContent=zones[i];
+}
+function setUnit(el){
+  document.querySelectorAll('.utab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+}
+function setSrc(el){
+  document.querySelectorAll('.sb').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function toggleMute(){
+  isMuted=!isMuted;
+  document.getElementById('mute-btn').classList.toggle('on',isMuted);
+  document.getElementById('wave').style.opacity=isMuted?'0.15':'1';
+}
+function togglePwr(){
+  isPwr=!isPwr;
+  document.getElementById('pwr-btn').classList.toggle('off',!isPwr);
+}
+function toggleParty(){
+  isParty=!isParty;
+  document.getElementById('party-btn').classList.toggle('on',isParty);
+}
+function allOn(){document.querySelectorAll('.ztab').forEach(t=>t.classList.add('on'));}
+function allOff(){document.querySelectorAll('.ztab').forEach(t=>{t.classList.remove('on');t.classList.remove('cur');});}
+
+/* Fader */
+function moveFader(e){
+  const t=e.currentTarget,r=t.getBoundingClientRect();
+  const pct=Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height));
+  const val=Math.round(pct*38);
+  const bot=Math.max(0,pct*86-2);
+  document.getElementById('fknob').style.bottom=bot+'%';
+  document.getElementById('ffill').style.height=(pct*94)+'%';
+  document.getElementById('fval').textContent=val;
+}
+
+/* Balance */
+function updateBal(v){const n=parseInt(v);document.getElementById('balv').textContent=n===10?'C':(n<10?'L'+(10-n):'R'+(n-10));}
+function updateBal2(v){const n=parseInt(v);document.getElementById('bal2v').textContent=n===10?'C':(n<10?'L'+(10-n):'R'+(n-10));}
+function toggleDND(){document.getElementById('dnd-pill').classList.toggle('on');}
+
+/* VU meter animation */
+let vuTimer=null;
+const vuColors=h=>h<60?'#22c55e':h<80?'#f59e0b':'#ef4444';
+function animateVU(){
+  const baseH=40+Math.random()*25;
+  const peak=baseH+Math.random()*20;
+  ['vl1','vl2','vr1','vr2'].forEach((id,i)=>{
+    const h=i%2===0?baseH:Math.min(peak,100);
+    const el=document.getElementById(id);
+    if(el){el.style.height=h+'%';el.style.background=vuColors(h);}
+  });
+}
+function startVU(){stopVU();vuTimer=setInterval(animateVU,120);}
+function stopVU(){clearInterval(vuTimer);['vl1','vl2','vr1','vr2'].forEach(id=>{const el=document.getElementById(id);if(el){el.style.height='5%';el.style.background='#22c55e';}});}
+
+/* Playback */
+function togglePlay(){
+  isPlaying=!isPlaying;
+  const icon=document.getElementById('play-icon');
+  icon.innerHTML=isPlaying
+    ?'<path d="M5 4h2.5v8H5zM8.5 4H11v8H8.5z" fill="#f59e0b"/>'
+    :'<path d="M6 4l6 4-6 4V4z" fill="#f59e0b"/>';
+  document.getElementById('art-icon').classList.toggle('playing',isPlaying);
+  if(isPlaying){startProgress();startVU();}else{stopProgress();stopVU();}
+}
+let progTimer=null,progVal=27;
+function startProgress(){
+  stopProgress();
+  progTimer=setInterval(()=>{
+    progVal=Math.min(100,progVal+.06);
+    document.getElementById('prog-fill').style.width=progVal+'%';
+    const total=308,cur=Math.round(total*progVal/100);
+    document.getElementById('cur-time').textContent=Math.floor(cur/60)+':'+(cur%60).toString().padStart(2,'0');
+    if(progVal>=100)stopProgress();
+  },100);
+}
+function stopProgress(){clearInterval(progTimer);}
+function ctrlPrev(){progVal=0;document.getElementById('prog-fill').style.width='0%';document.getElementById('cur-time').textContent='0:00';}
+function ctrlNext(){progVal=100;document.getElementById('prog-fill').style.width='100%';}
+function toggleLoop(){
+  const btn=document.getElementById('loop-btn');
+  btn.classList.toggle('active-loop');
+  document.getElementById('loop-icon').style.stroke=btn.classList.contains('active-loop')?'#f59e0b':'#505878';
+}
+function setMode(el){document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function setPreset(el){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function setEQ(el){document.querySelectorAll('.eq-mode').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function setDs(i,el){document.querySelectorAll('.ds-tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');}
+function doScan(){
+  const s=document.getElementById('scan-status');
+  s.textContent='正在掃描…';
+  setTimeout(()=>{s.textContent='找到 3 個裝置';},1400);
+}
+function doConnect(){show('main');}
+function vfaderClick(e,knobId,valId){
+  const t=e.currentTarget,r=t.getBoundingClientRect();
+  const pct=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+  document.getElementById(knobId).style.top=(pct*75)+'%';
+  const val=Math.round((1-pct)*14-7);
+  document.getElementById(valId).textContent=(val>=0?'+':'')+val;
+}
+
+/* Idle VU pulse on main screen */
+setInterval(()=>{
+  if(!isPlaying&&document.getElementById('s-main').style.display!=='none'){
+    const h=3+Math.random()*8;
+    ['vl1','vl2','vr1','vr2'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){el.style.height=h+'%';el.style.background='#22c55e';}
+    });
+  }
+},400);
+</script>
+</body>
+</html>

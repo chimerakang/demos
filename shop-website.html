@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>選物商行 · 官網</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F6F2E9;
+    --paper:#FCFAF4;
+    --ink:#23211C;
+    --muted:#6F6A60;
+    --line:#E4DECF;
+    --green:#1F4D3D;
+    --green-soft:#E7EDE7;
+    --terra:#C2703D;
+    --ok:#2E7D55;
+    --ok-bg:#E4F0E8;
+    --wait:#B26A12;
+    --wait-bg:#FAEFD9;
+    --manual:#2C5C8A;
+    --manual-bg:#E5EEF6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Noto Sans TC",sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:"Noto Serif TC",serif}
+  ::selection{background:var(--green);color:var(--cream)}
+
+  /* ---- top bar ---- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(246,242,233,.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .bar{
+    max-width:1180px;margin:0 auto;
+    padding:0 28px;height:68px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px}
+  .brand .mark{
+    font-family:"Fraunces",serif;font-size:13px;letter-spacing:.32em;
+    color:var(--terra);text-transform:uppercase;
+  }
+  .brand .name{font-family:"Noto Serif TC",serif;font-weight:600;font-size:22px;letter-spacing:.04em}
+  nav.tabs{display:flex;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px}
+  nav.tabs button{
+    font-family:"Noto Sans TC";font-size:14px;font-weight:500;color:var(--muted);
+    border:none;background:none;cursor:pointer;padding:8px 20px;border-radius:999px;transition:.2s;
+  }
+  nav.tabs button.active{background:var(--green);color:var(--cream)}
+
+  main{max-width:1180px;margin:0 auto;padding:0 28px}
+  .view{display:none;animation:fade .4s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ---- storefront hero ---- */
+  .hero{
+    padding:64px 0 48px;display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;
+  }
+  .hero .eyebrow{font-family:"Fraunces",serif;font-style:italic;font-size:17px;color:var(--terra);margin-bottom:14px}
+  .hero h1{font-family:"Noto Serif TC",serif;font-weight:700;font-size:54px;line-height:1.1;letter-spacing:.01em;margin-bottom:20px}
+  .hero p{font-size:16px;color:var(--muted);max-width:34ch;margin-bottom:28px}
+  .hero .cta{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:var(--cream);padding:14px 28px;border-radius:999px;font-weight:500;font-size:15px;text-decoration:none;transition:.2s}
+  .hero .cta:hover{transform:translateY(-2px)}
+  .hero-art{position:relative;aspect-ratio:4/5;border-radius:18px;overflow:hidden;background:linear-gradient(150deg,#2A5A47,#1F4D3D 60%,#163a2e);box-shadow:0 30px 60px -28px rgba(31,77,61,.55)}
+  .hero-art::after{content:"選物";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif TC";font-size:120px;font-weight:700;color:rgba(246,242,233,.12);letter-spacing:.1em}
+  .hero-art .badge{position:absolute;left:22px;bottom:22px;background:var(--cream);color:var(--green);font-weight:500;font-size:13px;padding:8px 16px;border-radius:999px}
+
+  /* ---- product grid ---- */
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;margin:24px 0 24px;padding-top:36px;border-top:1px solid var(--line)}
+  .sec-head h2{font-family:"Noto Serif TC";font-weight:600;font-size:26px}
+  .sec-head .sub{font-size:13px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding-bottom:72px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:.25s;cursor:pointer}
+  .card:hover{transform:translateY(-4px);box-shadow:0 22px 40px -26px rgba(35,33,28,.4)}
+  .thumb{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif TC";font-size:40px;font-weight:600;color:rgba(255,255,255,.92);position:relative}
+  .thumb .tag{position:absolute;top:12px;left:12px;background:rgba(252,250,244,.92);color:var(--terra);font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.05em}
+  .card .body{padding:16px 16px 18px}
+  .card .pname{font-size:15px;font-weight:500;margin-bottom:8px;line-height:1.45}
+  .card .row{display:flex;align-items:baseline;justify-content:space-between}
+  .card .price{font-family:"Fraunces",serif;color:var(--terra);font-size:22px;font-weight:500}
+  .card .price small{font-size:13px;font-weight:400}
+  .card .sold{font-size:12px;color:var(--muted)}
+
+  /* ---- admin dashboard ---- */
+  .dash-head{padding:48px 0 28px}
+  .dash-head h1{font-family:"Noto Serif TC";font-weight:600;font-size:34px;margin-bottom:6px}
+  .dash-head p{color:var(--muted);font-size:14px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:14px}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px 22px 20px}
+  .stat .label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-bottom:14px}
+  .stat .dot{width:9px;height:9px;border-radius:50%}
+  .stat .num{font-family:"Fraunces",serif;font-size:38px;font-weight:500;line-height:1}
+  .stat .delta{font-size:12px;color:var(--muted);margin-top:8px}
+  .stat.total .num{color:var(--ink)}
+  .stat.ok .num{color:var(--ok)} .stat.ok .dot{background:var(--ok)}
+  .stat.wait .num{color:var(--wait)} .stat.wait .dot{background:var(--wait)}
+  .stat.manual .num{color:var(--manual)} .stat.manual .dot{background:var(--manual)}
+  .stat.total .dot{background:var(--ink)}
+
+  .panel-grid{display:grid;grid-template-columns:1fr 320px;gap:24px;padding-bottom:72px;align-items:start}
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .panel .phead{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+  .panel .phead h3{font-family:"Noto Serif TC";font-weight:600;font-size:17px}
+  .panel .phead .hint{font-size:12px;color:var(--muted)}
+
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);padding:12px 22px;letter-spacing:.04em;background:#F1ECDF}
+  td{padding:14px 22px;border-top:1px solid var(--line);font-size:14px;vertical-align:middle}
+  td.ordno{font-family:"Fraunces",serif;font-size:14px;letter-spacing:.02em}
+  td.amt{font-family:"Fraunces",serif;font-weight:500}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:5px 12px;border-radius:999px;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.ok::before{background:var(--ok)}
+  .pill.wait{background:var(--wait-bg);color:var(--wait)} .pill.wait::before{background:var(--wait)}
+  .pill.manual{background:var(--manual-bg);color:var(--manual)} .pill.manual::before{background:var(--manual)}
+  .btn-issue{font-family:"Noto Sans TC";font-size:13px;font-weight:500;color:var(--cream);background:var(--green);border:none;border-radius:8px;padding:7px 14px;cursor:pointer;transition:.2s}
+  .btn-issue:hover{background:#163a2e}
+  .btn-issue:disabled{background:var(--line);color:var(--muted);cursor:default}
+  .carrier{font-size:12px;color:var(--muted)}
+  .plat{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.04em;margin-right:6px;vertical-align:middle}
+  .plat.shopee{background:#FDE7D6;color:#C2510E}
+  .plat.coupang{background:#FBE0E2;color:#C5292A}
+
+  /* shop binding card */
+  .shop{display:flex;align-items:center;gap:13px;padding:16px 20px;border-top:1px solid var(--line)}
+  .shop:first-of-type{border-top:none}
+  .shop .ava{width:42px;height:42px;border-radius:11px;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;font-family:"Noto Serif TC";font-weight:600;font-size:18px}
+  .shop .meta{flex:1;min-width:0}
+  .shop .sname{font-size:14px;font-weight:500}
+  .shop .sid{font-size:12px;color:var(--muted)}
+  .shop .state{font-size:12px;font-weight:500;color:var(--ok);display:flex;align-items:center;gap:5px}
+  .shop .state::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok)}
+  .shop.off .state{color:var(--muted)} .shop.off .state::before{background:var(--muted)}
+  .bind-btn{margin:16px 20px;display:block;width:calc(100% - 40px);text-align:center;border:1px dashed var(--green);color:var(--green);background:none;border-radius:10px;padding:12px;font-family:"Noto Sans TC";font-size:14px;font-weight:500;cursor:pointer;transition:.2s}
+  .bind-btn:hover{background:var(--green-soft)}
+
+  footer{border-top:1px solid var(--line);padding:30px 0;text-align:center;color:var(--muted);font-size:12px}
+  .toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:var(--cream);padding:13px 24px;border-radius:999px;font-size:14px;font-weight:500;box-shadow:0 18px 40px -16px rgba(0,0,0,.5);transition:.35s cubic-bezier(.2,.9,.3,1.3);z-index:99}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  @media(max-width:920px){
+    .hero{grid-template-columns:1fr;padding-top:40px}.hero h1{font-size:40px}.hero-art{display:none}
+    .grid{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}
+    .panel-grid{grid-template-columns:1fr}
+    .bar{padding:0 18px}.brand .mark{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <span class="mark">Chenglong</span>
+      <span class="name serif">選物商行</span>
+    </div>
+    <nav class="tabs">
+      <button id="t-shop" class="active" onclick="show('shop')">商店</button>
+      <button id="t-admin" onclick="show('admin')">管理後台</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ STOREFRONT ============ -->
+  <section id="shop" class="view active">
+    <div class="hero">
+      <div>
+        <div class="eyebrow">selected goods · 2026 spring</div>
+        <h1 class="serif">選得好<br>用得久</h1>
+        <p>從蝦皮自動同步的上架選物，集中在一處呈現。每一件都經過挑選，少而精。</p>
+        <a class="cta" href="#products">瀏覽商品 →</a>
+      </div>
+      <div class="hero-art">
+        <span class="badge">本月新上架 12 件</span>
+      </div>
+    </div>
+
+    <div class="sec-head" id="products">
+      <h2 class="serif">熱賣選物</h2>
+      <span class="sub">資料自蝦皮 + 酷澎開放平台同步 · 最後更新 09:42</span>
+    </div>
+    <div class="grid" id="prodGrid"></div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section id="admin" class="view">
+    <div class="dash-head">
+      <h1 class="serif">發票管理後台</h1>
+      <p>蝦皮 + 酷澎已完成訂單自動拋轉關貿電子發票 · 即時掌握開立狀態</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat total"><div class="label"><span class="dot"></span>本月訂單</div><div class="num" id="s-total">0</div><div class="delta">較上月 +18%</div></div>
+      <div class="stat ok"><div class="label"><span class="dot"></span>已開立</div><div class="num" id="s-ok">0</div><div class="delta">自動拋轉完成</div></div>
+      <div class="stat wait"><div class="label"><span class="dot"></span>未開立</div><div class="num" id="s-wait">0</div><div class="delta">訂單尚未完成</div></div>
+      <div class="stat manual"><div class="label"><span class="dot"></span>手動開立</div><div class="num" id="s-man">0</div><div class="delta">人工補開</div></div>
+    </div>
+
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="phead">
+          <h3 class="serif">發票明細</h3>
+          <span class="hint">未完成訂單待狀態變更後自動開立，可手動補開</span>
+        </div>
+        <table>
+          <thead><tr><th>訂單編號</th><th>買家</th><th>金額</th><th>載具</th><th>狀態</th><th style="text-align:right">操作</th></tr></thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="phead"><h3 class="serif">店舖綁定</h3><span class="hint">雙平台</span></div>
+        <div class="shop"><div class="ava">選</div><div class="meta"><div class="sname"><span class="plat shopee">蝦皮</span>選物商行 官方店</div><div class="sid">shop_id · 2841** · OAuth</div></div><div class="state">已授權</div></div>
+        <div class="shop"><div class="ava">選</div><div class="meta"><div class="sname"><span class="plat shopee">蝦皮</span>選物商行 二店</div><div class="sid">shop_id · 3157** · OAuth</div></div><div class="state">已授權</div></div>
+        <div class="shop"><div class="ava">選</div><div class="meta"><div class="sname"><span class="plat coupang">酷澎</span>選物商行 酷澎店</div><div class="sid">vendorId · A00**** · API Key</div></div><div class="state">已連結</div></div>
+        <div class="shop off"><div class="ava">福</div><div class="meta"><div class="sname"><span class="plat coupang">酷澎</span>福利出清專區</div><div class="sid">尚未連結 · 待 IP 白名單</div></div><div class="state">待綁定</div></div>
+        <button class="bind-btn" onclick="toast('選擇平台：蝦皮 OAuth 授權 或 酷澎 WING API Key')">＋ 綁定新店舖</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>乘龍資訊 Hatice Studio · 蝦皮 × 關貿電子發票整合系統 · 初步介面原型</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+  const products=[
+    {n:"日式手感陶瓷馬克杯",p:480,sold:328,tag:"熱賣",c:"#3E6B57",plat:"shopee"},
+    {n:"亞麻混紡素色抱枕套",p:360,sold:215,tag:"",c:"#9C6B45",plat:"coupang"},
+    {n:"北歐風實木餐盤組",p:1280,sold:142,tag:"新品",c:"#5B6B7A",plat:"shopee"},
+    {n:"手沖咖啡濾杯 V60",p:590,sold:507,tag:"熱賣",c:"#7A5C3E",plat:"coupang"},
+    {n:"無印感霧面玻璃水瓶",p:420,sold:298,tag:"",c:"#4C7368",plat:"shopee"},
+    {n:"竹纖維分隔收納盒",p:299,sold:631,tag:"熱賣",c:"#8A6F47",plat:"coupang"},
+    {n:"純棉雙層紗洗臉巾",p:180,sold:892,tag:"",c:"#6B7B6E",plat:"shopee"},
+    {n:"香氛大豆蠟燭 雪松",p:650,sold:176,tag:"新品",c:"#A06A4A",plat:"coupang"},
+  ];
+  const grid=document.getElementById('prodGrid');
+  grid.innerHTML=products.map(x=>`
+    <div class="card" onclick="toast('開啟商品：${x.n}')">
+      <div class="thumb" style="background:linear-gradient(150deg,${x.c},${shade(x.c)})">
+        ${x.tag?`<span class="tag">${x.tag}</span>`:''}選
+      </div>
+      <div class="body">
+        <div class="pname"><span class="plat ${x.plat}">${x.plat==='shopee'?'蝦皮':'酷澎'}</span>${x.n}</div>
+        <div class="row"><span class="price"><small>NT$</small> ${x.p}</span><span class="sold">已售 ${x.sold}</span></div>
+      </div>
+    </div>`).join('');
+  function shade(h){let n=parseInt(h.slice(1),16);let r=(n>>16)-26,g=((n>>8)&255)-26,b=(n&255)-26;return`rgb(${Math.max(r,0)},${Math.max(g,0)},${Math.max(b,0)})`}
+
+  const invoices=[
+    {o:"SP260531-0418",b:"林＊維",a:1280,car:"手機條碼 /AB12+34",st:"ok",plat:"shopee"},
+    {o:"CP260531-7741",b:"陳＊君",a:890,car:"會員載具",st:"ok",plat:"coupang"},
+    {o:"SP260531-0416",b:"王＊豪 (統編 12345678)",a:2360,car:"統一編號",st:"manual",plat:"shopee"},
+    {o:"CP260531-7738",b:"張＊婷",a:1490,car:"待訂單完成",st:"wait",plat:"coupang"},
+    {o:"SP260531-0414",b:"黃＊安",a:650,car:"手機條碼 /XY98+76",st:"ok",plat:"shopee"},
+    {o:"CP260530-7720",b:"吳＊霖",a:420,car:"待訂單完成",st:"wait",plat:"coupang"},
+    {o:"SP260530-0412",b:"劉＊瑄",a:1770,car:"會員載具",st:"ok",plat:"shopee"},
+  ];
+  const labels={ok:'已開立',wait:'未開立',manual:'手動開立'};
+  function render(){
+    const body=document.getElementById('invBody');
+    body.innerHTML=invoices.map((v,i)=>`
+      <tr>
+        <td class="ordno"><span class="plat ${v.plat}">${v.plat==='shopee'?'蝦皮':'酷澎'}</span>${v.o}</td>
+        <td>${v.b}</td>
+        <td class="amt">$${v.a.toLocaleString()}</td>
+        <td class="carrier">${v.car}</td>
+        <td><span class="pill ${v.st}">${labels[v.st]}</span></td>
+        <td style="text-align:right">${v.st==='wait'
+          ?`<button class="btn-issue" onclick="manual(${i})">手動開立</button>`
+          :`<button class="btn-issue" disabled>—</button>`}</td>
+      </tr>`).join('');
+    const c={ok:0,wait:0,manual:0};invoices.forEach(v=>c[v.st]++);
+    document.getElementById('s-total').textContent=invoices.length;
+    document.getElementById('s-ok').textContent=c.ok;
+    document.getElementById('s-wait').textContent=c.wait;
+    document.getElementById('s-man').textContent=c.manual;
+  }
+  function manual(i){invoices[i].st='manual';invoices[i].car='手動補開 · 會員載具';render();toast('已送出手動開立 → 關貿平台');}
+  render();
+
+  function show(v){
+    document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+    document.getElementById(v).classList.add('active');
+    document.getElementById('t-shop').classList.toggle('active',v==='shop');
+    document.getElementById('t-admin').classList.toggle('active',v==='admin');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  let tmr;
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tmr);tmr=setTimeout(()=>t.classList.remove('show'),2200);}
+</script>
+</body>
+</html>

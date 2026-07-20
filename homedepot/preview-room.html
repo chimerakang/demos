@@ -323,6 +323,7 @@
     <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5V12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V5.5M5 12v6.5C5 19.9 8.1 21 12 21s7-1.1 7-2.5V12"/></symbol>
     <symbol id="i-sofa" viewBox="0 0 24 24"><path d="M5.5 11V8.5a2.5 2.5 0 0 1 2.5-2.5h8a2.5 2.5 0 0 1 2.5 2.5V11M3.5 13.5a2 2 0 0 1 4 0V14h9v-.5a2 2 0 0 1 4 0V18h-17v-4.5zM6 18v1.5M18 18v1.5"/></symbol>
     <symbol id="i-pot" viewBox="0 0 24 24"><path d="M4.5 10.5h15V15a4 4 0 0 1-4 4h-7a4 4 0 0 1-4-4v-4.5zM3 10.5h18M9.5 7c0-1.3 5-1.3 5 0M10 3.5v1.4M14 3.5v1.4"/></symbol>
+    <symbol id="i-bath" viewBox="0 0 24 24"><path d="M3.5 12.5h17M5 12.5V6.6A1.9 1.9 0 0 1 6.9 4.7a1.8 1.8 0 0 1 1.8 1.8M4.5 12.5V15a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3v-2.5M6.5 18.5l-.7 1.8M17.5 18.5l.7 1.8M8 6.5h1.6"/></symbol>
     <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></symbol>
     <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M12 3.5a5.5 5.5 0 0 0-3.7 9.6c.8.7 1.2 1.4 1.2 2.4h5c0-1 .4-1.7 1.2-2.4A5.5 5.5 0 0 0 12 3.5zM9.5 18.5h5M10.5 21h3"/></symbol>
   </defs>
@@ -384,6 +385,7 @@
         <div class="cardtitle"><svg class="ic"><use href="#i-ruler"/></svg>空間與尺寸<span class="k">Space &amp; Size</span></div>
         <div class="seg" role="group" aria-label="空間類型">
           <button id="sp-living" class="active" onclick="setSpace('living')"><svg class="ic"><use href="#i-sofa"/></svg>客廳</button>
+          <button id="sp-bath" onclick="setSpace('bath')"><svg class="ic"><use href="#i-bath"/></svg>衛浴</button>
           <button id="sp-kitchen" onclick="setSpace('kitchen')"><svg class="ic"><use href="#i-pot"/></svg>廚房</button>
         </div>
         <div class="dimrow"><label for="dw">寬</label><input type="range" id="dw" min="3" max="8" step="0.1" value="4.6" oninput="setDim('w',this.value)"><output id="ow">4.6 m</output></div>
@@ -459,15 +461,21 @@ var CATALOG = {
     {id:"island", name:"中島吧台",             price:68000, unit:"座"},
     {id:"upper",  name:"吊櫃",                 price:3600,  unit:"尺"},
     {id:"hood",   name:"三機(爐具/油機/烘碗)", price:52000, unit:"組"}
+  ],
+  sanitary: [
+    {id:"tub",    name:"獨立浴缸", price:38000, unit:"座"},
+    {id:"shower", name:"淋浴拉門", price:24000, unit:"組"},
+    {id:"mirror", name:"鏡櫃",     price:8600,  unit:"尺"}
   ]
 };
 
 var TABS = [
-  {id:"floor",     name:"地板",     spaces:["living","kitchen"]},
-  {id:"wall",      name:"牆面",     spaces:["living","kitchen"]},
-  {id:"cabinet",   name:"櫃體",     spaces:["living","kitchen"]},
-  {id:"counter",   name:"檯面",     spaces:["kitchen"]},
-  {id:"appliance", name:"廚房設備", spaces:["kitchen"]}
+  {id:"floor",     name:"地板",     spaces:["living","kitchen","bath"]},
+  {id:"wall",      name:"牆面",     spaces:["living","kitchen","bath"]},
+  {id:"cabinet",   name:"櫃體",     spaces:["living","kitchen","bath"]},
+  {id:"counter",   name:"檯面",     spaces:["kitchen","bath"]},
+  {id:"appliance", name:"廚房設備", spaces:["kitchen"]},
+  {id:"sanitary",  name:"衛浴設備", spaces:["bath"]}
 ];
 
 /* Preset = 整組目錄選擇 + 家具配色盤 */
@@ -494,6 +502,7 @@ var state = {
   w:4.6, d:3.6, h:2.8,
   sel:{floor:"laminate", paint:"warm", finish:"latex", cabinet:"wood", counter:"woodtop"},
   appl:{island:true, upper:true, hood:true},
+  san:{tub:true, shower:false, mirror:true},
   style:"nordic",
   tab:"floor",
   yaw:-10, pitch:12, zoom:1
@@ -605,6 +614,33 @@ function sceneSpecs(){
     S.push({id:"tvcab",    w:cabW,d:.42, h:.50, x:0, z:-D/2+.23, c:door.c, cls:door.cls, br:3});
     S.push({id:"tv",       w:Math.min(1.35,cabW*.72), d:.06, h:.74, x:0, z:-D/2+.22, y:.52, c:pal.tv, br:3});
     S.push({id:"plant", type:"plant", x:W/2-.45, z:-D/2+.5, potC:pal.pot, leaf:pal.leaf, leaf2:pal.leaf2});
+  } else if(state.space==="bath"){
+    // 浴櫃 + 檯面 + 面盆(後牆左側)
+    var vanW=Math.min(W*0.42,1.25);
+    var vanX=-(W/2)+vanW/2+0.14;
+    S.push({id:"bvan",   w:vanW,     d:.52, h:.80, x:vanX, z:-D/2+.28, c:door.c, cls:door.cls, br:2});
+    S.push({id:"bvtop",  w:vanW+.06, d:.56, h:.05, x:vanX, z:-D/2+.28, y:.80, c:ctr.c, cls:ctr.cls, br:2});
+    S.push({id:"bbasin", w:Math.min(vanW*.52,.58), d:.34, h:.14, x:vanX, z:-D/2+.30, y:.85, c:"#f4f2ee", br:5});
+    S.push({id:"bfauc",  w:.05, d:.05, h:.18, x:vanX, z:-D/2+.14, y:.85, c:"#c9ccce"});
+    // 馬桶(後牆右側)
+    var toX=(W/2)-.5;
+    S.push({id:"btank",  w:.42, d:.18, h:.48, x:toX, z:-D/2+.17, c:"#f1f0ec", br:2});
+    S.push({id:"bbowl",  w:.42, d:.56, h:.40, x:toX, z:-D/2+.47, c:"#f4f3ef", br:7});
+    S.push({id:"blid",   w:.42, d:.50, h:.05, x:toX, z:-D/2+.45, y:.40, c:"#eae8e2", br:7});
+    // 獨立浴缸(前方左側,沿深度擺放)
+    if(state.san.tub){
+      var tubD=Math.min(1.65, D-1.2);
+      var tubZ=(D/2)-tubD/2-0.35;
+      S.push({id:"btub",   w:.80, d:tubD, h:.56, x:-(W/2)+.52, z:tubZ, c:"#eef1f0", br:6});
+      S.push({id:"btubIn", w:.60, d:Math.max(tubD-.26,.4), h:.10, x:-(W/2)+.52, z:tubZ, y:.50, c:"#dbe6e6", br:5});
+    }
+    // 淋浴間(前方右側,含玻璃隔間)
+    if(state.san.shower){
+      var shX=(W/2)-.58, shZ=(D/2)-.64;
+      S.push({id:"bstray", w:.96, d:.96, h:.06, x:shX, z:shZ, c:"#e7ebe9", br:1});
+      S.push({id:"bsgF",   w:.96, d:.04, h:1.95, x:shX, z:shZ+.46, c:"rgba(190,212,214,.22)", br:1});
+      S.push({id:"bsgS",   w:.04, d:.96, h:1.95, x:shX-.46, z:shZ, c:"rgba(190,212,214,.22)", br:1});
+    }
   } else {
     var run=Math.max(W-0.8,1.8);
     S.push({id:"kbase",  w:run, d:.62, h:.90, x:0, z:-D/2+.31, c:door.c, cls:door.cls, br:2});
@@ -695,6 +731,16 @@ function renderWallDeco(){
     var aw=.62*u, ah=.78*u;
     var aL=(W/2+W*.30)*u-aw/2, aT=(H-1.35)*u-ah;
     html+='<div class="deco art" style="left:'+aL+'px;top:'+aT+'px;width:'+aw+'px;height:'+ah+'px;background:linear-gradient(135deg,'+pal.art+' 55%,'+pal.art2+' 55%)"></div>';
+  } else if(state.space==="bath"){
+    if(state.san.mirror){
+      var door=find("cabinet",state.sel.cabinet);
+      var vanW=Math.min(W*0.42,1.25), vanX=-(W/2)+vanW/2+0.14;
+      var mw=Math.min(vanW+.08,1.2)*u, mh=.72*u;
+      var mL=(vanX+W/2)*u-mw/2, mT=(H-1.98)*u;
+      html+='<div class="deco" style="left:'+mL+'px;top:'+mT+'px;width:'+mw+'px;height:'+mh+'px;'+
+            'background:linear-gradient(155deg,#e7eef0 0%,#ccd8db 55%,#dde6e8 100%);'+
+            'border:3px solid '+shade(door.c,.9)+';border-radius:8px;box-shadow:inset 0 2px 10px rgba(255,255,255,.5)"></div>';
+    }
   } else {
     var run=Math.max(W-0.8,1.8);
     var ctr=find("counter",state.sel.counter);
@@ -723,6 +769,18 @@ function renderFloorDeco(){
     html+='<div class="deco shd" style="'+pos(0,zt,1.3,.85)+'"></div>';
     html+='<div class="deco shd" style="'+pos(0,-D/2+.25,clamp(W*.52,1.4,2.3)+.3,.6)+'"></div>';
     html+='<div class="deco shd" style="'+pos(W/2-.45,-D/2+.5,.8,.8)+'"></div>';
+  } else if(state.space==="bath"){
+    var vanW=Math.min(W*0.42,1.25), vanX=-(W/2)+vanW/2+0.14;
+    html+='<div class="deco rug" style="'+pos(vanX,-D/2+.95,Math.min(vanW+.2,W-.6),.6)+'background:'+rgba(pal.rug,.85)+'"></div>';
+    html+='<div class="deco shd" style="'+pos(vanX,-D/2+.30,vanW+.3,.7)+'"></div>';
+    html+='<div class="deco shd" style="'+pos((W/2)-.5,-D/2+.46,.66,.7)+'"></div>';
+    if(state.san.tub){
+      var tubD=Math.min(1.65,D-1.2), tubZ=(D/2)-tubD/2-.35;
+      html+='<div class="deco shd" style="'+pos(-(W/2)+.52,tubZ,1.0,tubD+.2)+'"></div>';
+    }
+    if(state.san.shower){
+      html+='<div class="deco shd" style="'+pos((W/2)-.58,(D/2)-.64,1.06,1.06)+'"></div>';
+    }
   } else {
     var run=Math.max(W-.8,1.8);
     html+='<div class="deco shd" style="'+pos(0,-D/2+.33,run+.3,.85)+'"></div>';
@@ -744,13 +802,14 @@ function renderTabs(){
     var ok=t.spaces.indexOf(state.space)>=0;
     var b=document.createElement("button");
     b.textContent=t.name; b.setAttribute("role","tab");
-    if(!ok){ b.disabled=true; b.title="廚房空間適用"; }
+    if(!ok){ b.disabled=true; b.title="此分類依空間啟用"; }
     if(t.id===state.tab) b.className="active";
     b.onclick=function(){ setTab(t.id); };
     bar.appendChild(b);
   });
   var note=$("tabnote");
-  if(state.space==="living"){ note.hidden=false; note.textContent="「檯面」「廚房設備」分類於廚房空間啟用。"; }
+  if(state.space==="living"){ note.hidden=false; note.textContent="「檯面」「廚房設備」「衛浴設備」依空間啟用。"; }
+  else if(state.space==="bath"){ note.hidden=false; note.textContent="「衛浴設備」可切換浴缸/淋浴/鏡櫃;「廚房設備」限廚房。"; }
   else note.hidden=true;
 }
 
@@ -774,7 +833,7 @@ function renderPane(){
       return '<button class="'+(state.sel.finish===it.id?"active":"")+'" onclick="pickItem(\'finish\',\''+it.id+'\')">'+it.name+'<em>NT$'+it.price.toLocaleString("en-US")+"/"+it.unit+'</em></button>';
     }).join("")+'</div>';
   } else if(state.tab==="cabinet"){
-    h='<p class="tiny" style="margin-bottom:9px">'+(state.space==="living"?"套用於:電視櫃":"套用於:廚下櫃/吊櫃/中島桶身")+'</p>';
+    h='<p class="tiny" style="margin-bottom:9px">'+(state.space==="living"?"套用於:電視櫃":state.space==="bath"?"套用於:浴櫃(面盆下櫃)":"套用於:廚下櫃/吊櫃/中島桶身")+'</p>';
     h+='<div class="chips">'+CATALOG.cabinet.map(function(it){
       var sw='<i class="'+it.cls+'-sw" style="position:absolute;inset:0;background-color:'+it.c+';background-image:repeating-linear-gradient(90deg,rgba(60,44,24,.22) 0 1.5px,transparent 1.5px 13px)"></i>';
       return chipHtml("cabinet",it,sw);
@@ -791,6 +850,12 @@ function renderPane(){
       var on=state.appl[it.id];
       return '<label class="tog'+(on?" on":"")+'"><span><strong>'+it.name+'</strong><em>NT$'+it.price.toLocaleString("en-US")+"/"+it.unit+'</em></span>'+
         '<input type="checkbox" '+(on?"checked":"")+' onchange="toggleAppl(\''+it.id+'\',this.checked)"><span class="sw2"></span></label>';
+    }).join("")+'</div>';
+  } else if(state.tab==="sanitary"){
+    h='<div class="togs">'+CATALOG.sanitary.map(function(it){
+      var on=state.san[it.id];
+      return '<label class="tog'+(on?" on":"")+'"><span><strong>'+it.name+'</strong><em>NT$'+it.price.toLocaleString("en-US")+"/"+it.unit+'</em></span>'+
+        '<input type="checkbox" '+(on?"checked":"")+' onchange="toggleSan(\''+it.id+'\',this.checked)"><span class="sw2"></span></label>';
     }).join("")+'</div>';
   }
   p.innerHTML=h;
@@ -841,6 +906,20 @@ function renderEstimate(){
   if(state.space==="living"){
     var chi=clamp(W*0.52,1.4,2.3)*CHI;
     add("電視櫃 · "+door.name, chi.toFixed(1)+" 尺 × NT$"+door.price.toLocaleString("en-US"), chi*door.price);
+  } else if(state.space==="bath"){
+    var vanW=Math.min(W*0.42,1.25), vanChi=vanW*CHI;
+    add("浴櫃 · "+door.name, vanChi.toFixed(1)+" 尺 × NT$"+door.price.toLocaleString("en-US"), vanChi*door.price);
+    var bctr=find("counter",state.sel.counter);
+    add("檯面 · "+bctr.name, vanChi.toFixed(1)+" 尺 × NT$"+bctr.price.toLocaleString("en-US"), vanChi*bctr.price);
+    CATALOG.sanitary.forEach(function(it){
+      if(!state.san[it.id]) return;
+      if(it.id==="mirror"){
+        var mc=Math.min(vanW+.08,1.2)*CHI;
+        add("鏡櫃", mc.toFixed(1)+" 尺 × NT$"+it.price.toLocaleString("en-US"), mc*it.price);
+      } else {
+        add(it.name, "1 "+it.unit+" × NT$"+it.price.toLocaleString("en-US"), it.price);
+      }
+    });
   } else {
     var run=Math.max(W-0.8,1.8), runChi=run*CHI;
     add("廚下櫃 · "+door.name, runChi.toFixed(1)+" 尺 × NT$"+door.price.toLocaleString("en-US"), runChi*door.price);
@@ -875,6 +954,7 @@ function setSpace(s){
   var t=TABS.filter(function(x){return x.id===state.tab;})[0];
   if(t && t.spaces.indexOf(s)<0) state.tab="floor";
   $("sp-living").classList.toggle("active",s==="living");
+  $("sp-bath").classList.toggle("active",s==="bath");
   $("sp-kitchen").classList.toggle("active",s==="kitchen");
   renderAll();
 }
@@ -891,6 +971,10 @@ function pickItem(cat,id){
 }
 function toggleAppl(id,on){
   state.appl[id]=!!on;
+  renderPane(); renderScene(); renderEstimate();
+}
+function toggleSan(id,on){
+  state.san[id]=!!on;
   renderPane(); renderScene(); renderEstimate();
 }
 function applyPreset(k){

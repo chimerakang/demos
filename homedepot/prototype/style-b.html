@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>好宅裝修 — 風格 B:暖陽畫廊 Gallery Warm</title>
+<style>
+  :root{
+    /* ============================================================
+       Art direction 風格 B「暖陽畫廊 Gallery Warm」
+       畫廊/樣品屋隱喻:極淺暖白空間,影像是絕對主角。
+       構圖置中對稱、卡片飄浮、大圓角、柔和大陰影、pill 導覽。
+       數字不用 serif,用 900/400 大字重對比說話。
+       ============================================================ */
+    --ivory:#faf8f4;          /* 象牙白:整個畫廊的空氣 */
+    --paper:#ffffff;          /* 卡片紙面 */
+    --ink:#2a2a26;            /* 炭墨 */
+    --ink-2:#55534b;          /* 次要文字(AA) */
+    --ink-3:#6f6d63;          /* 輔助文字(AA 5.0:1) */
+    --sage:#7fa08c;           /* 鼠尾草綠:裝飾面、選中光暈 */
+    --sage-deep:#44604f;      /* 深鼠尾草:按鈕/文字級(白字 6.6:1) */
+    --sage-ink:#33493c;
+    --sage-mist:#e4ece6;      /* 鼠尾草霧面 */
+    --sage-tint:#f0f4ef;
+    --apricot:#f0b08c;        /* 杏桃:小點綴、插畫裡的暖陽 */
+    --apricot-deep:#a85a28;   /* 杏桃深階:價格文字(4.8:1 AA) */
+    --apricot-mist:#fbe9db;
+    --sand:#efe7d8;
+    --ok:#177244; --ok-bg:#e4f3ea;
+    --warn:#8f4a1c; --warn-bg:#fbe9db;
+    --bad:#b3261e; --bad-bg:#fdecea;
+    --r-xl:32px; --r-lg:24px; --r-md:18px; --r-pill:999px;
+    --sh-float:0 2px 6px rgba(72,62,46,.05), 0 18px 44px rgba(72,62,46,.10);
+    --sh-hover:0 4px 10px rgba(72,62,46,.06), 0 28px 64px rgba(72,62,46,.14);
+    --sh-soft:0 1px 3px rgba(72,62,46,.05), 0 10px 26px rgba(72,62,46,.07);
+    --t:.2s ease-out;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;overflow-x:clip}
+  body{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+       background:var(--ivory);color:var(--ink);line-height:1.75;
+       -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:var(--sage-deep)}
+  ::selection{background:var(--apricot-mist)}
+  :focus-visible{outline:2.5px solid var(--sage-deep);outline-offset:3px;border-radius:4px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:720px;margin:0 auto}
+  .num{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+  /* ===== 圓潤線性圖示(stroke 2 / 圓端點,B 專屬重繪) ===== */
+  .ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;
+      stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-3.5px}
+  .ic.sm{width:15px;height:15px;vertical-align:-2.5px}
+  .ic.lg{width:26px;height:26px;stroke-width:1.8}
+
+  /* ===== 原型說明帶(極輕,不搶戲) ===== */
+  .proto{font-size:12.5px;color:var(--ink-3);padding:14px 0 0;text-align:center}
+  .proto .chip{display:inline-flex;align-items:center;gap:7px;background:var(--paper);
+       border:1px solid #eee7da;border-radius:var(--r-pill);padding:5px 16px;box-shadow:var(--sh-soft)}
+  .proto .chip b{color:var(--sage-deep);letter-spacing:.05em}
+  .proto a{margin-left:10px;white-space:nowrap}
+
+  /* ===== 懸浮 pill 導覽(畫廊語彙:飄浮在空間裡) ===== */
+  .navwrap{position:sticky;top:14px;z-index:40;display:flex;justify-content:center;padding:16px 12px 6px}
+  .pillnav{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.92);
+       backdrop-filter:blur(8px);border:1px solid #f0e9dc;border-radius:var(--r-pill);
+       padding:7px;box-shadow:var(--sh-float);max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .pillnav::-webkit-scrollbar{display:none}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:900;font-size:15px;
+       letter-spacing:.05em;padding:0 14px 0 8px;white-space:nowrap}
+  .brand .sun{width:30px;height:30px;flex:none;border-radius:50%;
+       background:radial-gradient(circle at 34% 32%,#f5c9ab,var(--apricot) 70%);
+       display:flex;align-items:center;justify-content:center;
+       color:#6b3a16;font-size:14px;font-weight:700}
+  .pillnav button{display:inline-flex;align-items:center;gap:7px;border:none;cursor:pointer;
+       background:transparent;color:var(--ink-2);font-size:14px;font-weight:500;
+       padding:9px 17px;border-radius:var(--r-pill);white-space:nowrap;
+       transition:background var(--t),color var(--t),box-shadow var(--t)}
+  .pillnav button:hover{background:var(--sage-tint);color:var(--sage-ink)}
+  .pillnav button.active{background:var(--sage-deep);color:#fff;font-weight:700;
+       box-shadow:0 6px 16px rgba(68,96,79,.28)}
+  .pillnav button .ic{width:16px;height:16px}
+
+  /* ===== 視圖切換 ===== */
+  .view{display:none;padding:34px 0 90px}
+  .view.active{display:block}
+
+  /* ===== 置中對稱的區塊標題(相對 A 的左對齊編號線) ===== */
+  .sec{text-align:center;margin:84px auto 30px;max-width:620px}
+  .sec .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;
+       letter-spacing:.22em;color:var(--sage-deep);text-transform:uppercase;
+       background:var(--sage-mist);border-radius:var(--r-pill);padding:5px 18px;margin-bottom:14px}
+  .sec h2{font-size:30px;font-weight:900;letter-spacing:.01em;line-height:1.35}
+  .sec p{color:var(--ink-2);font-size:15px;margin-top:8px}
+  .sec.first{margin-top:40px}
+
+  /* ===== 按鈕:全 pill ===== */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+       border:none;cursor:pointer;border-radius:var(--r-pill);
+       background:var(--sage-deep);color:#fff;font-size:15px;font-weight:700;
+       padding:13px 28px;letter-spacing:.02em;white-space:nowrap;
+       transition:background var(--t),transform var(--t),box-shadow var(--t);
+       box-shadow:0 8px 22px rgba(68,96,79,.24)}
+  .btn:hover{background:var(--sage-ink);transform:translateY(-2px);box-shadow:0 14px 30px rgba(68,96,79,.3)}
+  .btn:active{transform:translateY(0)}
+  .btn.ghost{background:var(--paper);color:var(--sage-deep);border:1.5px solid var(--sage-mist);
+       box-shadow:var(--sh-soft)}
+  .btn.ghost:hover{background:var(--sage-tint);border-color:var(--sage);box-shadow:var(--sh-soft)}
+  .btn.warm{background:var(--apricot);color:#5a3012;box-shadow:0 8px 22px rgba(240,176,140,.4)}
+  .btn.warm:hover{background:#eda478;box-shadow:0 14px 30px rgba(240,176,140,.5)}
+  .btn.sm{padding:9px 20px;font-size:13.5px}
+  .btn .ic{width:16px;height:16px}
+
+  .chiplet{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
+       border-radius:var(--r-pill);padding:3px 12px;white-space:nowrap;background:var(--sand);color:var(--ink-2)}
+  .chiplet.ok{background:var(--ok-bg);color:var(--ok)}
+  .chiplet.warn{background:var(--warn-bg);color:var(--warn)}
+  .chiplet.bad{background:var(--bad-bg);color:var(--bad)}
+  .chiplet.sage{background:var(--sage-mist);color:var(--sage-ink)}
+  .chiplet.warm{background:var(--apricot-mist);color:var(--apricot-deep)}
+
+  /* ===== Hero:置中大標 ===== */
+  .hero{text-align:center;padding:64px 20px 20px;position:relative}
+  .hero .halo{position:absolute;left:50%;top:-40px;transform:translateX(-50%);
+       width:min(560px,96vw);height:min(560px,96vw);border-radius:50%;pointer-events:none;
+       background:radial-gradient(circle,rgba(240,176,140,.20) 0%,rgba(240,176,140,.07) 45%,transparent 70%)}
+  .hero .eyebrow{position:relative;display:inline-flex;align-items:center;gap:8px;
+       background:var(--paper);border:1px solid #f0e9dc;box-shadow:var(--sh-soft);
+       border-radius:var(--r-pill);padding:7px 20px;font-size:13px;font-weight:700;
+       letter-spacing:.14em;color:var(--apricot-deep)}
+  .hero h1{position:relative;font-size:54px;font-weight:900;line-height:1.22;
+       letter-spacing:.015em;margin:26px 0 14px}
+  .hero h1 em{font-style:normal;color:var(--sage-deep);position:relative}
+  .hero h1 em::after{content:"";position:absolute;left:2%;right:2%;bottom:6px;height:14px;
+       background:var(--apricot-mist);border-radius:8px;z-index:-1}
+  .hero .sub{position:relative;color:var(--ink-2);font-size:17px;max-width:520px;margin:0 auto}
+  .hero .cta{position:relative;display:flex;gap:14px;justify-content:center;margin-top:32px;flex-wrap:wrap}
+  .hero .trust{position:relative;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+       margin-top:34px;font-size:13px;color:var(--ink-2)}
+  .hero .trust span{display:inline-flex;align-items:center;gap:7px;background:var(--paper);
+       border:1px solid #f0e9dc;border-radius:var(--r-pill);padding:6px 16px;box-shadow:var(--sh-soft)}
+  .hero .trust .ic{width:15px;height:15px;color:var(--sage-deep)}
+
+  /* ===== 滿版橫向捲動案例帶(scroll-snap)— B 的招牌構圖 ===== */
+  .strip-zone{margin-top:54px}
+  .strip{display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;
+       margin:0 calc(50% - 50vw);padding:14px max(24px,calc(50vw - 520px)) 34px;
+       scrollbar-width:none}
+  .strip::-webkit-scrollbar{display:none}
+  .gcard{flex:0 0 330px;scroll-snap-align:center;background:var(--paper);
+       border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-float);
+       transition:transform var(--t),box-shadow var(--t);cursor:pointer;border:none;
+       text-align:center;padding:0;font:inherit;color:inherit}
+  .gcard:hover{transform:translateY(-6px);box-shadow:var(--sh-hover)}
+  .gcard .ph{display:block;line-height:0}
+  .gcard .ph svg{display:block;width:100%;height:300px}   /* 影像佔卡片 ~75% */
+  .gcard .cap{padding:16px 20px 22px}
+  .gcard .cap .tags{display:flex;gap:6px;justify-content:center;margin-bottom:8px;flex-wrap:wrap}
+  .gcard .cap strong{display:block;font-size:17px;font-weight:800;letter-spacing:.01em}
+  .gcard .cap .meta{color:var(--ink-3);font-size:13px;margin-top:3px}
+  .strip-hint{text-align:center;color:var(--ink-3);font-size:12.5px;letter-spacing:.12em;margin-top:-16px}
+  .gcard.more{display:flex;align-items:center;justify-content:center;background:var(--sage-tint);
+       min-height:200px;box-shadow:none;border:1.5px dashed var(--sage)}
+  .gcard.more span{color:var(--sage-deep);font-weight:700;display:flex;flex-direction:column;gap:10px;align-items:center}
+
+  /* ===== 套餐:置中飄浮卡 ===== */
+  .pkgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px}
+  .pkg{position:relative;background:var(--paper);border-radius:var(--r-lg);padding:34px 26px 30px;
+       text-align:center;box-shadow:var(--sh-float);transition:transform var(--t),box-shadow var(--t)}
+  .pkg:hover{transform:translateY(-5px);box-shadow:var(--sh-hover)}
+  .pkg .pic{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;
+       background:var(--sage-mist);display:flex;align-items:center;justify-content:center;color:var(--sage-deep)}
+  .pkg .pic .ic{width:30px;height:30px;stroke-width:1.8}
+  .pkg h3{font-size:18px;font-weight:800}
+  .pkg p{color:var(--ink-2);font-size:13.5px;margin-top:6px;min-height:44px}
+  .pkg .price{margin-top:16px;font-weight:900;font-size:30px;color:var(--ink);letter-spacing:-.02em}
+  .pkg .price small{font-size:13px;font-weight:400;color:var(--ink-3);letter-spacing:.05em;margin-left:3px}
+  .pkg .hot{position:absolute;top:16px;right:16px}
+
+  /* ===== 案例詳情 ===== */
+  .case-head{text-align:center;padding-top:36px}
+  .case-head h1{font-size:38px;font-weight:900;letter-spacing:.015em;line-height:1.3;margin:14px 0 8px}
+  .case-head .facts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;font-size:13px;color:var(--ink-2)}
+  .case-head .facts span{background:var(--paper);border:1px solid #f0e9dc;border-radius:var(--r-pill);
+       padding:6px 16px;box-shadow:var(--sh-soft);display:inline-flex;gap:7px;align-items:center}
+  .case-head .facts .ic{width:15px;height:15px;color:var(--apricot-deep)}
+  .bigshot{margin-top:34px;border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-float);line-height:0}
+  .bigshot svg{width:100%;height:auto;display:block}
+
+  /* before / after 對比滑桿 */
+  .ba{position:relative;border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-float);line-height:0}
+  .ba svg{width:100%;height:auto;display:block}
+  .ba .after{position:absolute;inset:0}
+  .ba .divider{position:absolute;top:0;bottom:0;width:3px;background:#fff;
+       box-shadow:0 0 14px rgba(42,42,38,.35);pointer-events:none}
+  .ba .divider::after{content:"⇆";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+       width:40px;height:40px;background:#fff;border-radius:50%;color:var(--sage-deep);
+       font-size:17px;line-height:40px;text-align:center;box-shadow:0 4px 14px rgba(42,42,38,.25)}
+  .ba .tag{position:absolute;top:14px;font-size:12.5px;font-weight:700;line-height:1.6;
+       border-radius:var(--r-pill);padding:4px 14px;background:rgba(255,255,255,.94);color:var(--ink-2);
+       box-shadow:var(--sh-soft)}
+  .ba .tag.l{left:14px;color:var(--sage-ink)} .ba .tag.r{right:14px}
+  .ba-ctrl{display:flex;align-items:center;gap:14px;justify-content:center;margin-top:18px;color:var(--ink-2);font-size:13.5px}
+  input[type=range].baslider{-webkit-appearance:none;appearance:none;width:min(340px,60%);height:6px;
+       border-radius:3px;background:linear-gradient(90deg,var(--sage) 0%,var(--sage) 50%,var(--sand) 50%);outline-offset:6px}
+  input[type=range].baslider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+       background:#fff;border:3px solid var(--sage-deep);box-shadow:0 3px 10px rgba(42,42,38,.2);cursor:pointer}
+  input[type=range].baslider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;
+       background:#fff;border:3px solid var(--sage-deep);box-shadow:0 3px 10px rgba(42,42,38,.2);cursor:pointer}
+
+  /* 使用建材清單:圓潤列 */
+  .matlist{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px;margin:0 auto}
+  @media (max-width:640px){.matlist{grid-template-columns:1fr}}
+  .matrow{display:flex;align-items:center;gap:14px;background:var(--paper);border-radius:var(--r-md);
+       padding:14px 18px;box-shadow:var(--sh-soft)}
+  .matrow .dot{width:42px;height:42px;flex:none;border-radius:50%;display:flex;align-items:center;
+       justify-content:center;background:var(--apricot-mist);color:var(--apricot-deep)}
+  .matrow .dot.g{background:var(--sage-mist);color:var(--sage-deep)}
+  .matrow strong{font-size:14.5px;display:block}
+  .matrow .tiny{font-size:12.5px;color:var(--ink-3)}
+  .matrow .p{margin-left:auto;font-weight:800;font-size:14.5px;color:var(--apricot-deep);white-space:nowrap}
+  .case-cta{text-align:center;margin-top:44px;background:var(--paper);border-radius:var(--r-xl);
+       padding:44px 26px;box-shadow:var(--sh-float)}
+  .case-cta h3{font-size:22px;font-weight:900}
+  .case-cta p{color:var(--ink-2);font-size:14px;margin:8px 0 20px}
+
+  /* ===== 報價比較:卡片畫廊(不是表格) ===== */
+  .qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;align-items:start}
+  .qcard{background:var(--paper);border-radius:var(--r-lg);box-shadow:var(--sh-float);
+       padding:28px 24px 24px;text-align:center;position:relative;
+       transition:transform var(--t),box-shadow var(--t)}
+  .qcard:hover{transform:translateY(-4px);box-shadow:var(--sh-hover)}
+  .qcard.reco{box-shadow:0 0 0 2.5px var(--sage),var(--sh-hover)}
+  .qcard .ribbon{position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+       background:var(--sage-deep);color:#fff;font-size:12.5px;font-weight:700;
+       border-radius:var(--r-pill);padding:5px 18px;letter-spacing:.08em;box-shadow:0 6px 16px rgba(68,96,79,.3)}
+  .qcard .vname{font-size:18px;font-weight:800;margin-top:4px}
+  .qcard .vmeta{font-size:12.5px;color:var(--ink-3);margin:4px 0 6px}
+  .qcard .vbadges{display:flex;gap:6px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+  .qcard .total{font-size:34px;font-weight:900;letter-spacing:-.02em;line-height:1.2}
+  .qcard .total small{font-size:13px;font-weight:400;color:var(--ink-3);letter-spacing:.05em}
+  .qcard .cover{display:flex;gap:5px;justify-content:center;margin:10px 0 4px}
+  .qcard .cover i{width:9px;height:9px;border-radius:50%;background:var(--sage)}
+  .qcard .cover i.off{background:#e5ddcc}
+  .qcard .coverlbl{font-size:12px;color:var(--ink-3);margin-bottom:14px}
+  .qcard .coverlbl.bad{color:var(--bad);font-weight:700}
+  .qcard ul{list-style:none;text-align:left;margin:6px 0 14px;border-top:1px solid #f3ecdf}
+  .qcard li{display:flex;align-items:baseline;gap:8px;justify-content:space-between;
+       padding:9px 2px;border-bottom:1px solid #f3ecdf;font-size:13.5px;color:var(--ink-2)}
+  .qcard li .amt{font-weight:700;color:var(--ink);white-space:nowrap}
+  .qcard li .misslbl{display:block;font-size:11.5px}
+  .qcard .terms{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:12.5px;
+       color:var(--ink-2);margin-bottom:18px}
+  .qcard .terms span{background:var(--ivory);border-radius:var(--r-pill);padding:4px 13px}
+  .qcard .acts{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+
+  /* ===== 建材選擇:畫框式三等級 ===== */
+  .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
+  .tier{background:var(--paper);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;
+       box-shadow:var(--sh-soft);text-align:center;position:relative;border:none;padding:0;font:inherit;color:inherit;
+       transition:transform var(--t),box-shadow var(--t)}
+  .tier:hover{transform:translateY(-4px);box-shadow:var(--sh-float)}
+  .tier.sel{box-shadow:0 0 0 2.5px var(--sage),var(--sh-hover);transform:translateY(-4px)}
+  .tier .ph{line-height:0;padding:12px 12px 0}
+  .tier .ph svg{display:block;width:100%;height:150px;border-radius:var(--r-md)}
+  .tier .body{padding:16px 20px 24px}
+  .tier h3{font-size:17px;font-weight:800;margin-top:8px}
+  .tier .tiny{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+  .tier .price{margin-top:12px;font-weight:900;font-size:26px;letter-spacing:-.02em}
+  .tier .price small{font-size:12.5px;font-weight:400;color:var(--ink-3);letter-spacing:.04em}
+  .tier .pick{position:absolute;top:22px;right:22px;width:30px;height:30px;border-radius:50%;
+       background:rgba(255,255,255,.92);box-shadow:var(--sh-soft);display:flex;
+       align-items:center;justify-content:center;color:#cfc8b8;transition:background var(--t),color var(--t)}
+  .tier.sel .pick{background:var(--sage-deep);color:#fff}
+  .sumbar{position:sticky;bottom:18px;margin-top:30px;display:flex;align-items:center;gap:16px;
+       flex-wrap:wrap;justify-content:space-between;background:rgba(255,255,255,.95);
+       backdrop-filter:blur(8px);border:1px solid #f0e9dc;border-radius:var(--r-lg);
+       padding:16px 22px;box-shadow:var(--sh-hover)}
+  .sumbar .lbl{font-size:13px;color:var(--ink-3)}
+  .sumbar strong{font-size:15px}
+  .sumbar .delta{font-size:26px;font-weight:900;letter-spacing:-.02em;color:var(--apricot-deep)}
+
+  /* 提示 toast */
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,80px);z-index:60;
+       background:var(--ink);color:#fdfbf7;font-size:14px;border-radius:var(--r-pill);
+       padding:12px 26px;box-shadow:0 16px 40px rgba(42,42,38,.35);opacity:0;
+       transition:transform .3s ease,opacity .3s ease;pointer-events:none}
+  .toast.show{transform:translate(-50%,0);opacity:1}
+
+  footer{padding:56px 0 60px;color:var(--ink-3);font-size:12.5px;text-align:center;letter-spacing:.06em}
+  footer .sun{display:block;width:34px;height:34px;margin:0 auto 12px;border-radius:50%;
+       background:radial-gradient(circle at 34% 32%,#f5c9ab,var(--apricot) 72%)}
+
+  @media (max-width:640px){
+    .wrap{padding:0 18px}
+    .hero{padding-top:40px}
+    .hero h1{font-size:34px}
+    .hero .sub{font-size:15px}
+    .brand span{display:none}
+    .brand{padding:0 6px 0 4px}
+    .pillnav button{padding:9px 12px;font-size:13px}
+    .pillnav button .ic{display:none}
+    .sec{margin-top:62px}
+    .sec h2{font-size:24px}
+    .case-head h1{font-size:27px}
+    .gcard{flex-basis:280px}
+    .gcard .ph svg{height:250px}
+    .qcard .total{font-size:30px}
+    .sumbar{justify-content:center;text-align:center}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 圓潤線性圖示庫(stroke 2 / 圓端點)===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="b-home" viewBox="0 0 24 24"><path d="M4.5 10.6 11 5.1a1.5 1.5 0 0 1 2 0l6.5 5.5M6.6 9.4v9.1a1.8 1.8 0 0 0 1.8 1.8h7.2a1.8 1.8 0 0 0 1.8-1.8V9.4M10.2 20v-4.2a1.8 1.8 0 0 1 3.6 0V20"/></symbol>
+    <symbol id="b-image" viewBox="0 0 24 24"><rect x="3.8" y="4.8" width="16.4" height="14.4" rx="3.4"/><circle cx="9.2" cy="10" r="1.7"/><path d="M4.6 17.2l4.6-4.4a1.6 1.6 0 0 1 2.2 0l5 4.8M14.6 15.4l1.8-1.7a1.6 1.6 0 0 1 2.2 0l1.5 1.4"/></symbol>
+    <symbol id="b-scale" viewBox="0 0 24 24"><path d="M12 4.5v15M8.6 19.5h6.8M5 7.2h14M7.3 7.2 5.2 12a2.6 2.6 0 0 0 4.4 0L7.5 7.2zM16.7 7.2 14.6 12a2.6 2.6 0 0 0 4.4 0l-2.1-4.8z"/></symbol>
+    <symbol id="b-layers" viewBox="0 0 24 24"><path d="M11.2 4.3a1.8 1.8 0 0 1 1.6 0l6.6 3.2a.6.6 0 0 1 0 1.1l-6.6 3.2a1.8 1.8 0 0 1-1.6 0L4.6 8.6a.6.6 0 0 1 0-1.1l6.6-3.2zM4.5 12.4l6.7 3.2a1.8 1.8 0 0 0 1.6 0l6.7-3.2M4.5 16.2l6.7 3.2a1.8 1.8 0 0 0 1.6 0l6.7-3.2"/></symbol>
+    <symbol id="b-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 3.2v1.9M12 18.9v1.9M3.2 12h1.9M18.9 12h1.9M5.8 5.8l1.3 1.3M16.9 16.9l1.3 1.3M18.2 5.8l-1.3 1.3M7.1 16.9l-1.3 1.3"/></symbol>
+    <symbol id="b-check" viewBox="0 0 24 24"><path d="M5.2 12.8l4.4 4.4L18.8 7"/></symbol>
+    <symbol id="b-shield" viewBox="0 0 24 24"><path d="M12 3.8l6.2 2.4a.9.9 0 0 1 .6.9v4.1c0 4.4-3 7.2-6.4 8.5a1.2 1.2 0 0 1-.8 0C8.2 18.4 5.2 15.6 5.2 11.2V7.1a.9.9 0 0 1 .6-.9L12 3.8zM9.4 11.9l1.9 1.9 3.5-3.7"/></symbol>
+    <symbol id="b-star" viewBox="0 0 24 24"><path d="M12 4.6l2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7-3.4-3.3 4.7-.7L12 4.6z"/></symbol>
+    <symbol id="b-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.8"/><path d="M12 8v4.2l2.8 1.8"/></symbol>
+    <symbol id="b-pin" viewBox="0 0 24 24"><path d="M12 20.5c3.4-3.4 6.3-6.8 6.3-10.1a6.3 6.3 0 0 0-12.6 0c0 3.3 2.9 6.7 6.3 10.1z"/><circle cx="12" cy="10.2" r="2.3"/></symbol>
+    <symbol id="b-leaf" viewBox="0 0 24 24"><path d="M6 18.5C6 10.5 11.5 5.5 19.4 5.2c.3 8-4.6 13.6-13.4 13.3zM6 18.5C9.4 13.6 12.7 10.4 16.4 8"/></symbol>
+    <symbol id="b-ruler" viewBox="0 0 24 24"><rect x="1.9" y="9.4" width="20.2" height="5.6" rx="1.6" transform="rotate(-45 12 12)"/><path d="M8.4 12.8l1.4 1.4M11.2 10l1.4 1.4M14 7.2l1.4 1.4"/></symbol>
+    <symbol id="b-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13.4 6.4l5.6 5.6-5.6 5.6"/></symbol>
+    <symbol id="b-arrow-l" viewBox="0 0 24 24"><path d="M19 12H5M10.6 6.4 5 12l5.6 5.6"/></symbol>
+    <symbol id="b-bath" viewBox="0 0 24 24"><path d="M4.4 12.6h15.2v2.2a4.4 4.4 0 0 1-4.4 4.4H8.8a4.4 4.4 0 0 1-4.4-4.4v-2.2zM6.8 12.6V6.9a2.3 2.3 0 0 1 4.5-.6M7.6 19.4l-.9 1.6M16.4 19.4l.9 1.6"/></symbol>
+    <symbol id="b-pot" viewBox="0 0 24 24"><path d="M4.8 10.8h14.4v3.6a4.6 4.6 0 0 1-4.6 4.6h-5.2a4.6 4.6 0 0 1-4.6-4.6v-3.6zM3.4 10.8h17.2M9.8 7.3c0-1.2 4.4-1.2 4.4 0M10.3 4v1.3M13.7 4v1.3"/></symbol>
+    <symbol id="b-brush" viewBox="0 0 24 24"><path d="M4.5 14.5h15v2.6a2.4 2.4 0 0 1-2.4 2.4H6.9a2.4 2.4 0 0 1-2.4-2.4v-2.6zM6.6 14.5V6.3a1.8 1.8 0 0 1 1.8-1.8h7.2a1.8 1.8 0 0 1 1.8 1.8v8.2M10.8 19.5v1.7"/></symbol>
+    <symbol id="b-lock" viewBox="0 0 24 24"><rect x="5.4" y="10.6" width="13.2" height="9" rx="2.6"/><path d="M8.2 10.6V8.3a3.8 3.8 0 0 1 7.6 0v2.3M12 14v2.2"/></symbol>
+    <symbol id="b-spark" viewBox="0 0 24 24"><path d="M12 4l1.8 4.7a1.2 1.2 0 0 0 .7.7L19 11.2l-4.5 1.8a1.2 1.2 0 0 0-.7.7L12 18.4l-1.8-4.7a1.2 1.2 0 0 0-.7-.7L5 11.2l4.5-1.8a1.2 1.2 0 0 0 .7-.7L12 4zM18.6 16.2v3.6M16.8 18h3.6"/></symbol>
+    <symbol id="b-cam" viewBox="0 0 24 24"><path d="M4.4 8.6a2 2 0 0 1 2-2h1.4l1.4-2h5.6l1.4 2h1.4a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6.4a2 2 0 0 1-2-2V8.6z"/><circle cx="12" cy="12.6" r="3.1"/></symbol>
+    <symbol id="b-doc" viewBox="0 0 24 24"><path d="M7 3.9h6.8L18.6 8v10.4a1.8 1.8 0 0 1-1.8 1.8H7a1.8 1.8 0 0 1-1.8-1.8V5.7A1.8 1.8 0 0 1 7 3.9zM13.4 4.2V8.4h4.4M9 13h6M9 16.4h6"/></symbol>
+  </defs>
+</svg>
+
+<!-- 原型說明帶 -->
+<div class="proto">
+  <span class="chip">
+    <svg class="ic sm"><use href="#b-sun"/></svg>
+    設計提案 <b>風格 B:暖陽畫廊 Gallery Warm</b>
+    <a href="index.html">查看風格 A:深綠編輯誌 →</a>
+  </span>
+</div>
+
+<!-- 懸浮 pill 導覽 -->
+<div class="navwrap">
+  <nav class="pillnav" aria-label="主導覽">
+    <span class="brand"><span class="sun" aria-hidden="true">家</span><span>好宅裝修</span></span>
+    <button class="active" data-v="v-home" onclick="go('v-home')"><svg class="ic" aria-hidden="true"><use href="#b-home"/></svg>首頁</button>
+    <button data-v="v-case" onclick="go('v-case')"><svg class="ic" aria-hidden="true"><use href="#b-image"/></svg>案例故事</button>
+    <button data-v="v-compare" onclick="go('v-compare')"><svg class="ic" aria-hidden="true"><use href="#b-scale"/></svg>比報價</button>
+    <button data-v="v-material" onclick="go('v-material')"><svg class="ic" aria-hidden="true"><use href="#b-layers"/></svg>選建材</button>
+  </nav>
+</div>
+
+<main>
+
+<!-- ============ 1. 首頁 ============ -->
+<section class="view active" id="v-home">
+  <div class="hero">
+    <div class="halo" aria-hidden="true"></div>
+    <span class="eyebrow"><svg class="ic sm"><use href="#b-sun"/></svg>台灣裝修媒合平台</span>
+    <h1>把家,<br>交給<em>對的人</em></h1>
+    <p class="sub">結構化報價比較 × 分期託管付款 × 完工才付尾款<br>像逛畫廊一樣,先看見完成後的樣子。</p>
+    <div class="cta">
+      <button class="btn" onclick="toast('原型示意:進入需求精靈(見風格 A 完整流程)')">免費取得報價<svg class="ic"><use href="#b-arrow-r"/></svg></button>
+      <button class="btn ghost" onclick="go('v-case')">先逛逛靈感</button>
+    </div>
+    <div class="trust">
+      <span><svg class="ic"><use href="#b-shield"/></svg>1,200+ 家已驗證業者</span>
+      <span><svg class="ic"><use href="#b-lock"/></svg>平台託管,驗收才撥款</span>
+      <span><svg class="ic"><use href="#b-star"/></svg>真實成交評價</span>
+    </div>
+  </div>
+
+  <!-- 滿版橫向捲動案例帶 -->
+  <div class="strip-zone">
+    <div class="strip" tabindex="0" aria-label="完工案例畫廊,可左右捲動">
+      <button class="gcard" onclick="go('v-case')">
+        <span class="ph"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="北歐風客廳插畫:暖陽照進拱窗">
+          <rect width="400" height="300" fill="#f6f0e5"/>
+          <path d="M262 218v-96a58 58 0 0 1 116 0v96z" fill="#e9f0ea"/>
+          <circle cx="320" cy="128" r="27" fill="#f0b08c"/>
+          <path d="M266 176h108" stroke="#cfe0d5" stroke-width="3" stroke-linecap="round"/>
+          <rect y="218" width="400" height="82" fill="#eeddc2"/>
+          <path d="M0 246h400M0 274h400" stroke="#e0cba8" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="150" cy="252" rx="105" ry="17" fill="#f6e8d6"/>
+          <rect x="66" y="132" width="140" height="36" rx="17" fill="#b7cbbd"/>
+          <rect x="58" y="160" width="156" height="48" rx="21" fill="#9db8a6"/>
+          <circle cx="92" cy="164" r="14" fill="#f0b08c"/>
+          <circle cx="122" cy="166" r="12" fill="#f5c9ab"/>
+          <rect x="70" y="206" width="10" height="14" rx="4" fill="#caa27c"/>
+          <rect x="192" y="206" width="10" height="14" rx="4" fill="#caa27c"/>
+          <path d="M238 160c0 12-9 21-9 34h-18c0-13-9-22-9-34a18 18 0 0 1 36 0z" fill="#e2a97e"/>
+          <rect x="216" y="196" width="26" height="22" rx="9" fill="#d99b6c"/>
+          <line x1="126" y1="0" x2="126" y2="52" stroke="#c9b697" stroke-width="3" stroke-linecap="round"/>
+          <path d="M104 52h44a22 22 0 0 1-44 0z" fill="#f5c9ab"/>
+          <ellipse cx="36" cy="182" rx="10" ry="20" fill="#7fa08c"/>
+          <ellipse cx="24" cy="190" rx="8" ry="15" fill="#a9c0b1" transform="rotate(-24 24 190)"/>
+          <ellipse cx="48" cy="190" rx="8" ry="15" fill="#a9c0b1" transform="rotate(24 48 190)"/>
+          <rect x="24" y="208" width="26" height="22" rx="8" fill="#e2a97e"/>
+        </svg></span>
+        <span class="cap">
+          <span class="tags"><span class="chiplet sage">台北 · 北歐風</span><span class="chiplet">木質調</span></span>
+          <strong>25坪北歐風老屋翻新</strong>
+          <span class="meta">總價 NT$180萬 · 75 天完工</span>
+        </span>
+      </button>
+      <button class="gcard" onclick="go('v-case')">
+        <span class="ph"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="現代廚房插畫:鼠尾草綠磁磚與吊燈">
+          <rect width="400" height="300" fill="#f2ece0"/>
+          <rect y="60" width="400" height="96" fill="#dfe9e1"/>
+          <path d="M50 60v96M100 60v96M150 60v96M200 60v96M250 60v96M300 60v96M350 60v96M0 108h400" stroke="#cfe0d5" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="330" cy="34" r="20" fill="#f0b08c"/>
+          <rect x="24" y="156" width="352" height="30" rx="14" fill="#e8c9a8"/>
+          <rect x="34" y="186" width="332" height="76" rx="16" fill="#f8f4ec"/>
+          <path d="M118 192v64M202 192v64M286 192v64" stroke="#eee5d4" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="76" cy="222" r="5" fill="#f0b08c"/><circle cx="160" cy="222" r="5" fill="#f0b08c"/>
+          <circle cx="244" cy="222" r="5" fill="#f0b08c"/><circle cx="328" cy="222" r="5" fill="#f0b08c"/>
+          <rect x="150" y="128" width="52" height="28" rx="10" fill="#9db8a6"/>
+          <path d="M162 116c4-6-4-10 0-16M182 116c4-6-4-10 0-16" stroke="#c9b697" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <line x1="258" y1="0" x2="258" y2="96" stroke="#c9b697" stroke-width="3" stroke-linecap="round"/>
+          <path d="M240 96h36a18 18 0 0 1-36 0z" fill="#f5c9ab"/>
+          <circle cx="262" cy="146" r="11" fill="#e2a97e"/>
+          <rect y="262" width="400" height="38" fill="#eeddc2"/>
+        </svg></span>
+        <span class="cap">
+          <span class="tags"><span class="chiplet sage">新北 · 現代風</span></span>
+          <strong>廚房局部改造</strong>
+          <span class="meta">總價 NT$45萬 · 21 天完工</span>
+        </span>
+      </button>
+      <button class="gcard" onclick="go('v-case')">
+        <span class="ph"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="浴室插畫:圓鏡與白色浴缸">
+          <rect width="400" height="300" fill="#eef2ec"/>
+          <path d="M50 0v190M100 0v190M150 0v190M200 0v190M250 0v190M300 0v190M350 0v190M0 48h400M0 96h400M0 144h400" stroke="#dfe9e1" stroke-width="3" stroke-linecap="round"/>
+          <rect y="190" width="400" height="110" fill="#f6efe2"/>
+          <circle cx="310" cy="86" r="34" fill="#fdfbf6"/>
+          <circle cx="310" cy="86" r="34" fill="none" stroke="#9db8a6" stroke-width="4"/>
+          <path d="M272 148h76" stroke="#c9b697" stroke-width="3" stroke-linecap="round"/>
+          <rect x="292" y="150" width="36" height="42" rx="8" fill="#f0b08c"/>
+          <path d="M84 148v-26M84 122h20M98 128v4M106 134v4" stroke="#9db8a6" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M58 152h188a10 10 0 0 1 10 10v8a30 30 0 0 1-30 30H78a30 30 0 0 1-30-30v-8a10 10 0 0 1 10-10z" fill="#fdfbf6"/>
+          <path d="M84 202l-7 18M220 202l7 18" stroke="#d9cbb4" stroke-width="4" stroke-linecap="round"/>
+          <ellipse cx="42" cy="170" rx="9" ry="17" fill="#7fa08c"/>
+          <ellipse cx="30" cy="177" rx="7" ry="13" fill="#a9c0b1" transform="rotate(-22 30 177)"/>
+          <ellipse cx="54" cy="177" rx="7" ry="13" fill="#a9c0b1" transform="rotate(22 54 177)"/>
+          <rect x="30" y="192" width="26" height="22" rx="8" fill="#e2a97e"/>
+          <circle cx="196" cy="40" r="16" fill="#f5c9ab"/>
+        </svg></span>
+        <span class="cap">
+          <span class="tags"><span class="chiplet warm">套餐 · 14 天</span></span>
+          <strong>浴室乾濕分離套餐</strong>
+          <span class="meta">套餐價 NT$28萬起</span>
+        </span>
+      </button>
+      <button class="gcard more" onclick="go('v-case')">
+        <span><svg class="ic lg"><use href="#b-image"/></svg>查看更多完工案例</span>
+      </button>
+    </div>
+    <p class="strip-hint">← 左右滑動,逛逛完工案例 →</p>
+  </div>
+
+  <!-- 套餐 -->
+  <div class="wrap">
+    <div class="sec">
+      <span class="eyebrow">Packages</span>
+      <h2>標準化套餐</h2>
+      <p>不懂裝修也能選 — 範圍、建材、工期都先幫你定義好</p>
+    </div>
+    <div class="pkgs">
+      <div class="pkg">
+        <span class="hot chiplet warm">熱門</span>
+        <span class="pic"><svg class="ic"><use href="#b-bath"/></svg></span>
+        <h3>浴室翻新套餐</h3>
+        <p>拆除+防水+磁磚+衛浴設備,三種建材等級</p>
+        <div class="price num">NT$28萬<small>起</small></div>
+      </div>
+      <div class="pkg">
+        <span class="pic"><svg class="ic"><use href="#b-pot"/></svg></span>
+        <h3>廚房翻新套餐</h3>
+        <p>廚具+水電移位+壁面,含三機設備選配</p>
+        <div class="price num">NT$35萬<small>起</small></div>
+      </div>
+      <div class="pkg">
+        <span class="pic"><svg class="ic"><use href="#b-brush"/></svg></span>
+        <h3>全室粉刷+地板</h3>
+        <p>快速換新,7 天完工,租屋翻新首選</p>
+        <div class="price num">NT$12萬<small>起</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. 案例詳情 ============ -->
+<section class="view" id="v-case">
+  <div class="wrap">
+    <div class="case-head">
+      <span class="chiplet sage">完工案例 · 已驗收</span>
+      <h1>25坪北歐風老屋翻新</h1>
+      <div class="facts">
+        <span><svg class="ic"><use href="#b-pin"/></svg>台北市大安區</span>
+        <span><svg class="ic"><use href="#b-ruler"/></svg>25 坪 · 屋齡 32 年</span>
+        <span><svg class="ic"><use href="#b-clock"/></svg>工期 75 天</span>
+        <span><svg class="ic"><use href="#b-doc"/></svg>總價 NT$180萬</span>
+      </div>
+    </div>
+
+    <div class="narrow">
+      <div class="bigshot" role="img" aria-label="完工主圖:北歐風客廳,暖陽照進拱窗">
+        <svg viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice">
+          <rect width="800" height="460" fill="#f7f1e6"/>
+          <path d="M520 330V182a92 92 0 0 1 184 0v148z" fill="#e9f0ea"/>
+          <circle cx="612" cy="190" r="42" fill="#f0b08c"/>
+          <path d="M528 262h168" stroke="#cfe0d5" stroke-width="4" stroke-linecap="round"/>
+          <rect y="330" width="800" height="130" fill="#eeddc2"/>
+          <path d="M0 372h800M0 416h800" stroke="#e0cba8" stroke-width="4" stroke-linecap="round"/>
+          <ellipse cx="290" cy="382" rx="200" ry="26" fill="#f6e8d6"/>
+          <rect x="128" y="202" width="264" height="58" rx="27" fill="#b7cbbd"/>
+          <rect x="112" y="248" width="296" height="76" rx="32" fill="#9db8a6"/>
+          <circle cx="176" cy="252" r="24" fill="#f0b08c"/>
+          <circle cx="232" cy="256" r="20" fill="#f5c9ab"/>
+          <rect x="134" y="320" width="16" height="22" rx="6" fill="#caa27c"/>
+          <rect x="366" y="320" width="16" height="22" rx="6" fill="#caa27c"/>
+          <path d="M470 240c0 20-15 34-15 54h-30c0-20-15-34-15-54a30 30 0 0 1 60 0z" fill="#e2a97e"/>
+          <rect x="432" y="298" width="42" height="34" rx="13" fill="#d99b6c"/>
+          <line x1="252" y1="0" x2="252" y2="84" stroke="#c9b697" stroke-width="4" stroke-linecap="round"/>
+          <path d="M216 84h72a36 36 0 0 1-72 0z" fill="#f5c9ab"/>
+          <path d="M60 152h130" stroke="#c9b697" stroke-width="4" stroke-linecap="round"/>
+          <rect x="76" y="116" width="22" height="36" rx="7" fill="#a9c0b1"/>
+          <rect x="112" y="106" width="18" height="46" rx="7" fill="#f0b08c"/>
+          <rect x="144" y="122" width="26" height="30" rx="8" fill="#e9dfcf"/>
+          <ellipse cx="58" cy="292" rx="15" ry="32" fill="#7fa08c"/>
+          <ellipse cx="38" cy="304" rx="12" ry="24" fill="#a9c0b1" transform="rotate(-24 38 304)"/>
+          <ellipse cx="78" cy="304" rx="12" ry="24" fill="#a9c0b1" transform="rotate(24 78 304)"/>
+          <rect x="38" y="332" width="40" height="34" rx="12" fill="#e2a97e"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="sec">
+      <span class="eyebrow">Before / After</span>
+      <h2>拖曳看施工前後</h2>
+      <p>32 年老屋 → 木質調北歐親子宅</p>
+    </div>
+    <div class="narrow">
+      <div class="ba" id="ba">
+        <svg viewBox="0 0 800 440" preserveAspectRatio="xMidYMid slice" role="img" aria-label="施工前:老舊客廳,牆面斑駁">
+          <rect width="800" height="440" fill="#e5ddcb"/>
+          <rect y="316" width="800" height="124" fill="#c9b797"/>
+          <path d="M0 356h800M0 398h800" stroke="#b9a686" stroke-width="3"/>
+          <rect x="540" y="120" width="150" height="150" fill="#d8d2c2"/>
+          <path d="M540 195h150M615 120v150" stroke="#c1baa8" stroke-width="5"/>
+          <path d="M120 60l30 46-16 40 26 34M300 100l-22 38 30 30" stroke="#c4b89c" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <line x1="260" y1="0" x2="260" y2="70" stroke="#a99a7d" stroke-width="3"/>
+          <circle cx="260" cy="86" r="16" fill="#e8d9a8"/>
+          <rect x="90" y="256" width="130" height="60" fill="#bcae92"/>
+          <rect x="102" y="216" width="106" height="40" fill="#cbbfa3"/>
+          <rect x="360" y="276" width="90" height="40" fill="#b1a288"/>
+          <path d="M368 276l14-24h44l16 24" fill="none" stroke="#9d8f74" stroke-width="3"/>
+          <ellipse cx="480" cy="330" rx="60" ry="9" fill="#b9a686" opacity=".6"/>
+        </svg>
+        <div class="after" id="ba-after" style="clip-path:inset(0 50% 0 0)">
+          <svg viewBox="0 0 800 440" preserveAspectRatio="xMidYMid slice" role="img" aria-label="施工後:明亮北歐客廳">
+            <rect width="800" height="440" fill="#f7f1e6"/>
+            <path d="M520 316V178a88 88 0 0 1 176 0v138z" fill="#e9f0ea"/>
+            <circle cx="608" cy="184" r="40" fill="#f0b08c"/>
+            <path d="M528 252h160" stroke="#cfe0d5" stroke-width="4" stroke-linecap="round"/>
+            <rect y="316" width="800" height="124" fill="#eeddc2"/>
+            <path d="M0 356h800M0 398h800" stroke="#e0cba8" stroke-width="4" stroke-linecap="round"/>
+            <ellipse cx="270" cy="366" rx="185" ry="24" fill="#f6e8d6"/>
+            <rect x="120" y="196" width="248" height="54" rx="25" fill="#b7cbbd"/>
+            <rect x="104" y="238" width="280" height="72" rx="30" fill="#9db8a6"/>
+            <circle cx="166" cy="242" r="22" fill="#f0b08c"/>
+            <circle cx="218" cy="246" r="18" fill="#f5c9ab"/>
+            <rect x="126" y="306" width="15" height="20" rx="6" fill="#caa27c"/>
+            <rect x="344" y="306" width="15" height="20" rx="6" fill="#caa27c"/>
+            <line x1="244" y1="0" x2="244" y2="78" stroke="#c9b697" stroke-width="4" stroke-linecap="round"/>
+            <path d="M210 78h68a34 34 0 0 1-68 0z" fill="#f5c9ab"/>
+            <ellipse cx="452" cy="272" rx="14" ry="30" fill="#7fa08c"/>
+            <ellipse cx="434" cy="284" rx="11" ry="22" fill="#a9c0b1" transform="rotate(-24 434 284)"/>
+            <ellipse cx="470" cy="284" rx="11" ry="22" fill="#a9c0b1" transform="rotate(24 470 284)"/>
+            <rect x="434" y="310" width="37" height="30" rx="11" fill="#e2a97e"/>
+          </svg>
+        </div>
+        <div class="divider" id="ba-line" style="left:50%"></div>
+        <span class="tag l">施工後</span>
+        <span class="tag r">施工前</span>
+      </div>
+      <div class="ba-ctrl">
+        <span>施工後</span>
+        <input type="range" class="baslider" id="ba-range" min="0" max="100" value="50"
+               aria-label="拖曳比較施工前後" oninput="baMove(this.value)">
+        <span>施工前</span>
+      </div>
+    </div>
+
+    <div class="sec">
+      <span class="eyebrow">Materials</span>
+      <h2>這個家用了哪些建材</h2>
+      <p>每一項都可以在你的專案裡直接選用</p>
+    </div>
+    <div class="matlist">
+      <div class="matrow">
+        <span class="dot g"><svg class="ic"><use href="#b-layers"/></svg></span>
+        <div><strong>SPC 石塑防水地板(標準級)</strong><div class="tiny">100% 防水 · 保固 10 年</div></div>
+        <span class="p num">NT$5,400/坪</span>
+      </div>
+      <div class="matrow">
+        <span class="dot"><svg class="ic"><use href="#b-spark"/></svg></span>
+        <div><strong>全室電線抽換</strong><div class="tiny">太平洋電線 2.0mm · 含開關插座</div></div>
+        <span class="p num">NT$4,200/坪</span>
+      </div>
+      <div class="matrow">
+        <span class="dot g"><svg class="ic"><use href="#b-home"/></svg></span>
+        <div><strong>天花板平釘</strong><div class="tiny">矽酸鈣板 6mm · 含間接照明溝槽</div></div>
+        <span class="p num">NT$4,800/坪</span>
+      </div>
+      <div class="matrow">
+        <span class="dot"><svg class="ic"><use href="#b-lock"/></svg></span>
+        <div><strong>配電箱更新</strong><div class="tiny">士林電機 · 全戶漏電保護</div></div>
+        <span class="p num">NT$28,000/式</span>
+      </div>
+    </div>
+
+    <div class="case-cta narrow">
+      <h3>喜歡這個家的樣子?</h3>
+      <p>以這個案例為範本發需求,自動帶入相同的工程範圍與建材等級</p>
+      <button class="btn warm" onclick="toast('已建立需求草稿(原型示意)— 將通知符合條件的已驗證業者')">以此發需求<svg class="ic"><use href="#b-arrow-r"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. 報價比較(卡片畫廊,非表格) ============ -->
+<section class="view" id="v-compare">
+  <div class="wrap">
+    <div class="sec first">
+      <span class="eyebrow">Quote Comparison</span>
+      <h2>3 家報價,像逛展一樣比</h2>
+      <p>您的需求「30坪全屋翻新」已收到 3 家報價 — 同項目對齊,漏項一眼看穿</p>
+    </div>
+    <div class="qgrid">
+      <!-- 推薦 -->
+      <article class="qcard reco">
+        <span class="ribbon">內容最完整</span>
+        <h3 class="vname">安心整合工程</h3>
+        <div class="vmeta">★4.9 · 31 件成交評價</div>
+        <div class="vbadges"><span class="chiplet ok">已驗證</span><span class="chiplet sage">6/6 大項全包</span></div>
+        <div class="total num">NT$1,107,000</div>
+        <div class="cover" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="coverlbl">涵蓋 6/6 工程大項</div>
+        <ul class="num">
+          <li><span>拆除工程</span><span class="amt">86,000</span></li>
+          <li><span>水電工程</span><span class="amt">210,000</span></li>
+          <li><span>泥作工程</span><span class="amt">150,000</span></li>
+          <li><span>木作工程</span><span class="amt">320,000</span></li>
+          <li><span>油漆工程</span><span class="amt">96,000</span></li>
+          <li><span>廚衛設備</span><span class="amt">245,000</span></li>
+        </ul>
+        <div class="terms"><span>工期 75 天</span><span>3:4:3 分期託管</span></div>
+        <div class="acts">
+          <button class="btn sm" onclick="toast('原型示意:開啟報價明細')">查看明細</button>
+          <button class="btn sm ghost" onclick="toast('原型示意:開啟聊天室')">聊聊</button>
+        </div>
+      </article>
+      <!-- 大正 -->
+      <article class="qcard">
+        <h3 class="vname">大正室內設計</h3>
+        <div class="vmeta">★4.7 · 58 件成交評價</div>
+        <div class="vbadges"><span class="chiplet ok">已驗證</span><span class="chiplet sage">6/6 大項全包</span></div>
+        <div class="total num">NT$1,147,000</div>
+        <div class="cover" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="coverlbl">涵蓋 6/6 工程大項</div>
+        <ul class="num">
+          <li><span>拆除工程</span><span class="amt">92,000</span></li>
+          <li><span>水電工程</span><span class="amt">198,000</span></li>
+          <li><span>泥作工程</span><span class="amt">168,000</span></li>
+          <li><span>木作工程</span><span class="amt">355,000</span></li>
+          <li><span>油漆工程</span><span class="amt">104,000</span></li>
+          <li><span>廚衛設備</span><span class="amt">230,000</span></li>
+        </ul>
+        <div class="terms"><span>工期 80 天</span><span>3:3:4 分期託管</span></div>
+        <div class="acts"><button class="btn sm ghost" onclick="toast('原型示意:開啟聊天室')">聊聊</button></div>
+      </article>
+      <!-- 快省 -->
+      <article class="qcard">
+        <h3 class="vname">快省工程行</h3>
+        <div class="vmeta">★4.2 · 9 件成交評價</div>
+        <div class="vbadges"><span class="chiplet bad">僅含 5/6 大項</span></div>
+        <div class="total num">NT$763,000</div>
+        <div class="cover" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i class="off"></i></div>
+        <div class="coverlbl bad">總價低,但少了 1 大項</div>
+        <ul class="num">
+          <li><span>拆除工程</span><span class="amt">78,000</span></li>
+          <li><span>水電工程<span class="misslbl"><span class="chiplet warn">未含配電箱更新</span></span></span><span class="amt">165,000</span></li>
+          <li><span>泥作工程</span><span class="amt">142,000</span></li>
+          <li><span>木作工程</span><span class="amt">290,000</span></li>
+          <li><span>油漆工程</span><span class="amt">88,000</span></li>
+          <li><span>廚衛設備</span><span class="amt"><span class="chiplet bad">未包含</span></span></li>
+        </ul>
+        <div class="terms"><span>工期 60 天</span><span>5:5 兩期</span></div>
+        <div class="acts"><button class="btn sm ghost" onclick="toast('原型示意:開啟聊天室')">聊聊</button></div>
+      </article>
+    </div>
+    <div class="sec" style="margin-top:48px">
+      <p style="font-size:13.5px"><svg class="ic sm" style="color:var(--apricot-deep)"><use href="#b-sun"/></svg>
+      設計重點:總價低 ≠ 便宜。涵蓋度圓點與「未包含」標籤,讓漏項報價無所遁形。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. 建材選擇 ============ -->
+<section class="view" id="v-material">
+  <div class="wrap">
+    <div class="sec first">
+      <span class="eyebrow">Materials · 客廳地板</span>
+      <h2>三種等級,像選畫框一樣</h2>
+      <p>選等級就好,規格留給想深究的人;價差即時反映到總價(點卡片試試)</p>
+    </div>
+    <div class="tiers" id="tiers">
+      <button class="tier" data-price="0" data-name="超耐磨木地板" onclick="pickTier(this)" aria-pressed="false">
+        <span class="pick" aria-hidden="true"><svg class="ic sm"><use href="#b-check"/></svg></span>
+        <span class="ph"><svg viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="超耐磨木地板紋理:淺色橡木">
+          <rect width="400" height="150" fill="#ecd2a8"/>
+          <path d="M0 38h400M0 76h400M0 114h400" stroke="#ddbd8e" stroke-width="4" stroke-linecap="round"/>
+          <path d="M120 0v38M280 0v38M60 38v38M220 38v38M340 38v38M150 76v38M300 76v38M90 114v36M250 114v36" stroke="#ddbd8e" stroke-width="4" stroke-linecap="round"/>
+          <ellipse cx="190" cy="19" rx="10" ry="4" fill="#ddbd8e"/>
+          <ellipse cx="320" cy="95" rx="9" ry="3.5" fill="#ddbd8e"/>
+        </svg></span>
+        <span class="body">
+          <span class="chiplet">經濟 Good</span>
+          <h3>超耐磨木地板</h3>
+          <span class="tiny">耐磨等級 AC4 · 保固 5 年 · 12 個完工案例</span>
+          <span class="price num">NT$3,800<small> /坪</small></span>
+        </span>
+      </button>
+      <button class="tier sel" data-price="48000" data-name="SPC 石塑防水地板" onclick="pickTier(this)" aria-pressed="true">
+        <span class="pick" aria-hidden="true"><svg class="ic sm"><use href="#b-check"/></svg></span>
+        <span class="ph"><svg viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="SPC 石塑地板紋理:灰米色石紋">
+          <rect width="400" height="150" fill="#dccfb8"/>
+          <path d="M0 38h400M0 76h400M0 114h400" stroke="#cbbda2" stroke-width="4" stroke-linecap="round"/>
+          <path d="M100 0v38M260 0v38M40 38v38M200 38v38M360 38v38M130 76v38M290 76v38M70 114v36M230 114v36" stroke="#cbbda2" stroke-width="4" stroke-linecap="round"/>
+          <path d="M30 18h44M300 56h48M160 94h40M90 132h48" stroke="#e7dcc6" stroke-width="3" stroke-linecap="round"/>
+        </svg></span>
+        <span class="body">
+          <span class="chiplet sage">標準 Better · 最多人選</span>
+          <h3>SPC 石塑防水地板</h3>
+          <span class="tiny">100% 防水 · 保固 10 年 · 47 個完工案例</span>
+          <span class="price num">NT$5,400<small> /坪</small></span>
+        </span>
+      </button>
+      <button class="tier" data-price="132000" data-name="海島型實木地板" onclick="pickTier(this)" aria-pressed="false">
+        <span class="pick" aria-hidden="true"><svg class="ic sm"><use href="#b-check"/></svg></span>
+        <span class="ph"><svg viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="海島型實木地板紋理:深色胡桃木">
+          <rect width="400" height="150" fill="#b98a5c"/>
+          <path d="M0 38h400M0 76h400M0 114h400" stroke="#a8794c" stroke-width="4" stroke-linecap="round"/>
+          <path d="M140 0v38M300 0v38M80 38v38M240 38v38M170 76v38M330 76v38M110 114v36M270 114v36" stroke="#a8794c" stroke-width="4" stroke-linecap="round"/>
+          <path d="M20 20q60 8 120 0M220 58q70-8 140 0M40 96q60 8 110 0M180 134q70-8 150 0" stroke="#c69a6c" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg></span>
+        <span class="body">
+          <span class="chiplet">精緻 Best</span>
+          <h3>海島型實木地板</h3>
+          <span class="tiny">實木皮 3mm · 保固 10 年 · 21 個完工案例</span>
+          <span class="price num">NT$8,200<small> /坪</small></span>
+        </span>
+      </button>
+    </div>
+
+    <div class="sumbar">
+      <div>
+        <div class="lbl">客廳地板 · 15 坪</div>
+        <strong id="tier-note">已選:SPC 石塑防水地板</strong>
+      </div>
+      <div style="text-align:right">
+        <div class="lbl">對總價影響</div>
+        <div class="delta num" id="tier-delta">+NT$48,000</div>
+      </div>
+      <button class="btn" onclick="toast('已加入我的建材書(原型示意)')">加入我的建材書<svg class="ic"><use href="#b-arrow-r"/></svg></button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<footer>
+  <span class="sun" aria-hidden="true"></span>
+  好宅裝修 · 互動原型 風格 B「暖陽畫廊」 · 所有數據為示意<br>
+  <a href="index.html">← 回風格 A:深綠編輯誌 Pine Editorial</a>
+</footer>
+
+<script>
+/* ===== 視圖切換 ===== */
+function go(id){
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id===id));
+  document.querySelectorAll(".pillnav button").forEach(b=>b.classList.toggle("active", b.dataset.v===id));
+  window.scrollTo({top:0});
+}
+
+/* ===== Before/After 滑桿 ===== */
+function baMove(v){
+  document.getElementById("ba-after").style.clipPath = "inset(0 " + (100-v) + "% 0 0)";
+  document.getElementById("ba-line").style.left = v + "%";
+  const r = document.getElementById("ba-range");
+  r.style.background = "linear-gradient(90deg,var(--sage) 0%,var(--sage) "+v+"%,var(--sand) "+v+"%)";
+}
+
+/* ===== 建材等級切換(價差即時反映) ===== */
+function pickTier(el){
+  document.querySelectorAll(".tier").forEach(t=>{t.classList.remove("sel");t.setAttribute("aria-pressed","false")});
+  el.classList.add("sel");
+  el.setAttribute("aria-pressed","true");
+  const p = parseInt(el.dataset.price);
+  document.getElementById("tier-delta").textContent = p===0 ? "基準價" : "+NT$" + p.toLocaleString();
+  document.getElementById("tier-note").textContent = "已選:" + el.dataset.name;
+}
+
+/* ===== Toast ===== */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>好宅裝修 — 風格 C:職人工務所 Blueprint Craft</title>
+<style>
+  /* ============================================================
+     Art direction 風格 C「職人工務所 Blueprint Craft」
+     隱喻:施工圖 / 工務所。淺色方眼圖紙底 + 墨黑線條 + 安全橘,
+     等寬字型數字、直角(圓角≤4px)、1.5px 實線邊框取代陰影,
+     圖框 / 圖說編號 / 尺寸標註 / 圓形印章 = 工程文件語彙。
+     ============================================================ */
+  :root{
+    --ink:#1c2530;          /* 墨黑:線條與主文字 */
+    --ink-2:#4a5563;        /* 次要文字 */
+    --ink-3:#6d7683;        /* 輔助文字(AA on paper) */
+    --paper:#f4f2ec;        /* 圖紙底 */
+    --paper-2:#faf9f5;      /* 卡片面 */
+    --paper-3:#ecebe3;      /* 表頭/區塊底 */
+    --grid-line:rgba(28,37,48,.055);
+    --acc:#e8622d;          /* 安全橘:強調/大型元素 */
+    --acc-ink:#b8461a;      /* 深橘:小號文字(AA) */
+    --acc-pale:#fceee6;     /* 橘淺底 */
+    --ok:#1a6b40; --warn:#8a5308; --bad:#b3261e;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+    --line:1.5px solid var(--ink);
+    --line-soft:1px solid rgba(28,37,48,.22);
+    --t:.15s ease-out;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased;
+    background-color:var(--paper);
+    background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);
+    background-size:24px 24px;
+  }
+  a{color:var(--acc-ink);text-decoration:none}
+  a:hover{text-decoration:underline}
+  ::selection{background:#f6c9b2}
+  :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .tiny{font-size:12.5px;color:var(--ink-3);line-height:1.6}
+  .muted{font-size:14px;color:var(--ink-2)}
+
+  /* ===== 圖示:直角工程風(stroke 1.5,方端點) ===== */
+  .ic{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;display:inline-block;vertical-align:-3.5px}
+  .ic.sm{width:14px;height:14px;vertical-align:-2.5px}
+
+  /* ===== 原型標示列(非產品 UI) ===== */
+  .proto-bar{background:var(--ink);color:#e9e7df;font-size:12.5px;padding:8px 16px;display:flex;gap:8px 18px;align-items:center;flex-wrap:wrap}
+  .proto-bar .tag{font-family:var(--mono);background:var(--acc);color:#fff;padding:1px 9px;font-weight:700;letter-spacing:.06em}
+  .proto-bar a{color:#f0b795;text-decoration:none;font-weight:700}
+  .proto-bar a:hover{color:#fff;text-decoration:underline}
+
+  /* ===== 圖框(drawing sheet) ===== */
+  .sheet{max-width:1180px;margin:22px auto 40px;border:var(--line);position:relative;background:transparent}
+  .sheet::after{content:"";position:absolute;inset:5px;border:1px solid rgba(28,37,48,.30);pointer-events:none}
+  .sheet-corner{position:absolute;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;background:var(--paper);padding:0 8px;z-index:3;white-space:nowrap}
+  .sheet-corner.tl{top:-8px;left:22px}
+  .sheet-corner.tr{top:-8px;right:22px}
+  .sheet-corner.br{bottom:-8px;right:22px}
+  .sheet-corner.bl{bottom:-8px;left:22px}
+  .inner{padding:26px 30px 34px;position:relative;z-index:1}
+
+  /* ===== 頁首 ===== */
+  header.doc{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;border-bottom:var(--line);padding-bottom:14px;margin-bottom:14px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .mark{width:40px;height:40px;border:var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;background:var(--paper-2);position:relative}
+  .brand .mark::after{content:"";position:absolute;inset:3px;border:1px solid var(--acc)}
+  .brand h1{font-size:19px;font-weight:800;letter-spacing:.06em;line-height:1.3}
+  .brand .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .doc-meta{font-family:var(--mono);font-size:11px;color:var(--ink-2);text-align:right;line-height:1.75}
+  .doc-meta b{color:var(--acc-ink)}
+
+  /* ===== 導覽:圖紙頁籤 ===== */
+  nav.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+  nav.tabs button{font-family:inherit;display:inline-flex;align-items:center;gap:8px;background:var(--paper-2);border:var(--line);padding:9px 16px;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;border-radius:2px;transition:background var(--t),color var(--t),box-shadow var(--t)}
+  nav.tabs button .no{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.08em}
+  nav.tabs button:hover{background:var(--acc-pale)}
+  nav.tabs button.active{background:var(--ink);color:#f4f2ec;box-shadow:3px 3px 0 rgba(232,98,45,.85)}
+  nav.tabs button.active .no{color:#f0a980}
+
+  .screen{display:none}
+  .screen.active{display:block}
+
+  /* ===== 圖說標題(區塊標題) ===== */
+  .fig{display:flex;align-items:baseline;gap:12px;margin:44px 0 16px;border-bottom:var(--line);padding-bottom:8px}
+  .fig .fno{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;color:#fff;background:var(--ink);padding:2px 9px}
+  .fig h2{font-size:19px;font-weight:800;letter-spacing:.02em}
+  .fig .en{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-left:auto}
+  .fig:first-child{margin-top:0}
+
+  /* ===== 元件 ===== */
+  .btn{font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--acc);color:#fff;border:1.5px solid var(--acc);border-radius:2px;padding:11px 22px;font-size:15px;font-weight:700;letter-spacing:.03em;cursor:pointer;white-space:nowrap;transition:background var(--t),border-color var(--t),box-shadow var(--t)}
+  .btn:hover{background:#cf4f1c;border-color:#cf4f1c;box-shadow:3px 3px 0 rgba(28,37,48,.25)}
+  .btn.ghost{background:transparent;color:var(--ink);border:var(--line)}
+  .btn.ghost:hover{background:var(--paper-2);box-shadow:3px 3px 0 rgba(28,37,48,.14)}
+  .btn.sm{padding:6px 13px;font-size:13px}
+  .btn .ic{width:15px;height:15px}
+  .card{background:var(--paper-2);border:var(--line);border-radius:2px;padding:20px}
+  .grid{display:grid;gap:16px}
+  .grid.c3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;font-weight:700;letter-spacing:.04em;border:1.5px solid var(--ink);padding:3px 10px;border-radius:2px;background:var(--paper-2)}
+  .chip.acc{border-color:var(--acc);color:var(--acc-ink);background:var(--acc-pale)}
+  .chip.ok{border-color:var(--ok);color:var(--ok);background:#e9f3ec}
+  .chip.warn{border-color:var(--warn);color:var(--warn);background:#f8f0dd}
+
+  /* ===== 首頁 hero ===== */
+  .hero{border:var(--line);background:var(--paper-2);display:grid;grid-template-columns:1.05fr .95fr;border-radius:2px;overflow:hidden}
+  .hero-txt{padding:44px 20px 40px 44px;border-right:var(--line)}
+  .hero .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--acc-ink);margin-bottom:14px}
+  .hero h2.big{font-size:42px;font-weight:900;line-height:1.25;letter-spacing:.01em}
+  .hero .dim-deco{margin:10px 0 6px;display:block}
+  .hero .sub{color:var(--ink-2);font-size:15.5px;margin-top:10px}
+  .hero .cta{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+  .hero .trust{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
+  .hero-art{position:relative;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:18px 14px}
+  .hero-art svg{width:100%;max-width:520px;height:auto;display:block}
+
+  /* ===== 平面圖案例卡 ===== */
+  .case{background:var(--paper-2);border:var(--line);border-radius:2px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow var(--t)}
+  .case:hover{box-shadow:4px 4px 0 rgba(28,37,48,.16)}
+  .case .plan-thumb{border-bottom:var(--line);background:#f7f6f1;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:16px 16px;line-height:0}
+  .case .plan-thumb svg{width:100%;height:auto;display:block}
+  .case .cap{padding:13px 16px 15px}
+  .case .cap .k{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:2px}
+  .case .cap strong{font-size:15.5px}
+  .case .cap .meta{margin-top:2px}
+  .case .cap .meta .mono{color:var(--acc-ink);font-weight:700}
+
+  /* 套餐卡 */
+  .pkg{background:var(--paper-2);border:var(--line);border-radius:2px;padding:18px 20px;display:flex;flex-direction:column;gap:6px;position:relative}
+  .pkg .idx{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--ink-3);display:flex;align-items:center;gap:10px}
+  .pkg .idx::after{content:"";height:1px;background:rgba(28,37,48,.25);flex:1}
+  .pkg h3{font-size:17px;font-weight:800}
+  .pkg .chip{position:absolute;top:16px;right:16px}
+  .pkg .price{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--acc-ink);margin-top:auto;padding-top:8px;letter-spacing:-.01em}
+  .pkg .price small{font-size:12px;color:var(--ink-2);font-weight:400;letter-spacing:.08em}
+
+  /* ===== 圖2 施工圖 ===== */
+  .plan-wrap{border:var(--line);background:#f7f6f1;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:24px 24px;border-radius:2px;overflow-x:auto}
+  .plan-wrap svg{display:block;min-width:730px;width:100%;height:auto}
+  .plan-split{display:grid;grid-template-columns:1.75fr 1fr;gap:16px;align-items:start}
+  .plan-split>*{min-width:0}
+  .room{fill:transparent;cursor:pointer;transition:fill var(--t)}
+  .room:hover,.room:focus-visible,.room.sel{fill:rgba(232,98,45,.16)}
+  .room.sel{stroke:var(--acc);stroke-width:2.5;stroke-dasharray:6 4}
+  .plan-info{border:var(--line);background:var(--paper-2);border-radius:2px;padding:18px 20px;position:sticky;top:12px}
+  .plan-info .rn{font-size:19px;font-weight:800;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .plan-info .rn .mono{font-size:13px;color:var(--acc-ink);font-weight:700}
+  .plan-info ul{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .plan-info li{font-size:13.5px;line-height:1.55;padding-left:18px;position:relative}
+  .plan-info li::before{content:"";position:absolute;left:0;top:7px;width:8px;height:8px;background:var(--acc)}
+  .plan-info li .mono{color:var(--ink-3);font-size:11.5px}
+  .legend{display:flex;gap:8px 18px;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+
+  /* ===== 圖3 報價單 ===== */
+  .qsheet{background:var(--paper-2);border:var(--line);border-radius:2px;max-width:920px;position:relative}
+  .qhead{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;border-bottom:var(--line);padding:22px 26px 16px}
+  .qhead h3{font-size:22px;font-weight:900;letter-spacing:.14em}
+  .qhead .co{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.65}
+  .qhead .qno{font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--ink-2);line-height:1.8}
+  .qmeta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border-bottom:var(--line)}
+  .qmeta>div{padding:9px 26px;border-right:var(--line-soft);font-size:13px}
+  .qmeta>div:last-child{border-right:none}
+  .qmeta .k{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3);display:block;text-transform:uppercase}
+  .qtable-wrap{overflow-x:auto}
+  table.qt{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+  .qt th,.qt td{padding:8px 12px;border-bottom:var(--line-soft);text-align:left;vertical-align:top}
+  .qt th{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);border-bottom:var(--line);background:var(--paper-3)}
+  .qt th:first-child,.qt td:first-child{padding-left:26px}
+  .qt th:last-child,.qt td:last-child{padding-right:26px}
+  .qt .num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .qt .zone td{background:var(--ink);color:#f4f2ec;font-weight:700;font-size:13px;letter-spacing:.08em;padding-top:7px;padding-bottom:7px}
+  .qt .zone .mono{color:#f0a980;font-weight:400;font-size:11px}
+  .qt .sub td{background:var(--paper-3);font-weight:700;border-bottom:var(--line)}
+  .qt .sub .num{color:var(--acc-ink)}
+  .qt .desc{color:var(--ink-3);font-size:12px;display:block;line-height:1.5}
+  .qt .grand td{border-top:2.5px solid var(--ink);border-bottom:none;background:var(--acc-pale);padding-top:14px;padding-bottom:14px;font-weight:800}
+  .qt .grand .num{font-size:21px;color:var(--acc-ink);letter-spacing:-.01em}
+  .qfoot{border-top:var(--line);padding:20px 26px 24px;display:grid;grid-template-columns:1.2fr 1fr;gap:22px;position:relative}
+  .qfoot h4{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:8px}
+  .payrow{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:7px 0;border-bottom:var(--line-soft)}
+  .payrow:last-child{border-bottom:none}
+  .payrow .mono{font-weight:700}
+  .sign{display:flex;flex-direction:column;gap:22px;padding-top:6px}
+  .sign .slot .line{border-bottom:var(--line);height:44px}
+  .sign .slot .lbl{font-size:12px;color:var(--ink-2);margin-top:5px;display:flex;justify-content:space-between}
+  .stamp{position:absolute;right:34px;top:-38px;width:118px;height:118px;transform:rotate(-11deg);pointer-events:none;opacity:.92}
+  .qnotes{padding:0 26px 22px;font-size:12px;color:var(--ink-3);line-height:1.8}
+  .qnotes b{color:var(--ink-2)}
+
+  /* ===== 圖4 施工說明 ===== */
+  .spec-head{border:var(--line);background:var(--paper-2);border-radius:2px;padding:20px 24px;display:flex;gap:16px 28px;flex-wrap:wrap;align-items:center}
+  .spec-head .code{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--acc-ink);letter-spacing:.02em}
+  .spec-head .meta{display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:13px}
+  .spec-head .meta .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;align-self:center}
+  .step{border:var(--line);background:var(--paper-2);border-radius:2px;margin-top:16px;display:grid;grid-template-columns:1fr 300px;overflow:hidden}
+  .step .body{padding:18px 22px 20px;border-right:var(--line)}
+  .step .stephead{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .step .n{font-family:var(--mono);font-size:13px;font-weight:700;background:var(--acc);color:#fff;padding:3px 10px;letter-spacing:.06em}
+  .step h3{font-size:16.5px;font-weight:800}
+  .step .stephead .mono{margin-left:auto;font-size:11px;color:var(--ink-3)}
+  .step p{font-size:14px;color:var(--ink-2)}
+  .kv{margin-top:12px;border-top:var(--line-soft);padding-top:10px;display:grid;gap:8px}
+  .kv .row{display:grid;grid-template-columns:86px 1fr;gap:10px;font-size:13px}
+  .kv .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--acc-ink);font-weight:700;padding-top:2px}
+  .kv ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+  .kv li{padding-left:22px;position:relative;line-height:1.55}
+  .kv li::before{content:"";position:absolute;left:0;top:4px;width:11px;height:11px;border:1.5px solid var(--ink)}
+  .step .diagram{background:#f7f6f1;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:16px 16px;display:flex;align-items:center;justify-content:center;padding:14px}
+  .step .diagram svg{width:100%;height:auto;max-width:270px}
+
+  /* ===== 圖框標題欄(title block) ===== */
+  .titleblock{margin-top:48px;border:var(--line);background:var(--paper-2);display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));font-size:12px}
+  .titleblock>div{padding:8px 14px;border-right:var(--line-soft)}
+  .titleblock>div:last-child{border-right:none}
+  .titleblock .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);display:block}
+  .titleblock .mono{font-weight:700}
+
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr}
+    .hero-txt{border-right:none;border-bottom:var(--line);padding:32px 24px 28px}
+    .plan-split{grid-template-columns:1fr}
+    .plan-info{position:static}
+    .step{grid-template-columns:1fr}
+    .step .body{border-right:none;border-bottom:var(--line)}
+    .qfoot{grid-template-columns:1fr}
+    .stamp{right:18px;top:-30px;width:96px;height:96px}
+  }
+  @media (max-width:640px){
+    .sheet{margin:14px 8px 30px}
+    .inner{padding:18px 14px 24px}
+    .sheet-corner.tl{left:10px}.sheet-corner.tr{right:10px}
+    .sheet-corner.br{right:10px}.sheet-corner.bl{left:10px}
+    .hero h2.big{font-size:30px}
+    .hero-txt{padding:26px 18px 24px}
+    nav.tabs button{padding:8px 11px;font-size:13px}
+    .fig{flex-wrap:wrap}
+    .fig .en{display:none}
+    .qhead,.qnotes{padding-left:16px;padding-right:16px}
+    .qmeta>div{padding:8px 16px}
+    .qt th:first-child,.qt td:first-child{padding-left:16px}
+    .qt th:last-child,.qt td:last-child{padding-right:16px}
+    .qfoot{padding:18px 16px 20px}
+  }
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ===== 直角工程風圖示庫(stroke 1.5 / 方端點) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="c-home" viewBox="0 0 24 24"><path d="M4.5 11 12 4.5 19.5 11M6.5 9.5V19.5H17.5V9.5M10.5 19.5V14H13.5V19.5"/></symbol>
+    <symbol id="c-plan" viewBox="0 0 24 24"><path d="M4 4H20V20H4zM4 12H12M12 4V12M16 12V20"/></symbol>
+    <symbol id="c-doc" viewBox="0 0 24 24"><path d="M6 3.5H15L18.5 7V20.5H6zM15 3.5V7H18.5M8.5 11H16M8.5 14.5H16M8.5 18H13"/></symbol>
+    <symbol id="c-spec" viewBox="0 0 24 24"><path d="M4.5 20.5 10 15M13.5 5.5 18.5 10.5M9 10 14.5 4.5 19.5 9.5 14 15 9 10zM10 15 9 10"/></symbol>
+    <symbol id="c-ruler" viewBox="0 0 24 24"><path d="M3.5 16 16 3.5 20.5 8 8 20.5zM7.5 12.5 9.5 14.5M10.5 9.5 12.5 11.5M13.5 6.5 15.5 8.5"/></symbol>
+    <symbol id="c-check" viewBox="0 0 24 24"><path d="M4.5 12.5 10 18 19.5 6.5"/></symbol>
+    <symbol id="c-stamp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><path d="M12 8.5V12L14.5 13.5"/></symbol>
+    <symbol id="c-arrow-r" viewBox="0 0 24 24"><path d="M4 12H20M14.5 6.5 20 12 14.5 17.5"/></symbol>
+    <symbol id="c-back" viewBox="0 0 24 24"><path d="M20 12H4M9.5 6.5 4 12 9.5 17.5"/></symbol>
+    <symbol id="c-shield" viewBox="0 0 24 24"><path d="M12 3.5 18.5 6V11C18.5 15.5 15.5 18.8 12 20.5 8.5 18.8 5.5 15.5 5.5 11V6L12 3.5zM9 11.5 11.5 14 15.5 9.5"/></symbol>
+    <symbol id="c-coin" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/><path d="M12 8V16M9 10.5H15M9 13.5H15"/></symbol>
+  </defs>
+</svg>
+
+<!-- 原型標示列 -->
+<div class="proto-bar">
+  <span class="tag">STYLE C</span>
+  <strong>風格 C:職人工務所 Blueprint Craft</strong>
+  <span style="opacity:.65">設計提案三選一(不同設計方向,非換色)</span>
+  <a href="index.html" style="margin-left:auto"><svg class="ic sm"><use href="#c-back"/></svg> 返回風格 A「深綠編輯誌」(index.html)</a>
+</div>
+
+<div class="sheet">
+  <span class="sheet-corner tl">HAODZAI CONSTRUCTION DOC · 2026</span>
+  <span class="sheet-corner tr" id="corner-sheet">SHEET C-01 · 首頁</span>
+  <span class="sheet-corner bl">DRAWN BY 好宅裝修工務所</span>
+  <span class="sheet-corner br">SCALE 1:50 · UNIT cm</span>
+  <div class="inner">
+
+    <header class="doc">
+      <div class="brand">
+        <div class="mark">家</div>
+        <div>
+          <h1>好宅裝修 工務所</h1>
+          <div class="sub">HAODZAI RENOVATION · CONSTRUCTION OFFICE</div>
+        </div>
+      </div>
+      <div class="doc-meta">
+        DOC NO. <b>HZ-PROTO-C</b> · REV 02<br>
+        DATE 2026-07-20 · 案名 30坪全屋翻新(2房2廳)
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="圖紙頁籤">
+      <button class="active" role="tab" aria-selected="true" data-s="s-home" onclick="go('s-home')"><span class="no">圖1</span><svg class="ic"><use href="#c-home"/></svg>首頁</button>
+      <button role="tab" aria-selected="false" data-s="s-plan" onclick="go('s-plan')"><span class="no">圖2</span><svg class="ic"><use href="#c-plan"/></svg>工程施工圖</button>
+      <button role="tab" aria-selected="false" data-s="s-quote" onclick="go('s-quote')"><span class="no">圖3</span><svg class="ic"><use href="#c-doc"/></svg>報價單</button>
+      <button role="tab" aria-selected="false" data-s="s-spec" onclick="go('s-spec')"><span class="no">圖4</span><svg class="ic"><use href="#c-spec"/></svg>施工說明</button>
+    </nav>
+
+    <!-- ================= 圖1 首頁 ================= -->
+    <section class="screen active" id="s-home">
+      <div class="hero">
+        <div class="hero-txt">
+          <div class="kicker">Construction Document Set · Taiwan</div>
+          <h2 class="big">按圖施工,<br>照約付款</h2>
+          <!-- CAD 尺寸標註裝飾:量測標題寬度 -->
+          <svg class="dim-deco" width="252" height="30" viewBox="0 0 252 30" aria-hidden="true">
+            <g stroke="#b8461a" stroke-width="1.5" fill="none">
+              <path d="M2 4V16M250 4V16"/>
+              <path d="M2 10H250"/>
+              <path d="M-2 14 6 6M246 14 254 6"/>
+            </g>
+            <text x="126" y="27" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10.5" fill="#b8461a" letter-spacing="1.5">TOL. ±0 — 每一項都有圖可查</text>
+          </svg>
+          <p class="sub">結構化報價逐項對齊 × 施工圖同步追蹤 × 分期託管、驗收才撥款</p>
+          <div class="cta">
+            <button class="btn" onclick="go('s-quote')">我要開始裝修,免費取得報價</button>
+            <button class="btn ghost" onclick="go('s-plan')"><svg class="ic"><use href="#c-plan"/></svg>先看施工圖範例</button>
+          </div>
+          <div class="trust">
+            <span class="chip ok"><svg class="ic sm"><use href="#c-shield"/></svg>1,200+ 家已驗證業者</span>
+            <span class="chip"><svg class="ic sm"><use href="#c-coin"/></svg>平台託管 · 驗收撥款</span>
+            <span class="chip"><svg class="ic sm"><use href="#c-check"/></svg>完工圖說歸檔保固</span>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <!-- 迷你平面圖 + 尺寸標註 -->
+          <svg viewBox="0 0 520 360">
+            <g stroke="#1c2530" fill="none">
+              <rect x="70" y="46" width="380" height="250" stroke-width="7"/>
+              <path d="M70 148H450" stroke-width="4"/>
+              <path d="M225 46V148M292 46V148M272 148V296" stroke-width="4"/>
+            </g>
+            <!-- 門開口 -->
+            <g stroke="#f4f2ec" stroke-width="8">
+              <path d="M120 148H158"/><path d="M240 148H272"/><path d="M312 148H350"/><path d="M70 200V238"/>
+            </g>
+            <g stroke="#e8622d" stroke-width="1.5" fill="none">
+              <path d="M120 148V110M120 110A38 38 0 0 1 158 148"/>
+              <path d="M312 148V110M312 110A38 38 0 0 1 350 148"/>
+              <path d="M70 200H108M108 200A38 38 0 0 1 70 238"/>
+            </g>
+            <!-- 家具線稿 -->
+            <g stroke="#4a5563" stroke-width="1.5" fill="none">
+              <rect x="96" y="66" width="96" height="62"/><path d="M96 82H192M120 66V82M168 66V82"/>
+              <rect x="318" y="64" width="106" height="58"/><path d="M318 78H424M344 64V78"/>
+              <rect x="96" y="188" width="120" height="40"/><path d="M96 200H216"/><rect x="126" y="238" width="60" height="26"/>
+              <rect x="306" y="180" width="84" height="52"/><circle cx="326" cy="196" r="7"/><circle cx="348" cy="196" r="7"/><circle cx="326" cy="216" r="7"/><circle cx="348" cy="216" r="7"/>
+            </g>
+            <!-- 尺寸標註 -->
+            <g stroke="#b8461a" stroke-width="1.2" fill="none">
+              <path d="M70 24V38M450 24V38M70 30H450"/>
+              <path d="M66 34 74 26M446 34 454 26"/>
+              <path d="M462 46H476M462 296H476M470 46V296"/>
+              <path d="M466 50 474 42M466 300 474 292"/>
+            </g>
+            <g font-family="ui-monospace,Consolas,monospace" font-size="12" fill="#b8461a">
+              <text x="260" y="20" text-anchor="middle" letter-spacing="1">1060</text>
+              <text x="492" y="175" text-anchor="middle" letter-spacing="1" transform="rotate(90 492 175)">740</text>
+            </g>
+            <g font-family="ui-monospace,Consolas,monospace" font-size="12" fill="#1c2530">
+              <text x="144" y="105" text-anchor="middle">主臥</text>
+              <text x="371" y="102" text-anchor="middle">次臥</text>
+              <text x="160" y="180" text-anchor="middle">客廳</text>
+              <text x="360" y="270" text-anchor="middle">廚房</text>
+              <text x="258" y="102" text-anchor="middle" font-size="11">浴室</text>
+            </g>
+            <text x="70" y="330" font-family="ui-monospace,Consolas,monospace" font-size="11" fill="#6d7683" letter-spacing="2">FIG 0-1 · 平面配置示意 SCALE 1:100</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="fig"><span class="fno">圖 1-1</span><h2>裝修靈感 · 完工案例(平面圖版)</h2><span class="en">Case Studies as Floor Plans</span></div>
+      <div class="grid c3">
+        <!-- 案例 1:25坪老屋翻新 -->
+        <figure class="case">
+          <span class="plan-thumb"><svg viewBox="0 0 340 200" role="img" aria-label="25坪老屋翻新平面圖線稿">
+            <g stroke="#1c2530" fill="none">
+              <rect x="34" y="26" width="250" height="148" stroke-width="6"/>
+              <path d="M34 96H284M156 26V96M156 132V174" stroke-width="3.5"/>
+            </g>
+            <g stroke="#f7f6f1" stroke-width="7"><path d="M70 96H100"/><path d="M196 96H226"/><path d="M156 96V132"/></g>
+            <g stroke="#e8622d" stroke-width="1.4" fill="none">
+              <path d="M70 96V66M70 66A30 30 0 0 1 100 96"/>
+              <path d="M196 96V66M196 66A30 30 0 0 1 226 96"/>
+            </g>
+            <g stroke="#4a5563" stroke-width="1.3" fill="none">
+              <rect x="50" y="40" width="60" height="38"/><path d="M50 50H110"/>
+              <rect x="196" y="40" width="66" height="36"/><path d="M196 50H262M212 40V50"/>
+              <rect x="52" y="116" width="78" height="26"/><path d="M52 124H130"/>
+              <rect x="196" y="120" width="56" height="34"/><circle cx="210" cy="130" r="5"/><circle cx="226" cy="130" r="5"/>
+            </g>
+            <g stroke="#b8461a" stroke-width="1.1" fill="none"><path d="M34 12V20M284 12V20M34 16H284M31 19 37 13M281 19 287 13"/></g>
+            <text x="159" y="12" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#b8461a" letter-spacing="1">830</text>
+            <g font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#1c2530">
+              <text x="80" y="90" text-anchor="middle">臥室</text><text x="228" y="90" text-anchor="middle">臥室</text><text x="90" y="160" text-anchor="middle">客餐廳</text><text x="224" y="168" text-anchor="middle">廚房</text>
+            </g>
+          </svg></span>
+          <figcaption class="cap">
+            <span class="k">Case A-101 · Taipei</span>
+            <strong>25坪北歐風老屋翻新</strong>
+            <div class="meta tiny">台北市 · 總價 <span class="mono">NT$1,800,000</span> · 工期 <span class="mono">82</span> 天</div>
+            <button class="btn sm ghost" style="margin-top:10px" onclick="go('s-plan')">以此發需求</button>
+          </figcaption>
+        </figure>
+        <!-- 案例 2:廚房局部改造 -->
+        <figure class="case">
+          <span class="plan-thumb"><svg viewBox="0 0 340 200" role="img" aria-label="廚房局部改造平面圖線稿">
+            <g stroke="#1c2530" fill="none"><rect x="60" y="26" width="200" height="148" stroke-width="6"/></g>
+            <g stroke="#f7f6f1" stroke-width="7"><path d="M170 174H210"/></g>
+            <g stroke="#e8622d" stroke-width="1.4" fill="none"><path d="M170 174V134M170 134A40 40 0 0 1 210 174"/></g>
+            <g stroke="#4a5563" stroke-width="1.4" fill="none">
+              <path d="M78 44H242V78H112V156H78z"/>
+              <rect x="130" y="50" width="34" height="22"/><circle cx="147" cy="61" r="7"/>
+              <g><circle cx="196" cy="56" r="5.5"/><circle cx="216" cy="56" r="5.5"/><circle cx="196" cy="70" r="5.5"/><circle cx="216" cy="70" r="5.5"/><rect x="186" y="46" width="42" height="32"/></g>
+              <rect x="86" y="92" width="20" height="52"/>
+              <rect x="180" y="110" width="52" height="40"/><path d="M180 122H232"/>
+            </g>
+            <g stroke="#b8461a" stroke-width="1.1" fill="none"><path d="M46 26H54M46 174H54M50 26V174M47 30 53 24M47 178 53 172"/></g>
+            <text x="38" y="104" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#b8461a" transform="rotate(90 38 104)" letter-spacing="1">300</text>
+            <g font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#1c2530"><text x="150" y="120">廚房</text></g>
+            <text x="240" y="192" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#6d7683" letter-spacing="1">L-COUNTER 240</text>
+          </svg></span>
+          <figcaption class="cap">
+            <span class="k">Case B-207 · New Taipei</span>
+            <strong>廚房局部改造</strong>
+            <div class="meta tiny">新北市 · 總價 <span class="mono">NT$450,000</span> · 工期 <span class="mono">21</span> 天</div>
+            <button class="btn sm ghost" style="margin-top:10px" onclick="go('s-plan')">以此發需求</button>
+          </figcaption>
+        </figure>
+        <!-- 案例 3:浴室乾濕分離 -->
+        <figure class="case">
+          <span class="plan-thumb"><svg viewBox="0 0 340 200" role="img" aria-label="浴室乾濕分離套餐平面圖線稿">
+            <g stroke="#1c2530" fill="none"><rect x="86" y="26" width="168" height="148" stroke-width="6"/><path d="M170 26V90" stroke-width="3.5"/></g>
+            <g stroke="#f7f6f1" stroke-width="7"><path d="M108 174H146"/></g>
+            <g stroke="#e8622d" stroke-width="1.4" fill="none"><path d="M108 174V136M108 136A38 38 0 0 1 146 174"/><path d="M170 90V60" stroke-dasharray="5 4"/></g>
+            <g stroke="#4a5563" stroke-width="1.4" fill="none">
+              <rect x="100" y="40" width="56" height="40"/><circle cx="128" cy="60" r="4" fill="#4a5563"/>
+              <ellipse cx="216" cy="52" rx="14" ry="10"/><rect x="204" y="66" width="24" height="10"/>
+              <circle cx="120" cy="118" r="13"/><rect x="102" y="102" width="52" height="10"/>
+              <rect x="196" y="104" width="48" height="60"/><path d="M196 116H244"/>
+            </g>
+            <g stroke="#b8461a" stroke-width="1.1" fill="none"><path d="M86 12V20M254 12V20M86 16H254M83 19 89 13M251 19 257 13"/></g>
+            <text x="170" y="12" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#b8461a" letter-spacing="1">200</text>
+            <g font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#1c2530"><text x="128" y="96" text-anchor="middle">淋浴區</text><text x="216" y="96" text-anchor="middle">乾區</text></g>
+          </svg></span>
+          <figcaption class="cap">
+            <span class="k">Package P-14 · 14 Days</span>
+            <strong>浴室乾濕分離套餐</strong>
+            <div class="meta tiny">套餐價 <span class="mono">NT$280,000</span> 起 · <span class="mono">14</span> 天完工</div>
+            <button class="btn sm ghost" style="margin-top:10px" onclick="go('s-plan')">以此發需求</button>
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="fig"><span class="fno">圖 1-2</span><h2>標準化套餐 · 不懂裝修也能選</h2><span class="en">Standard Packages</span></div>
+      <div class="grid c3">
+        <div class="pkg"><span class="chip acc">熱門</span><span class="idx">PKG-01</span><h3>浴室翻新套餐</h3><p class="muted">拆除+防水+磁磚+衛浴設備,三種建材等級</p><p class="price">NT$280,000<small> 起</small></p></div>
+        <div class="pkg"><span class="idx">PKG-02</span><h3>廚房翻新套餐</h3><p class="muted">廚具+水電移位+壁面,含三機設備選配</p><p class="price">NT$350,000<small> 起</small></p></div>
+        <div class="pkg"><span class="idx">PKG-03</span><h3>全室粉刷+地板</h3><p class="muted">快速換新,7 天完工,租屋翻新首選</p><p class="price">NT$120,000<small> 起</small></p></div>
+      </div>
+    </section>
+
+    <!-- ================= 圖2 工程施工圖 ================= -->
+    <section class="screen" id="s-plan">
+      <div class="fig"><span class="fno">圖 2-1</span><h2>平面配置圖 · 30坪 2房2廳(權狀30坪 · 室內約25.2坪)</h2><span class="en">Floor Plan · Interactive</span></div>
+      <p class="muted" style="margin-bottom:12px">將游標移到房間上(手機請點擊),右側即顯示該區施工項目;所有項目與「圖 3 報價單」逐項對應。</p>
+      <div class="plan-split">
+        <div>
+          <div class="plan-wrap">
+            <svg id="floorplan" viewBox="0 0 760 585" role="group" aria-label="30坪住宅互動平面圖">
+              <!-- ===== 尺寸標註(圖外側) ===== -->
+              <g stroke="#b8461a" stroke-width="1.2" fill="none">
+                <!-- 上:總寬 1060 -->
+                <path d="M90 22V34M673 22V34M90 28H673M86 32 94 24M669 32 677 24"/>
+                <!-- 上第二層:460 / 110 / 490 -->
+                <path d="M90 40V52M343 40V52M453 40V52M673 40V52M90 46H673"/>
+                <path d="M86 50 94 42M339 50 347 42M449 50 457 42M669 50 677 42"/>
+                <!-- 左:300 / 440,總高 740 -->
+                <path d="M48 60H60M48 225H60M48 467H60M54 60V467M50 64 58 56M50 229 58 221M50 471 58 463"/>
+                <path d="M28 60H40M28 467H40M34 60V467M30 64 38 56M30 471 38 463"/>
+                <!-- 下:陽台 400 -->
+                <path d="M90 549V561M310 549V561M90 555H310M86 559 94 551M306 559 314 551"/>
+              </g>
+              <g font-family="ui-monospace,Consolas,monospace" fill="#b8461a" font-size="13">
+                <text x="381" y="18" text-anchor="middle" letter-spacing="2">1060</text>
+                <text x="216" y="64" text-anchor="middle" font-size="11">460</text>
+                <text x="398" y="64" text-anchor="middle" font-size="11">200</text>
+                <text x="563" y="64" text-anchor="middle" font-size="11">400</text>
+                <text x="20" y="264" text-anchor="middle" transform="rotate(-90 20 264)" letter-spacing="2">740</text>
+                <text x="46" y="142" text-anchor="middle" transform="rotate(-90 46 142)" font-size="11">300</text>
+                <text x="46" y="346" text-anchor="middle" transform="rotate(-90 46 346)" font-size="11">440</text>
+                <text x="200" y="578" text-anchor="middle" font-size="11">400(陽台)</text>
+              </g>
+
+              <!-- ===== 牆體 ===== -->
+              <g stroke="#1c2530" fill="none">
+                <rect x="90" y="60" width="583" height="407" stroke-width="9"/>
+                <path d="M90 225H673" stroke-width="5"/>          <!-- 臥室帶 / 公共區 -->
+                <path d="M343 60V225" stroke-width="5"/>          <!-- 主臥|浴室 -->
+                <path d="M453 60V225" stroke-width="5"/>          <!-- 浴室|次臥 -->
+                <path d="M431 346V467" stroke-width="5"/>         <!-- 客廳|廚房 -->
+                <path d="M431 346H673" stroke-width="5"/>         <!-- 餐廳|廚房 -->
+                <!-- 陽台外框(較薄)+ 欄杆 -->
+                <path d="M90 467V533H310V467" stroke-width="4"/>
+                <path d="M96 527H304" stroke-width="1.5" stroke-dasharray="7 5"/>
+              </g>
+              <!-- 客廳/餐廳 開放邊界(虛線) -->
+              <path d="M431 232V340" stroke="#6d7683" stroke-width="1.5" stroke-dasharray="7 5" fill="none"/>
+
+              <!-- ===== 門開口(以紙色蓋出缺口) ===== -->
+              <g stroke="#f7f6f1" stroke-width="7">
+                <path d="M300 225H350"/>  <!-- 主臥門 -->
+                <path d="M365 225H415"/>  <!-- 浴室門 -->
+                <path d="M465 225H515"/>  <!-- 次臥門 -->
+                <path d="M475 346H541"/>  <!-- 廚房開口 -->
+              </g>
+              <g stroke="#f7f6f1" stroke-width="11"><path d="M90 280V335"/></g>   <!-- 大門 -->
+              <g stroke="#f7f6f1" stroke-width="11"><path d="M145 467H245"/></g>  <!-- 陽台落地窗 -->
+
+              <!-- ===== 門扇與弧線 ===== -->
+              <g stroke="#1c2530" stroke-width="1.8" fill="none">
+                <path d="M300 225V175M300 175A50 50 0 0 1 350 225"/>
+                <path d="M415 225V175M415 175A50 50 0 0 0 365 225"/>
+                <path d="M465 225V175M465 175A50 50 0 0 1 515 225"/>
+                <path d="M90 280H145M145 280A55 55 0 0 1 90 335"/>
+              </g>
+              <!-- 陽台推拉門符號 -->
+              <g stroke="#1c2530" stroke-width="2.5" fill="none"><path d="M145 464H200M190 470H245"/></g>
+              <!-- 窗(主臥/次臥/廚房 外牆) -->
+              <g stroke="#f7f6f1" stroke-width="11"><path d="M150 60H260M500 60H610M673 380V440"/></g>
+              <g stroke="#1c2530" stroke-width="1.5" fill="none"><path d="M150 57H260M150 63H260M500 57H610M500 63H610M670 380V440M676 380V440"/></g>
+
+              <!-- ===== 家具線稿 ===== -->
+              <g stroke="#4a5563" stroke-width="1.5" fill="none" opacity=".85">
+                <!-- 主臥:雙人床+邊櫃+衣櫃 -->
+                <rect x="120" y="80" width="115" height="88"/><path d="M120 102H235"/><rect x="126" y="85" width="30" height="14"/><rect x="172" y="85" width="30" height="14"/>
+                <rect x="250" y="80" width="80" height="28"/><path d="M250 94H330M270 80V94M290 80V94M310 80V94"/>
+                <rect x="120" y="180" width="26" height="26"/>
+                <!-- 浴室:馬桶/面盆/淋浴 -->
+                <ellipse cx="375" cy="95" rx="13" ry="17"/><rect x="362" y="72" width="26" height="12"/>
+                <circle cx="425" cy="90" r="12"/><rect x="408" y="74" width="34" height="8"/>
+                <rect x="355" y="150" width="52" height="52"/><path d="M355 150 407 202M381 176 407 150" stroke-width="1"/><circle cx="381" cy="176" r="3"/>
+                <!-- 次臥:單人床+書桌 -->
+                <rect x="480" y="80" width="80" height="105"/><path d="M480 104H560"/><rect x="486" y="86" width="28" height="13"/>
+                <rect x="590" y="80" width="60" height="30"/><rect x="600" y="118" width="26" height="26"/>
+                <!-- 客廳:沙發+茶几+電視+地毯 -->
+                <rect x="130" y="250" width="150" height="52"/><path d="M130 264H280M166 250V264M204 250V264M242 250V264"/>
+                <path d="M120 250V310H130M280 250V310" stroke-width="1.2"/>
+                <rect x="168" y="322" width="76" height="36"/>
+                <path d="M132 425H285" stroke-width="4"/><text x="208" y="446" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#6d7683" stroke="none" text-anchor="middle">TV 65"</text>
+                <rect x="120" y="240" width="200" height="132" stroke-dasharray="4 4" stroke-width=".8"/>
+                <!-- 餐廳:餐桌+4椅 -->
+                <rect x="500" y="262" width="96" height="58"/>
+                <rect x="516" y="242" width="26" height="16"/><rect x="554" y="242" width="26" height="16"/>
+                <rect x="516" y="324" width="26" height="16"/><rect x="554" y="324" width="26" height="16"/>
+                <!-- 廚房:L型檯面+水槽+爐具+冰箱 -->
+                <path d="M441 356H663V392H492V457H441z"/>
+                <rect x="510" y="362" width="40" height="24"/><circle cx="530" cy="374" r="8"/>
+                <rect x="590" y="360" width="48" height="28"/><circle cx="602" cy="368" r="5"/><circle cx="626" cy="368" r="5"/><circle cx="602" cy="381" r="5"/><circle cx="626" cy="381" r="5"/>
+                <rect x="620" y="404" width="42" height="52"/><path d="M620 424H662"/>
+                <!-- 陽台:洗衣機+盆栽 -->
+                <rect x="106" y="480" width="34" height="34"/><circle cx="123" cy="497" r="11"/>
+                <circle cx="270" cy="500" r="12"/><circle cx="240" cy="504" r="8"/>
+              </g>
+
+              <!-- ===== 房間名+坪數 ===== -->
+              <g font-family="ui-monospace,Consolas,monospace" fill="#1c2530" text-anchor="middle" style="pointer-events:none">
+                <g font-size="15" font-weight="700">
+                  <text x="178" y="140">主臥</text>
+                  <text x="398" y="132">浴室</text>
+                  <text x="563" y="140">次臥</text>
+                  <text x="230" y="386">客廳</text>
+                  <text x="548" y="298">餐廳</text>
+                  <text x="552" y="432">廚房</text>
+                  <text x="200" y="505">陽台</text>
+                </g>
+                <g font-size="11" fill="#4a5563">
+                  <text x="178" y="158">4.2坪</text>
+                  <text x="398" y="146">1.8坪</text>
+                  <text x="563" y="158">3.6坪</text>
+                  <text x="230" y="404">8.3坪</text>
+                  <text x="548" y="314">2.9坪</text>
+                  <text x="552" y="448">2.9坪</text>
+                </g>
+              </g>
+
+              <!-- 入口箭頭 -->
+              <g stroke="#b8461a" stroke-width="1.5" fill="none"><path d="M62 307H86M78 300 86 307 78 314"/></g>
+              <text x="55" y="311" text-anchor="end" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#b8461a">入口</text>
+              <!-- 指北針 -->
+              <g transform="translate(712,100)" stroke="#1c2530" fill="none" stroke-width="1.5">
+                <circle r="16"/><path d="M0 12V-12M0-12 -5-2M0-12 5-2"/>
+              </g>
+              <text x="712" y="136" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#1c2530">N</text>
+
+              <!-- ===== 互動熱區(最上層) ===== -->
+              <g id="rooms">
+                <rect class="room" data-room="master"  x="94"  y="64"  width="245" height="157" tabindex="0" role="button" aria-label="主臥,4.2坪,查看施工項目"/>
+                <rect class="room" data-room="bath"    x="347" y="64"  width="102" height="157" tabindex="0" role="button" aria-label="浴室,1.8坪,查看施工項目"/>
+                <rect class="room" data-room="second"  x="457" y="64"  width="212" height="157" tabindex="0" role="button" aria-label="次臥,3.6坪,查看施工項目"/>
+                <rect class="room" data-room="living"  x="94"  y="229" width="333" height="234" tabindex="0" role="button" aria-label="客廳含玄關,8.3坪,查看施工項目"/>
+                <rect class="room" data-room="dining"  x="435" y="229" width="234" height="113" tabindex="0" role="button" aria-label="餐廳,2.9坪,查看施工項目"/>
+                <rect class="room" data-room="kitchen" x="435" y="350" width="234" height="113" tabindex="0" role="button" aria-label="廚房,2.9坪,查看施工項目"/>
+                <rect class="room" data-room="balcony" x="94"  y="471" width="212" height="58"  tabindex="0" role="button" aria-label="工作陽台,1.5坪,查看施工項目"/>
+              </g>
+            </svg>
+          </div>
+          <div class="legend">
+            <span><i style="width:22px;height:0;border-top:4px solid var(--ink);display:inline-block"></i>牆體(粗實線)</span>
+            <span><svg width="20" height="14" viewBox="0 0 20 14" fill="none"><path d="M2 13V3M2 3A10 10 0 0 1 12 13" stroke="#1c2530" stroke-width="1.5"/></svg>門扇 90° 弧線</span>
+            <span><i style="width:22px;height:0;border-top:1.5px dashed var(--ink-3);display:inline-block"></i>開放邊界</span>
+            <span style="color:var(--acc-ink)">尺寸單位 cm · SCALE 1:50</span>
+          </div>
+        </div>
+        <aside class="plan-info" id="plan-info" aria-live="polite">
+          <!-- JS 填入 -->
+        </aside>
+      </div>
+    </section>
+
+    <!-- ================= 圖3 報價單 ================= -->
+    <section class="screen" id="s-quote">
+      <div class="fig"><span class="fno">圖 3-1</span><h2>工程報價單 · 安心整合工程</h2><span class="en">Formal Quotation</span></div>
+      <p class="muted" style="margin-bottom:14px">由「報價比較」選定後產生的正式報價單。逐項工料、分區小計、付款節點,全部寫進圖說 — 施工中不再各說各話。</p>
+
+      <div class="qsheet">
+        <div class="qhead">
+          <div>
+            <h3>工 程 報 價 單</h3>
+            <div class="co"><strong>安心整合工程有限公司</strong> <span class="chip ok" style="margin-left:6px"><svg class="ic sm"><use href="#c-shield"/></svg>平台已驗證</span><br>
+            統一編號 24686868 · 台北市內湖區工建路 88 號 3 樓 · <span class="mono">★4.9</span>(31 件平台成交)</div>
+          </div>
+          <div class="qno">
+            QUOTATION NO. <strong>Q-2026-0714-031</strong><br>
+            DATE <strong>2026-07-14</strong> · VALID <strong>30</strong> DAYS<br>
+            PAGE 1 / 1 · REV 0
+          </div>
+        </div>
+        <div class="qmeta">
+          <div><span class="k">案名 Project</span>30坪全屋翻新(2房2廳)</div>
+          <div><span class="k">案址 Site</span>台北市中山區(權狀 30 坪)</div>
+          <div><span class="k">工期 Duration</span><span class="mono">75</span> 日曆天</div>
+          <div><span class="k">付款 Terms</span>3 : 4 : 3 平台託管分期</div>
+        </div>
+
+        <div class="qtable-wrap">
+        <table class="qt">
+          <thead><tr><th style="width:64px">項次</th><th>項目及說明</th><th style="width:56px">單位</th><th class="num" style="width:64px">數量</th><th class="num" style="width:90px">單價</th><th class="num" style="width:104px">複價</th></tr></thead>
+          <tbody>
+            <tr class="zone"><td colspan="5">A · 拆除工程</td><td class="num mono">86,000</td></tr>
+            <tr><td class="mono">A-1</td><td>全室舊裝潢拆除清運<span class="desc">含舊木作、地坪面材、輕隔間;垃圾車運棄</span></td><td>坪</td><td class="num">30</td><td class="num">2,200</td><td class="num">66,000</td></tr>
+            <tr><td class="mono">A-2</td><td>浴室磁磚拆除見底<span class="desc">壁地磚剔除至結構層,配合防水工程</span></td><td>式</td><td class="num">1</td><td class="num">12,000</td><td class="num">12,000</td></tr>
+            <tr><td class="mono">A-3</td><td>公共區保護工程<span class="desc">電梯、梯廳、走道 PP 瓦楞板+夾板保護</span></td><td>式</td><td class="num">1</td><td class="num">8,000</td><td class="num">8,000</td></tr>
+            <tr class="sub"><td></td><td colspan="4">拆除工程 小計</td><td class="num">86,000</td></tr>
+
+            <tr class="zone"><td colspan="5">B · 水電工程</td><td class="num mono">210,000</td></tr>
+            <tr><td class="mono">B-1</td><td>配電箱更新+全室配線<span class="desc">匯流排配電箱、太平洋電線 2.0mm、專用迴路 8 迴</span></td><td>式</td><td class="num">1</td><td class="num">96,000</td><td class="num">96,000</td></tr>
+            <tr><td class="mono">B-2</td><td>給排水管全面更新<span class="desc">冷熱水 PPR 管、排水 PVC 管重配,壓接不鏽鋼</span></td><td>式</td><td class="num">1</td><td class="num">58,000</td><td class="num">58,000</td></tr>
+            <tr><td class="mono">B-3</td><td>開關插座出線口<span class="desc">國際牌星光系列,含面板</span></td><td>口</td><td class="num">50</td><td class="num">800</td><td class="num">40,000</td></tr>
+            <tr><td class="mono">B-4</td><td>弱電配管<span class="desc">網路 Cat.6 ×6、電視 ×3、對講移位</span></td><td>式</td><td class="num">1</td><td class="num">16,000</td><td class="num">16,000</td></tr>
+            <tr class="sub"><td></td><td colspan="4">水電工程 小計</td><td class="num">210,000</td></tr>
+
+            <tr class="zone"><td colspan="5">C · 泥作工程</td><td class="num mono">150,000</td></tr>
+            <tr><td class="mono">C-1</td><td>浴室防水工程<span class="desc">彈性水泥兩道+陰角不織布補強,試水 48hr — 詳「圖 4 施工說明 SP-M01」</span></td><td>式</td><td class="num">1</td><td class="num">28,000</td><td class="num">28,000</td></tr>
+            <tr><td class="mono">C-2</td><td>浴室壁地磚貼作<span class="desc">30×60 硬底工法,含防滑地磚</span></td><td>式</td><td class="num">1</td><td class="num">58,000</td><td class="num">58,000</td></tr>
+            <tr><td class="mono">C-3</td><td>廚房及陽台地磚更新<span class="desc">含膨拱剔除、打底整平</span></td><td>式</td><td class="num">1</td><td class="num">36,000</td><td class="num">36,000</td></tr>
+            <tr><td class="mono">C-4</td><td>全室門檻與粉光修補<span class="desc">大理石門檻 5 處、拆除後壁面粉光</span></td><td>式</td><td class="num">1</td><td class="num">28,000</td><td class="num">28,000</td></tr>
+            <tr class="sub"><td></td><td colspan="4">泥作工程 小計</td><td class="num">150,000</td></tr>
+
+            <tr class="zone"><td colspan="5">D · 木作工程</td><td class="num mono">320,000</td></tr>
+            <tr><td class="mono">D-1</td><td>全室平釘天花板<span class="desc">6mm 矽酸鈣板+角材,含客廳間接照明層板</span></td><td>坪</td><td class="num">28</td><td class="num">4,500</td><td class="num">126,000</td></tr>
+            <tr><td class="mono">D-2</td><td>客廳電視牆造型木作<span class="desc">木皮飾板+隱藏線槽,寬 300cm</span></td><td>式</td><td class="num">1</td><td class="num">68,000</td><td class="num">68,000</td></tr>
+            <tr><td class="mono">D-3</td><td>主臥衣櫃<span class="desc">240cm 拉門衣櫃,含緩衝五金</span></td><td>式</td><td class="num">1</td><td class="num">72,000</td><td class="num">72,000</td></tr>
+            <tr><td class="mono">D-4</td><td>次臥系統櫃+書桌<span class="desc">EGGER 板材 E1 V313</span></td><td>式</td><td class="num">1</td><td class="num">54,000</td><td class="num">54,000</td></tr>
+            <tr class="sub"><td></td><td colspan="4">木作工程 小計</td><td class="num">320,000</td></tr>
+
+            <tr class="zone"><td colspan="5">E · 油漆工程</td><td class="num mono">96,000</td></tr>
+            <tr><td class="mono">E-1</td><td>全室批土研磨+乳膠漆<span class="desc">兩底三度,得利全效乳膠漆</span></td><td>坪</td><td class="num">30</td><td class="num">2,800</td><td class="num">84,000</td></tr>
+            <tr><td class="mono">E-2</td><td>木作櫃體噴漆<span class="desc">電視牆與櫃體門片 PU 噴漆處理</span></td><td>式</td><td class="num">1</td><td class="num">12,000</td><td class="num">12,000</td></tr>
+            <tr class="sub"><td></td><td colspan="4">油漆工程 小計</td><td class="num">96,000</td></tr>
+
+            <tr class="zone"><td colspan="5">F · 廚衛設備</td><td class="num mono">245,000</td></tr>
+            <tr><td class="mono">F-1</td><td>廚具 L 型 240cm<span class="desc">石英石檯面、含三機(瓦斯爐/排油煙機/烘碗機)</span></td><td>式</td><td class="num">1</td><td class="num">128,000</td><td class="num">128,000</td></tr>
+            <tr><td class="mono">F-2</td><td>衛浴設備<span class="desc">TOTO 馬桶/面盆、恆溫淋浴龍頭</span></td><td>式</td><td class="num">1</td><td class="num">64,000</td><td class="num">64,000</td></tr>
+            <tr><td class="mono">F-3</td><td>淋浴拉門<span class="desc">一字型 8mm 強化玻璃,防爆膜</span></td><td>式</td><td class="num">1</td><td class="num">23,000</td><td class="num">23,000</td></tr>
+            <tr><td class="mono">F-4</td><td>熱水器<span class="desc">16L 強制排氣型,含安裝</span></td><td>式</td><td class="num">1</td><td class="num">30,000</td><td class="num">30,000</td></tr>
+            <tr class="sub"><td></td><td colspan="4">廚衛設備 小計</td><td class="num">245,000</td></tr>
+
+            <tr class="grand"><td></td><td colspan="4">總計(含稅,新台幣)<span class="desc" style="font-weight:400">含 6/6 大項 · 無漏項 — 與平台報價比較表逐項對齊</span></td><td class="num">NT$1,107,000</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="qfoot">
+          <!-- 圓形印章:平台已驗證 -->
+          <svg class="stamp" viewBox="0 0 120 120" aria-label="平台已驗證印章">
+            <defs><path id="stamp-arc" d="M60 14a46 46 0 1 1-.01 0"/></defs>
+            <circle cx="60" cy="60" r="56" fill="none" stroke="#cf4f1c" stroke-width="3"/>
+            <circle cx="60" cy="60" r="38" fill="none" stroke="#cf4f1c" stroke-width="1.5"/>
+            <text font-family="ui-monospace,Consolas,monospace" font-size="10.5" fill="#cf4f1c" letter-spacing="2.5"><textPath href="#stamp-arc">HAODZAI VERIFIED · 好宅裝修平台 · 託管履約 ·</textPath></text>
+            <text x="60" y="56" text-anchor="middle" font-size="15" font-weight="800" fill="#cf4f1c" font-family="inherit">已驗證</text>
+            <text x="60" y="74" text-anchor="middle" font-size="8.5" fill="#cf4f1c" font-family="ui-monospace,Consolas,monospace" letter-spacing="1">NO.V-0311</text>
+          </svg>
+          <div>
+            <h4>付款節點 Payment Schedule(平台託管)</h4>
+            <div class="payrow"><span>① 簽約金 30% — 開工前 3 日入託管專戶</span><span class="mono">NT$332,100</span></div>
+            <div class="payrow"><span>② 中期款 40% — 泥作完成+防水試水通過撥付</span><span class="mono">NT$442,800</span></div>
+            <div class="payrow"><span>③ 尾款 30% — 完工驗收簽認後 7 日撥付</span><span class="mono">NT$332,100</span></div>
+          </div>
+          <div class="sign">
+            <div class="slot"><div class="line"></div><div class="lbl"><span>承攬人簽章</span><span class="mono">日期 ____ / __ / __</span></div></div>
+            <div class="slot"><div class="line"></div><div class="lbl"><span>業主簽章</span><span class="mono">日期 ____ / __ / __</span></div></div>
+          </div>
+        </div>
+        <div class="qnotes">
+          <b>附註</b> 1. 本報價含稅、含垃圾清運;不含家具家電及未列項目。 2. 變更追加以平台「變更單」為準,雙方線上簽認後生效。 3. 完工保固一年,防水保固三年。 4. 工期自保護工程進場日起算,不含不可抗力天數。
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
+        <button class="btn"><svg class="ic"><use href="#c-check"/></svg>接受報價,進入託管簽約</button>
+        <button class="btn ghost" onclick="go('s-spec')">先看 C-1 防水施工說明<svg class="ic"><use href="#c-arrow-r"/></svg></button>
+      </div>
+    </section>
+
+    <!-- ================= 圖4 施工說明 ================= -->
+    <section class="screen" id="s-spec">
+      <div class="fig"><span class="fno">圖 4-1</span><h2>施工說明書 · 泥作工程 — 浴室防水</h2><span class="en">Method Statement</span></div>
+      <div class="spec-head">
+        <div class="code">SP-M01</div>
+        <div class="meta">
+          <span class="k">適用區域</span><span>浴室(圖 2-1)· 壁面淋浴區高 180cm</span>
+          <span class="k">工法</span><span>滲透底漆 + 彈性水泥兩道 + 陰角不織布補強</span>
+          <span class="k">關聯項目</span><span class="mono">報價單 C-1 · NT$28,000</span>
+          <span class="k">撥款關聯</span><span>中期款 40% 以「步驟 5 試水通過」為撥付條件</span>
+        </div>
+      </div>
+
+      <!-- 步驟 1 -->
+      <div class="step">
+        <div class="body">
+          <div class="stephead"><span class="n">STEP 1</span><h3>素地整理</h3><span class="mono">D+0 · 0.5 工作天</span></div>
+          <p>磁磚拆除見底後,剔除浮漿、殘膠與突出物,全面打磨吸塵;孔洞與蜂窩以 1:3 水泥砂漿修補。地坪整平並拉出洩水坡度 1/100,坡向落水頭,不得有積水窪陷。</p>
+          <div class="kv">
+            <div class="row"><span class="k">材料</span><span>1:3 水泥砂漿、EPOXY 修補膠泥(裂縫用)</span></div>
+            <div class="row"><span class="k">驗收標準</span><ul><li>表面無浮漿、無粉塵、無油污,手抹無白灰</li><li>素地含水率 &lt; 10%(水分計量測拍照)</li><li>潑水測試順流至落水頭,無積水點</li></ul></div>
+          </div>
+        </div>
+        <div class="diagram"><svg viewBox="0 0 270 150" role="img" aria-label="素地整理剖面示意">
+          <g stroke="#1c2530" stroke-width="1.5" fill="none">
+            <path d="M20 100H250"/>
+            <path d="M20 100V130H250V100"/>
+            <path d="M28 108 40 122M44 104 60 122M64 104 80 122M84 104 100 122M104 104 120 122M124 104 140 122M144 104 160 122M164 104 180 122M184 104 200 122M204 104 220 122M224 104 240 122" stroke-width="1"/>
+          </g>
+          <g stroke="#e8622d" stroke-width="1.5" fill="none">
+            <path d="M40 88 210 96"/><path d="M198 88 210 96 200 100"/>
+          </g>
+          <circle cx="222" cy="98" r="6" stroke="#1c2530" stroke-width="1.5" fill="none"/>
+          <text x="222" y="86" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#1c2530">落水頭</text>
+          <text x="112" y="80" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#b8461a">洩水坡 1/100</text>
+          <text x="135" y="145" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#6d7683">結構層打磨清潔 · 剖面 1:10</text>
+        </svg></div>
+      </div>
+
+      <!-- 步驟 2 -->
+      <div class="step">
+        <div class="body">
+          <div class="stephead"><span class="n">STEP 2</span><h3>防水底漆(滲透型底油)</h3><span class="mono">D+1 · 0.5 工作天</span></div>
+          <p>以滾輪滿塗滲透型底漆一道,封閉毛細孔並提高面層附著力。牆面自地坪往上塗佈:淋浴區至 180cm、其餘牆面至 120cm;管根與落水頭周邊以毛刷加強。</p>
+          <div class="kv">
+            <div class="row"><span class="k">材料</span><span>滲透型防水底油,塗佈量 ≥ 0.2 kg/m²,依原廠比例稀釋</span></div>
+            <div class="row"><span class="k">驗收標準</span><ul><li>滿塗無漏區,表面呈均勻濕潤光澤</li><li>乾燥 2–4 小時(表乾不黏手)方可進行下道</li></ul></div>
+          </div>
+        </div>
+        <div class="diagram"><svg viewBox="0 0 270 150" role="img" aria-label="防水底漆塗佈剖面示意">
+          <g stroke="#1c2530" stroke-width="1.5" fill="none">
+            <path d="M50 20V118H240"/>
+            <path d="M50 118V132H240"/><path d="M56 122 66 132M74 122 84 132M92 122 102 132M110 122 120 132M128 122 138 132M146 122 156 132M164 122 174 132M182 122 192 132M200 122 210 132M218 122 228 132" stroke-width="1"/>
+            <path d="M50 20H36V132" stroke-width="1"/>
+          </g>
+          <path d="M56 24V114H236" stroke="#e8622d" stroke-width="3" fill="none"/>
+          <g stroke="#1c2530" stroke-width="1.5" fill="none"><rect x="120" y="52" width="30" height="14" transform="rotate(18 135 59)"/><path d="M150 70 166 92" /></g>
+          <g stroke="#b8461a" stroke-width="1" fill="none"><path d="M26 24H32M26 114H32M29 24V114"/></g>
+          <text x="20" y="72" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#b8461a" transform="rotate(-90 20 72)">H180</text>
+          <text x="196" y="40" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#b8461a">底漆滿塗一道</text>
+          <text x="135" y="146" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#6d7683">滾輪塗佈 0.2kg/m² · 剖面 1:10</text>
+        </svg></div>
+      </div>
+
+      <!-- 步驟 3 -->
+      <div class="step">
+        <div class="body">
+          <div class="stephead"><span class="n">STEP 3</span><h3>彈性水泥兩道(十字交叉塗佈)</h3><span class="mono">D+1 ~ D+3 · 2 工作天</span></div>
+          <p>底漆乾燥後塗佈彈性水泥第一道;完全乾燥(約 6–8 小時)再以「與第一道垂直」的方向塗佈第二道,形成十字交叉覆膜,避免同向刷痕形成滲水通路。</p>
+          <div class="kv">
+            <div class="row"><span class="k">材料</span><span>彈性水泥(壓克力樹脂改質),每道 1.0 kg/m²,兩道合計乾膜厚 ≥ 1.5mm</span></div>
+            <div class="row"><span class="k">驗收標準</span><ul><li>膜厚計抽測 5 點,乾膜厚均 ≥ 1.5mm</li><li>表面無龜裂、無氣泡、無露底</li><li>第二道方向與第一道垂直(現場照片佐證)</li></ul></div>
+          </div>
+        </div>
+        <div class="diagram"><svg viewBox="0 0 270 150" role="img" aria-label="彈性水泥兩道剖面示意">
+          <g stroke="#1c2530" stroke-width="1.5" fill="none"><path d="M20 108H250M20 108V126H250V108"/><path d="M28 112 40 124M48 112 60 124M68 112 80 124M88 112 100 124M108 112 120 124M128 112 140 124M148 112 160 124M168 112 180 124M188 112 200 124M208 112 220 124M228 112 240 124" stroke-width="1"/></g>
+          <path d="M20 100H250" stroke="#f0a980" stroke-width="6"/>
+          <path d="M20 92H250" stroke="#e8622d" stroke-width="6"/>
+          <g stroke="#b8461a" stroke-width="1" fill="none"><path d="M256 89V95M256 97V103" stroke-width="4"/><path d="M262 86H268M262 106H268M265 86V106"/></g>
+          <text x="248" y="78" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#b8461a">≥1.5mm</text>
+          <g stroke="#1c2530" stroke-width="1.5" fill="none"><path d="M60 46H130M118 40 130 46 118 52"/><path d="M170 66V26M164 38 170 26 176 38"/></g>
+          <text x="95" y="36" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#1c2530">第一道 →</text>
+          <text x="200" y="50" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#1c2530">第二道 ↑</text>
+          <text x="135" y="144" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#6d7683">十字交叉 · 每道 1.0kg/m² · 剖面 1:5</text>
+        </svg></div>
+      </div>
+
+      <!-- 步驟 4 -->
+      <div class="step">
+        <div class="body">
+          <div class="stephead"><span class="n">STEP 4</span><h3>陰角不織布補強</h3><span class="mono">D+2(夾於兩道之間)</span></div>
+          <p>牆角陰角、牆與地交接、管根與落水頭周邊為最易開裂處。於第一道彈泥未乾時壓入不織布(或玻璃纖維網),再覆一道彈泥完全包覆,轉角處延伸各 10cm。</p>
+          <div class="kv">
+            <div class="row"><span class="k">材料</span><span>防水不織布 30cm 寬捲材 / 玻纖網,管根另用 SBS 密封膠</span></div>
+            <div class="row"><span class="k">驗收標準</span><ul><li>所有陰角、管根、落水頭 100% 佈設,無翹邊氣泡</li><li>補強布完全被彈泥包覆,不外露</li></ul></div>
+          </div>
+        </div>
+        <div class="diagram"><svg viewBox="0 0 270 150" role="img" aria-label="陰角不織布補強剖面示意">
+          <g stroke="#1c2530" stroke-width="1.5" fill="none">
+            <path d="M70 20V110H240"/>
+            <path d="M70 110H54V20" stroke-width="1"/><path d="M70 110V126H240" stroke-width="1"/>
+          </g>
+          <path d="M78 24V102H236" stroke="#e8622d" stroke-width="3" fill="none"/>
+          <path d="M78 58V100H124" stroke="#b8461a" stroke-width="5" stroke-dasharray="6 3" fill="none"/>
+          <g stroke="#b8461a" stroke-width="1" fill="none"><path d="M84 52 110 30"/><path d="M78 96H130M124 90 130 96 124 102" stroke-width="0"/></g>
+          <text x="146" y="28" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#b8461a">不織布 30cm</text>
+          <text x="140" y="94" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#b8461a">轉角各延伸 10cm</text>
+          <text x="135" y="146" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#6d7683">陰角補強大樣 · 1:5</text>
+        </svg></div>
+      </div>
+
+      <!-- 步驟 5 -->
+      <div class="step">
+        <div class="body">
+          <div class="stephead"><span class="n">STEP 5</span><h3>試水 48 小時</h3><span class="mono">D+4 ~ D+6 · 2 天養護後</span></div>
+          <p>防水層養護 48 小時後,封閉落水頭、堵住門檻,蓄水深 3–5cm 並以粉筆標記水線。靜置 48 小時:檢查水位無異常下降、樓下天花板與相鄰牆面無滲漏水痕,拍照上傳平台留存後,方可放水進行貼磚。</p>
+          <div class="kv">
+            <div class="row"><span class="k">材料</span><span>試水氣囊塞 / 臨時擋水墩,水位標記粉筆</span></div>
+            <div class="row"><span class="k">驗收標準</span><ul><li>48hr 水位下降 ≤ 2mm(排除蒸發量)</li><li>樓下天花、管道間、相鄰房間牆角無滲漏</li><li>屋主線上簽認+照片上傳平台 → 觸發中期款撥付</li></ul></div>
+          </div>
+        </div>
+        <div class="diagram"><svg viewBox="0 0 270 150" role="img" aria-label="試水48小時剖面示意">
+          <g stroke="#1c2530" stroke-width="1.5" fill="none">
+            <path d="M30 40V110H240V40"/>
+            <path d="M30 110V126H240V110" stroke-width="1"/>
+          </g>
+          <path d="M36 44V106H234" stroke="#e8622d" stroke-width="3" fill="none"/>
+          <path d="M42 78H228" stroke="#2a6a9b" stroke-width="1.5" stroke-dasharray="8 4"/>
+          <path d="M52 86Q60 82 68 86T84 86M120 90Q128 86 136 90T152 90M180 84Q188 80 196 84T212 84" stroke="#2a6a9b" stroke-width="1" fill="none"/>
+          <g stroke="#b8461a" stroke-width="1" fill="none"><path d="M246 78H252M246 106H252M249 78V106"/></g>
+          <text x="260" y="96" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#b8461a" text-anchor="middle" transform="rotate(-90 260 96)">3–5cm</text>
+          <circle cx="120" cy="106" r="5" stroke="#1c2530" stroke-width="1.5" fill="#f7f6f1"/>
+          <path d="M116 102 124 110M124 102 116 110" stroke="#b3261e" stroke-width="1.2"/>
+          <text x="120" y="122" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="8.5" fill="#1c2530">落水頭封閉</text>
+          <g stroke="#1c2530" stroke-width="1.5" fill="none"><circle cx="60" cy="30" r="11"/><path d="M60 23V30L65 33"/></g>
+          <text x="92" y="34" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#1c2530">48hr</text>
+          <text x="135" y="146" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="9" fill="#6d7683">蓄水試驗 · 剖面 1:10</text>
+        </svg></div>
+      </div>
+
+      <div class="card" style="margin-top:18px;display:flex;gap:14px;align-items:flex-start;border-left:4px solid var(--acc)">
+        <svg class="ic" style="margin-top:4px;color:var(--acc-ink)"><use href="#c-stamp"/></svg>
+        <div style="font-size:13.5px;color:var(--ink-2)">
+          <strong style="color:var(--ink)">為什麼施工說明書要放進平台?</strong><br>
+          每個工序的驗收標準事先白紙黑字,屋主按標準驗、業者按標準做;「步驟 5 試水通過」直接綁定託管中期款撥付條件 — 品質與金流在同一份文件上閉環。
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 圖框標題欄 ===== -->
+    <div class="titleblock">
+      <div><span class="k">Project 案名</span><span class="mono">30坪全屋翻新(2房2廳)</span></div>
+      <div><span class="k">Sheet 圖名</span><span class="mono" id="tb-sheet">C-01 首頁</span></div>
+      <div><span class="k">Drawn 繪製</span>好宅裝修 工務所</div>
+      <div><span class="k">Checked 審核</span>平台工程部</div>
+      <div><span class="k">Date 日期</span><span class="mono">2026-07-20</span></div>
+      <div><span class="k">Scale 比例</span><span class="mono">1:50 · UNIT cm</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ===== 分頁切換 ===== */
+var SHEETS = {
+  's-home' :{no:'C-01', name:'首頁'},
+  's-plan' :{no:'C-02', name:'工程施工圖'},
+  's-quote':{no:'C-03', name:'報價單'},
+  's-spec' :{no:'C-04', name:'施工說明'}
+};
+function go(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active', s.id===id);});
+  document.querySelectorAll('nav.tabs button').forEach(function(b){
+    var on = b.dataset.s===id;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on?'true':'false');
+  });
+  var m = SHEETS[id];
+  document.getElementById('corner-sheet').textContent = 'SHEET '+m.no+' · '+m.name;
+  document.getElementById('tb-sheet').textContent = m.no+' '+m.name;
+  window.scrollTo({top:0});
+}
+
+/* ===== 圖2 互動平面圖 ===== */
+var ROOMS = {
+  living:{name:'客廳(含玄關)', area:'8.3 坪 · 27.3 m²', items:[
+    ['拆除舊木作地坪與天花','A-1'],
+    ['電視牆造型木作 300cm','D-2'],
+    ['平釘天花板+間接照明','D-1'],
+    ['超耐磨木地板鋪設','D-1'],
+    ['迴路重配+插座 14 口','B-1 · B-3'],
+    ['全室批土油漆','E-1']]},
+  dining:{name:'餐廳', area:'2.9 坪 · 9.7 m²', items:[
+    ['吊燈專用迴路新增','B-1'],
+    ['餐櫃系統櫃','D-4'],
+    ['壁面批土油漆','E-1']]},
+  kitchen:{name:'廚房', area:'2.9 坪 · 9.7 m²', items:[
+    ['廚具 L 型 240cm 全套更新','F-1'],
+    ['給排水管移位重配','B-2'],
+    ['地磚更新(硬底)','C-3'],
+    ['排油煙管重新配管','F-1'],
+    ['專用迴路 220V ×2','B-1']]},
+  master:{name:'主臥', area:'4.2 坪 · 13.8 m²', items:[
+    ['240cm 拉門衣櫃木作','D-3'],
+    ['超耐磨木地板','D-1'],
+    ['冷氣排水預留+迴路','B-1'],
+    ['批土油漆','E-1']]},
+  second:{name:'次臥', area:'3.6 坪 · 12.0 m²', items:[
+    ['系統櫃+書桌','D-4'],
+    ['超耐磨木地板','D-1'],
+    ['批土油漆','E-1']]},
+  bath:{name:'浴室', area:'1.8 坪 · 6.0 m²', spec:true, items:[
+    ['磁磚拆除見底','A-2'],
+    ['防水工程(詳 SP-M01)','C-1'],
+    ['壁地磚 30×60 硬底貼作','C-2'],
+    ['衛浴設備+淋浴拉門','F-2 · F-3'],
+    ['暗架天花+暖風機迴路','B-1']]},
+  balcony:{name:'工作陽台', area:'1.5 坪 · 4.8 m²', items:[
+    ['地坪防水+地磚','C-3'],
+    ['洗衣機給排水移位','B-2'],
+    ['落地窗框防水收邊','C-4']]}
+};
+var infoEl = document.getElementById('plan-info');
+function showRoom(key){
+  var r = ROOMS[key]; if(!r) return;
+  document.querySelectorAll('.room').forEach(function(el){el.classList.toggle('sel', el.dataset.room===key);});
+  var html = '<div class="rn">'+r.name+' <span class="mono">'+r.area+'</span></div>'
+    + '<div class="tiny" style="margin-top:2px">本區施工項目(對應圖 3 報價單項次)</div><ul>';
+  r.items.forEach(function(it){
+    html += '<li>'+it[0]+' <span class="mono">['+it[1]+']</span></li>';
+  });
+  html += '</ul>';
+  if(r.spec){
+    html += '<button class="btn sm" style="margin-top:14px" onclick="go(\'s-spec\')">查看 SP-M01 防水施工說明 →</button>';
+  }
+  infoEl.innerHTML = html;
+}
+document.querySelectorAll('.room').forEach(function(el){
+  ['mouseenter','focus','click'].forEach(function(ev){
+    el.addEventListener(ev, function(){ showRoom(el.dataset.room); });
+  });
+  el.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); showRoom(el.dataset.room);} });
+});
+showRoom('bath'); /* 預設展示浴室,串連圖3 C-1 與圖4 SP-M01 */
+</script>
+</body>
+</html>

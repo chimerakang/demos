@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>好宅裝修 — 裝修市場平台原型</title>
+<style>
+  :root{
+    /* ============================================================
+       Art direction v3「深綠編輯誌 Pine Editorial」
+       色彩家族不變(綠 × 暖米白 × 陶土),但「用法」翻轉:
+       深墨綠從按鈕色升格為大面積色塊(頂欄/hero/表頭/付款面板),
+       暖米白從背景升格為深綠上的文字色,陶土負責深綠上的點睛。
+       ============================================================ */
+    --pine:#1e3d30;          /* 深墨綠:大面積色塊主角 */
+    --pine-deep:#163025;     /* 更深一階:proto bar / splash 漸層 */
+    --pine-2:#2c5443;        /* 深綠上的次層(hover、表頭推薦欄) */
+    --pine-line:#39604e;     /* 深綠上的分隔線 */
+    --brand:#2e8763;         /* 苔綠:互動強調、選中態、連結 */
+    --brand-600:#27775a; --brand-700:#1f6049;
+    --brand-100:#e7f1ea; --brand-200:#cbe2d5; --brand-300:#9cc7b1; --brand-50:#f2f7f4;
+    --clay:#c96f47;          /* 陶土:深綠上的點綴、插畫主角色 */
+    --clay-deep:#b25a33;     /* 陶土深階:accent 按鈕、淺底價格文字(AA) */
+    --clay-ink:#a34d28;      /* 最深陶土:淺底小號價格文字 */
+    --clay-soft:#e0a382;     /* 淺陶土:深綠上的 kicker / 數字(深底 AA) */
+    --clay-light:#f7e9dd;
+    --cream:#f5efe2;         /* 暖米白:深綠上的主文字 */
+    --cream-2:#cfdcd2;       /* 深綠上的次要文字 */
+    --cream-3:#a8bcac;       /* 深綠上的輔助文字 */
+    --ink:#22302a; --ink-2:#57645c; --ink-3:#7d897f;
+    --bg:#f2eee3;            /* 頁面底:比 v2 再暖一點的紙感米白 */
+    --card:#fffdf7; --line:#e2dcc9; --line-soft:#ece7d6;
+    --ok:#1a7f4e; --ok-bg:#e6f4ec; --warn:#96490b; --warn-bg:#faf0db; --bad:#b3261e; --bad-bg:#fdeceb;
+    --serif:Georgia,"Times New Roman","DejaVu Serif",serif; /* Latin/數字的雜誌感 */
+    --radius:10px; --radius-sm:6px; --radius-lg:20px;      /* 幾何比 v2 收斂、更利落 */
+    --shadow-sm:0 1px 2px rgba(30,61,48,.06);
+    --shadow:0 1px 2px rgba(30,61,48,.05), 0 6px 20px rgba(30,61,48,.07);
+    --shadow-lift:0 2px 4px rgba(30,61,48,.06), 0 14px 30px rgba(30,61,48,.12);
+    --t:.18s ease-out;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+  a{color:var(--brand-700);text-decoration:none}
+  ::selection{background:var(--brand-200)}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  /* 深色面上的鍵盤焦點改亮色框,確保可見 */
+  .proto-bar :focus-visible,header.site :focus-visible,.hero :focus-visible,.pay-panel :focus-visible,.total-panel :focus-visible{outline-color:#f0cfae}
+  .container{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* ===== 內嵌線性圖示系統(取代全部 emoji)===== */
+  .ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-4px}
+  .ic.lg{width:24px;height:24px;stroke-width:1.6}
+  .ic.sm{width:15px;height:15px;vertical-align:-2.5px}
+
+  /* ===== 原型工具列(非產品 UI) ===== */
+  .proto-bar{background:var(--pine-deep);color:var(--cream-2);padding:9px 0;font-size:13px;border-bottom:1px solid rgba(245,239,226,.08)}
+  .proto-bar .container{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .proto-bar strong{color:var(--cream);letter-spacing:.06em}
+  .proto-bar .lbl{display:inline-flex;align-items:center;gap:7px}
+  .proto-bar button{display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--cream-2);border:1px solid rgba(245,239,226,.28);border-radius:999px;padding:5px 14px;cursor:pointer;font-size:12.5px;transition:background var(--t),border-color var(--t),color var(--t)}
+  .proto-bar button:hover{background:rgba(245,239,226,.10);color:var(--cream)}
+  .proto-bar button.active{background:var(--clay-deep);border-color:var(--clay-deep);color:#fff;font-weight:700}
+
+  /* ===== 頂部導覽:深墨綠色帶(色彩構圖翻轉 #1) ===== */
+  header.site{background:var(--pine);color:var(--cream);position:sticky;top:0;z-index:20;box-shadow:0 1px 0 rgba(245,239,226,.10),0 6px 24px rgba(22,48,37,.25)}
+  header.site .container{display:flex;align-items:center;gap:26px;min-height:66px;padding-top:6px;padding-bottom:6px}
+  .logo{font-size:19px;font-weight:800;color:var(--cream);letter-spacing:.04em;display:flex;align-items:center;gap:10px;white-space:nowrap}
+  .logo::before{content:"家";flex:none;width:30px;height:30px;border-radius:7px;background:var(--clay-deep);color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  nav.main{display:flex;gap:2px;flex:1;flex-wrap:wrap}
+  nav.main button{display:inline-flex;align-items:center;gap:7px;background:none;border:none;padding:9px 13px;border-radius:8px;font-size:14.5px;color:var(--cream-2);cursor:pointer;transition:background var(--t),color var(--t),box-shadow var(--t)}
+  nav.main button .ic{width:17px;height:17px}
+  nav.main button:hover{background:rgba(245,239,226,.10);color:var(--cream)}
+  nav.main button.active{background:rgba(245,239,226,.13);color:#fff;font-weight:700;box-shadow:inset 0 -2px 0 var(--clay)}
+  .avatar{width:34px;height:34px;flex:none;border-radius:50%;background:var(--cream);color:var(--pine);display:flex;align-items:center;justify-content:center;font-weight:800}
+
+  /* ===== 通用元件 ===== */
+  .screen{display:none;padding:36px 0 80px}
+  .screen.active{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+  .grid{display:grid;gap:18px}
+  .grid.c2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .grid.c3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  h1{font-size:32px;font-weight:800;letter-spacing:-.01em;line-height:1.35;margin-bottom:4px}
+  .page-head{margin-bottom:6px}
+  .page-head .kicker{display:block;font-family:var(--serif);font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--clay-ink);margin-bottom:8px}
+  h3{font-size:16px;font-weight:700;line-height:1.5}
+  .muted{color:var(--ink-2);font-size:14px}
+  h1+.muted,.page-head .muted{font-size:14.5px}
+  .tiny{color:var(--ink-3);font-size:12.5px;line-height:1.6}
+  .cardtitle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px}
+  .cardtitle .ic{width:17px;height:17px;color:var(--brand-700)}
+
+  /* 編輯風區塊標題:超大 serif 編號 + kicker + 標題,底部細線(版面構圖改變 #2) */
+  .sec{display:flex;align-items:flex-end;gap:20px;margin:60px 0 22px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sec .no{font-family:var(--serif);font-size:52px;line-height:.78;color:var(--clay);letter-spacing:-.02em}
+  .sec .kicker{display:block;font-family:var(--serif);font-size:11px;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .sec h2{font-size:23px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
+  .sec.mini{margin-top:44px}
+  .sec.mini .no{font-size:38px}
+  .sec.mini h2{font-size:19px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--pine);color:var(--cream);border:none;border-radius:var(--radius-sm);padding:11px 22px;font-size:15px;font-weight:700;line-height:1.45;letter-spacing:.02em;cursor:pointer;white-space:nowrap;transition:background var(--t),box-shadow var(--t),transform var(--t)}
+  .btn:hover{background:var(--pine-2);transform:translateY(-1px);box-shadow:0 6px 14px rgba(30,61,48,.22)}
+  .btn:active{background:var(--pine-deep);transform:translateY(0);box-shadow:none}
+  .btn.accent{background:var(--clay-deep);color:#fff}
+  .btn.accent:hover{background:var(--clay-ink);box-shadow:0 6px 14px rgba(178,90,51,.30)}
+  .btn.accent:active{background:#8f4322}
+  .btn.ghost{background:transparent;color:var(--pine);border:1.5px solid #b8c7bb;box-shadow:none}
+  .btn.ghost:hover{background:#e9efe6;border-color:var(--brand-300);box-shadow:none}
+  .btn.ghost:active{background:var(--brand-100)}
+  .btn.sm{padding:7px 14px;font-size:13px;border-radius:5px}
+  .btn .ic{width:16px;height:16px}
+
+  .badge{display:inline-block;font-size:12px;font-weight:700;line-height:1.5;border-radius:999px;padding:2px 10px;letter-spacing:.02em;white-space:nowrap;background:#ebe6d6;color:var(--ink-2)}
+  .badge.ok{background:var(--ok-bg);color:var(--ok)}
+  .badge.warn{background:var(--warn-bg);color:var(--warn)}
+  .badge.bad{background:var(--bad-bg);color:var(--bad)}
+  .badge.brand{background:var(--brand-100);color:var(--brand-700)}
+  .badge.clay{background:var(--clay-light);color:var(--clay-ink)}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:12px 14px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:top}
+  tr:last-child>td{border-bottom:none}
+  .num{text-align:right;font-family:var(--serif);font-size:14.5px;letter-spacing:.01em}
+  .scroll-x{overflow-x:auto}
+
+  /* 資料表卡:深墨綠表頭帶(色彩構圖翻轉 #1 / 版面構圖改變) */
+  .tablewrap{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto;box-shadow:var(--shadow)}
+  .tablewrap th:first-child,.tablewrap td:first-child{padding-left:22px}
+  .tablewrap th:last-child,.tablewrap td:last-child{padding-right:22px}
+  thead th{background:var(--pine);color:#f2eee2;font-size:13.5px;font-weight:700;letter-spacing:.03em;border-bottom:none;vertical-align:bottom;padding-top:14px;padding-bottom:12px}
+  thead .tiny{color:var(--cream-3)}
+
+  #o-compare thead th{font-size:14.5px;line-height:1.55;padding-top:16px}
+  #o-compare thead th:first-child{font-family:var(--serif);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--cream-3)}
+  #o-compare thead th:nth-child(2){background:var(--pine-2)}
+  #o-compare tbody td:first-child{color:var(--ink-2);font-size:13.5px}
+  #o-compare tbody td:nth-child(2){background:#edf2ea;box-shadow:inset 1px 0 0 #dde6d8,inset -1px 0 0 #dde6d8}
+  .row-total td{background:#f5efdd;border-top:2px solid var(--pine);border-bottom:1px solid var(--line);font-weight:800;padding-top:14px;padding-bottom:14px}
+  #o-compare .row-total td:nth-child(2){background:#e6ecdb}
+  .row-total .num{font-size:17.5px;letter-spacing:-.01em;color:var(--pine)}
+  .row-total td:first-child{color:var(--ink)!important;font-size:14px!important;font-family:"Noto Sans TC","PingFang TC",sans-serif!important;letter-spacing:.02em!important;text-transform:none!important}
+  .row-sec td{background:#efead9;font-weight:700;font-size:13px;color:var(--ink-2);letter-spacing:.06em;padding-top:9px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+
+  /* 步驟條 */
+  .steps{display:flex;gap:0;margin:18px 0 4px;flex-wrap:wrap}
+  .step{flex:1;min-width:70px;text-align:center;font-size:12px;color:var(--ink-3);position:relative;padding-top:28px}
+  .step::before{content:"";width:18px;height:18px;border-radius:50%;background:var(--card);border:2px solid #cfc8b2;position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:1;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:#fff;line-height:1}
+  .step::after{content:"";height:2px;background:#ddd6c0;position:absolute;top:8px;left:-50%;width:100%}
+  .step:first-child::after{display:none}
+  .step.done{color:var(--brand-700)}
+  .step.done::before{content:"✓";background:var(--pine);border-color:var(--pine)}
+  .step.done::after{background:var(--pine)}
+  .step.now{color:var(--clay-ink);font-weight:700}
+  .step.now::before{border-color:var(--clay-deep);box-shadow:0 0 0 4px #f2ddcd}
+  .step.now::after{background:var(--pine)}
+
+  /* ===== 案例圖卡:CSS/SVG 抽象室內場景(取代漸層+emoji)===== */
+  .case{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);transition:box-shadow var(--t),transform var(--t)}
+  .grid>.case:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}
+  .scene{display:block;line-height:0;background:var(--pine)}
+  .scene svg{display:block;width:100%;height:170px}
+  .scene.short svg{height:112px}
+  .case .cap{padding:14px 18px 16px}
+  .case .cap .k{display:block;font-family:var(--serif);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+  .case .cap strong{font-size:15.5px;letter-spacing:-.005em}
+  .case .cap .meta{color:var(--ink-2);font-size:13px;margin-top:2px}
+
+  /* 套餐卡:編輯風索引 + serif 大價格 */
+  .pkg{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 22px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+  .pkg .idx{font-family:var(--serif);font-size:11px;letter-spacing:.26em;color:var(--ink-3);text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .pkg .idx::after{content:"";height:1px;background:var(--line);flex:1}
+  .pkg .badge{position:absolute;top:18px;right:18px}
+  .pkg h3{font-size:17.5px;margin-top:2px}
+  .pkg .price-line{margin-top:auto;padding-top:10px}
+
+  /* 價格數字 = 產品主角:serif 雜誌式呈現 */
+  .price-line{font-family:var(--serif);font-weight:700;color:var(--clay-ink);font-size:21px;letter-spacing:-.01em;line-height:1.2}
+  .price-line small,.price .u{font-size:.62em;font-weight:400;letter-spacing:.04em}
+  .delta{font-family:var(--serif);font-weight:700;font-size:24px;color:var(--clay-ink);letter-spacing:-.01em}
+  .total-figure{font-family:var(--serif);font-size:38px;font-weight:700;color:var(--clay-soft);letter-spacing:-.01em;line-height:1.15}
+
+  /* 精靈 */
+  .wiz-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .wbar{height:3px;background:var(--line-soft);border-radius:2px;margin-top:10px;overflow:hidden}
+  .wbar i{display:block;height:100%;background:var(--clay-deep);border-radius:2px;transition:width .3s ease-out}
+  .wiz-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0 8px}
+  .wiz-opt{border:1.5px solid var(--line);border-radius:10px;padding:18px 12px 16px;text-align:center;cursor:pointer;background:var(--card);font-size:14.5px;line-height:1.5;transition:border-color var(--t),background var(--t),box-shadow var(--t),transform var(--t)}
+  .wiz-opt:hover{border-color:var(--brand-300);background:var(--brand-50);transform:translateY(-1px)}
+  .wiz-opt .wic{width:46px;height:46px;margin:0 auto 10px;border-radius:50%;border:1.5px solid #cdc6ae;display:flex;align-items:center;justify-content:center;color:var(--pine);transition:background var(--t),border-color var(--t),color var(--t)}
+  .wiz-opt .wic .ic{width:22px;height:22px;vertical-align:0}
+  .wiz-opt.sel{border-color:var(--pine);background:var(--brand-100);font-weight:700;box-shadow:inset 0 0 0 .5px var(--pine)}
+  .wiz-opt.sel .wic{background:var(--pine);border-color:var(--pine);color:var(--cream)}
+
+  /* 建材等級 */
+  .tier{border:1.5px solid var(--line);border-radius:10px;padding:0 0 16px;cursor:pointer;background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden;transition:border-color var(--t),background var(--t),box-shadow var(--t),transform var(--t)}
+  .tier:hover{border-color:var(--brand-300);transform:translateY(-1px);box-shadow:var(--shadow)}
+  .tier.sel{border-color:var(--pine);box-shadow:inset 0 0 0 1px var(--pine),var(--shadow)}
+  .tier .scene svg{height:96px}
+  .tier .pad{padding:12px 16px 0}
+  .tier .price{font-family:var(--serif);font-weight:700;color:var(--clay-ink);font-size:19px;letter-spacing:-.01em;margin-top:6px}
+
+  /* 聊天卡片 */
+  .chat{display:flex;flex-direction:column;gap:12px;max-width:560px}
+  .bubble{border-radius:14px;padding:10px 15px;font-size:14px;line-height:1.65;max-width:80%;box-shadow:var(--shadow-sm)}
+  .bubble.them{background:#efe9d7;align-self:flex-start;border-bottom-left-radius:4px}
+  .bubble.me{background:var(--pine);color:var(--cream);align-self:flex-end;border-bottom-right-radius:4px}
+  .action-card{border:1px solid var(--line);border-left:3px solid var(--clay-deep);border-radius:8px;padding:16px;align-self:flex-start;background:var(--card);max-width:85%;box-shadow:var(--shadow)}
+  .action-card td{padding:7px 4px;font-size:13.5px}
+  .action-card table{margin-top:4px}
+
+  /* 看板 */
+  .kanban{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .kan-col{background:#eae5d3;border-radius:10px;padding:10px;border-top:3px solid var(--pine)}
+  .kan-col.k-quoted{border-top-color:var(--clay-deep)}
+  .kan-col.k-doing{border-top-color:var(--warn)}
+  .kan-col.k-done{border-top-color:var(--ok)}
+  .kan-col h4{font-size:13px;color:var(--ink);margin:4px 6px 10px;letter-spacing:.02em;display:flex;align-items:center;gap:7px}
+  .kan-col h4 .ic{width:15px;height:15px;color:var(--pine)}
+  .kan-col h4 .cnt{margin-left:auto;font-family:var(--serif);font-size:13px;color:var(--ink-3)}
+  .kan-card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 13px;margin-bottom:10px;font-size:13px;line-height:1.65;cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color var(--t),box-shadow var(--t),transform var(--t)}
+  .kan-card:hover{transform:translateY(-1px);border-color:var(--brand-200);box-shadow:var(--shadow)}
+  .kan-card .badge{margin-top:6px}
+
+  /* 設計註記(原型說明,非產品 UI) */
+  .note{display:flex;gap:11px;background:#f6f0dc;border:1px solid #e2d6b1;border-left:3px solid #b98a5f;padding:13px 16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.7;color:#655626;margin:22px 0}
+  .note .ic{width:17px;height:17px;color:#8a6f35;margin-top:3px}
+
+  .todo-box{margin-top:12px;padding:16px;border:1px solid var(--brand-200);background:var(--brand-50);border-radius:8px}
+  .alert-box{margin-top:12px;padding:16px;border:1px solid #f0c3bf;background:#fef7f6;border-radius:8px}
+
+  /* ===== Hero:深墨綠編輯風色塊,左文右插畫的不對稱構圖 ===== */
+  .hero{position:relative;overflow:hidden;background:var(--pine);color:var(--cream);border-radius:var(--radius-lg);display:grid;grid-template-columns:1.05fr .95fr;min-height:420px}
+  .hero-txt{padding:58px 12px 54px 52px;display:flex;flex-direction:column;justify-content:center}
+  .hero .kicker{font-family:var(--serif);font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--clay-soft);margin-bottom:16px}
+  .hero h1{font-size:44px;font-weight:900;letter-spacing:.005em;line-height:1.28;color:var(--cream);margin:0}
+  .hero .sub{color:var(--cream-2);font-size:16px;margin-top:14px}
+  .hero .cta{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+  .hero .btn.light{background:transparent;color:var(--cream);border:1.5px solid rgba(245,239,226,.45)}
+  .hero .btn.light:hover{background:rgba(245,239,226,.10);border-color:rgba(245,239,226,.7);box-shadow:none}
+  .hero .trust{display:flex;gap:9px;flex-wrap:wrap;margin-top:30px;font-size:12.5px;color:var(--cream-2)}
+  .hero .trust span{border:1px solid rgba(245,239,226,.28);border-radius:999px;padding:4px 13px}
+  .hero .trust span::before{content:"✓ ";color:var(--clay-soft);font-weight:800}
+  .hero-art{position:relative}
+  .hero-art svg{position:absolute;inset:0;width:100%;height:100%}
+
+  /* ===== 品牌 Splash(首次載入):整面深墨綠 ===== */
+  .splash{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;
+          flex-direction:column;gap:20px;background:radial-gradient(1000px 560px at 50% 36%,#28503f 0%,var(--pine) 55%,var(--pine-deep) 100%);color:var(--cream)}
+  .splash.show{display:flex}
+  .splash .mark{width:70px;height:70px;border-radius:16px;background:var(--clay-deep);color:#fff;
+                display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;
+                animation:breathe 1.8s ease-in-out infinite;box-shadow:0 14px 36px rgba(0,0,0,.35)}
+  .splash .name{font-size:21px;font-weight:800;color:var(--cream);letter-spacing:.34em;padding-left:.34em}
+  .splash .hint{font-family:var(--serif);font-size:12px;color:var(--cream-3);letter-spacing:.28em;text-transform:uppercase}
+
+  /* ===== 骨架屏(內容載入)===== */
+  .sk{position:relative;overflow:hidden;background:#e6e0cd;border-radius:6px}
+  .sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+             background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+             animation:shimmer 1.4s infinite}
+  @keyframes shimmer{100%{transform:translateX(100%)}}
+  .sk.text{height:14px;margin:8px 0} .sk.title{height:28px;width:45%;margin:10px 0}
+  .sk.img{height:170px;border-radius:var(--radius)} .sk.btn{height:42px;width:180px;border-radius:var(--radius-sm)}
+  .skd{background:rgba(245,239,226,.14)}
+  .skd::after{background:linear-gradient(90deg,transparent,rgba(245,239,226,.22),transparent)}
+  @keyframes breathe{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.07);opacity:.88}}
+  footer{padding:44px 0 52px;color:var(--ink-3);font-size:12.5px;text-align:center;letter-spacing:.04em}
+
+  /* ===== 專案頁:左右欄構圖(進度主欄+付款側欄)(版面構圖改變 #2) ===== */
+  .split{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start;margin-top:16px}
+  .pay-panel{background:var(--pine);color:var(--cream);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+  .pay-panel .cardtitle{color:var(--cream)}
+  .pay-panel .cardtitle .ic{color:var(--clay-soft)}
+  .pay-panel td{border-bottom:1px solid rgba(245,239,226,.14);color:var(--cream-2);font-size:13.5px;padding:11px 6px}
+  .pay-panel .num{color:var(--clay-soft);font-size:15px}
+  .pay-panel .tiny{color:var(--cream-3)}
+  .total-panel{background:var(--pine);color:var(--cream);border-radius:var(--radius);padding:22px 24px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:8px;box-shadow:var(--shadow)}
+  .total-panel .lbl{font-family:var(--serif);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--cream-3)}
+
+  /* ===== 案例詳情:before/after 對比 ===== */
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .ba-chip{display:inline-block;font-family:var(--serif);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;border-radius:999px;padding:3px 12px;margin-bottom:6px}
+  .ba-chip.before{background:#ebe6d6;color:var(--ink-2)}
+  .ba-chip.after{background:var(--brand-100);color:var(--brand-700)}
+
+  /* 直式時間軸(施工過程) */
+  .tl{margin-top:4px}
+  .tl-item{position:relative;padding:0 0 20px 36px}
+  .tl-item::before{content:"";position:absolute;left:5px;top:7px;width:11px;height:11px;border-radius:50%;background:var(--card);border:2.5px solid var(--pine)}
+  .tl-item::after{content:"";position:absolute;left:11.5px;top:24px;bottom:-3px;width:2px;background:var(--line)}
+  .tl-item:last-child{padding-bottom:0}
+  .tl-item:last-child::after{display:none}
+  .tl-item .ph{font-weight:800;font-size:14.5px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .tl-item .ph .wk{font-family:var(--serif);font-size:12px;font-weight:400;color:var(--clay-ink);letter-spacing:.08em}
+  .tl-item p{font-size:13.5px;color:var(--ink-2);margin-top:2px}
+
+  /* 屋主心得引言(編輯誌大引號) */
+  .quoteblock{position:relative;background:var(--pine);color:var(--cream);border-radius:var(--radius-lg);padding:46px 48px 38px;box-shadow:var(--shadow)}
+  .quoteblock::before{content:"\201C";position:absolute;top:2px;left:20px;font-family:var(--serif);font-size:100px;line-height:1;color:var(--clay-soft);opacity:.9}
+  .quoteblock p{font-size:18px;line-height:1.95;max-width:660px}
+  .quoteblock .who{margin-top:14px;font-family:var(--serif);font-size:12px;letter-spacing:.2em;color:var(--cream-3);text-transform:uppercase}
+
+  /* 建材詳情:配件加購列 */
+  .acc-row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line-soft);cursor:pointer}
+  .acc-row:last-of-type{border-bottom:none}
+  .acc-row input{width:18px;height:18px;flex:none;accent-color:var(--pine);cursor:pointer}
+  .acc-row .grow{flex:1;display:flex;flex-direction:column;line-height:1.55}
+  .acc-row strong{font-size:14px}
+  .acc-row .num{font-size:14px;color:var(--clay-ink)}
+
+  /* 施工說明:工序步驟 */
+  .wstep{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--line-soft)}
+  .wstep:last-child{border-bottom:none;padding-bottom:6px}
+  .wstep .n{font-family:var(--serif);font-size:30px;line-height:1.05;color:var(--clay);min-width:34px;text-align:right;flex:none}
+  .wstep h4{font-size:15px;font-weight:800;line-height:1.5}
+  .wstep p{font-size:13.5px;color:var(--ink-2);margin-top:2px}
+  .wstep .accpt{display:flex;gap:8px;align-items:flex-start;margin-top:9px;font-size:13px;line-height:1.6;background:var(--ok-bg);border-radius:6px;padding:8px 12px;color:var(--ok)}
+  .wstep .accpt .badge{flex:none}
+
+  /* 工程施工圖:互動平面圖 */
+  .plan-svg{width:100%;height:auto;display:block}
+  .plan-room{cursor:pointer;outline:none}
+  .plan-room rect{fill:#f8f3e6;transition:fill var(--t)}
+  .plan-room:hover rect,.plan-room.sel rect{fill:#d9e6d6}
+  .plan-room:focus-visible rect{stroke:var(--brand);stroke-width:2.5}
+  .plan-room text{font-family:"Noto Sans TC","PingFang TC",sans-serif;font-size:16.5px;font-weight:700;fill:#22302a;pointer-events:none;text-anchor:middle}
+  .plan-room text.pp{font-family:var(--serif);font-size:12.5px;font-weight:400;fill:#57645c;letter-spacing:.06em}
+  .plan-walls{stroke:#1e3d30;stroke-width:7;stroke-linecap:square;fill:none}
+  .plan-door{stroke:#7d897f;stroke-width:1.8;fill:none;stroke-dasharray:3 3}
+  .plan-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--ink-2)}
+  .plan-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:0}
+
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr;min-height:0}
+    .hero-txt{padding:44px 32px 8px}
+    .hero-art{min-height:230px}
+    .split{grid-template-columns:1fr}
+  }
+  @media (max-width:640px){
+    .container{padding:0 16px}
+    .screen{padding:26px 0 60px}
+    header.site .container{flex-wrap:wrap;height:auto;padding-top:10px;padding-bottom:10px;gap:6px 12px}
+    .logo{order:0}
+    .avatar{order:1;margin-left:auto}
+    nav.main{order:2;flex-basis:100%;gap:0}
+    nav.main button{padding:7px 9px;font-size:13px}
+    h1{font-size:24px}
+    .card{padding:18px}
+    .ba-grid{grid-template-columns:1fr}
+    .quoteblock{padding:38px 24px 30px}
+    .quoteblock p{font-size:16px}
+    .wstep{gap:12px}
+    .hero-txt{padding:36px 22px 6px}
+    .hero h1{font-size:30px}
+    .hero-art{min-height:190px}
+    .sec{margin-top:44px;gap:14px}
+    .sec .no{font-size:38px}
+    .sec h2{font-size:19px}
+    .tablewrap th:first-child,.tablewrap td:first-child{padding-left:16px}
+    .tablewrap th:last-child,.tablewrap td:last-child{padding-right:16px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== SVG 線性圖示庫(stroke 1.75 / currentColor,全站唯一圖示來源) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.2 12 4l8 7.2M6.2 9.8V20h11.6V9.8M10 20v-5.4h4V20"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5l1.7 4.9 4.9 1.7-4.9 1.7L12 16.7l-1.7-4.9-4.9-1.7 4.9-1.7L12 3.5zM18.5 15.5v4M16.5 17.5h4"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3.5v16M8 20.5h8M4.5 6.5h15M7 6.5 4.4 12.7a3 3 0 0 0 5.2 0L7 6.5zM17 6.5l-2.6 6.2a3 3 0 0 0 5.2 0L17 6.5z"/></symbol>
+    <symbol id="i-material" viewBox="0 0 24 24"><path d="M12 3.5 20.5 8 12 12.5 3.5 8 12 3.5zM3.5 12l8.5 4.5L20.5 12M3.5 16l8.5 4.5L20.5 16"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4.2l2 2.2h7.3a1.5 1.5 0 0 1 1.5 1.5v9.3a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-11z"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 13.5a2 2 0 0 1-2 2H9.5L5 19V6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7z"/></symbol>
+    <symbol id="i-board" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="4.6" height="13" rx="1"/><rect x="9.7" y="4.5" width="4.6" height="9" rx="1"/><rect x="15.9" y="4.5" width="4.6" height="6" rx="1"/></symbol>
+    <symbol id="i-quote" viewBox="0 0 24 24"><path d="M6.5 3.5h11V20l-2.75-1.8L12 20l-2.75-1.8L6.5 20V3.5zM9.5 8h5M9.5 11.5h5"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="4" rx="1"/><path d="M5.5 8v10.5a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V8M10 12h4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5l6.5 2.6v4.8c0 4.6-3.2 7.4-6.5 8.6-3.3-1.2-6.5-4-6.5-8.6V6.1L12 3.5zM9.2 11.8l2 2 3.6-3.8"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h3.7M11.3 7H20M4 12h8.7M16.3 12H20M4 17h1.7M9.3 17H20"/><circle cx="9.5" cy="7" r="1.8"/><circle cx="14.5" cy="12" r="1.8"/><circle cx="7.5" cy="17" r="1.8"/></symbol>
+    <symbol id="i-hammer" viewBox="0 0 24 24"><path d="M3 20.5 9.8 13.7M9 7.5l3.4-3.4a1 1 0 0 1 1.4 0l4.6 4.6-2.9 2.9-1.7-1.7-1.4 1.4L9 7.5z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><path d="M4.5 20.5h15M6.5 20.5V4.5h8v16M14.5 10.5h4v10M9 8h1.6M9 11.5h1.6M9 15h1.6"/></symbol>
+    <symbol id="i-house-new" viewBox="0 0 24 24"><path d="M3.5 12 10.5 6l7 6M5.5 10.7V19h10v-8.3M18.5 3.5v4M16.5 5.5h4"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5 5.3 4.5h13.4L20 9.5M5 9.5v10h14v-10M9.5 19.5v-5.5h5v5.5M4 9.5h16"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M3.5 16.5 16.5 3.5l4 4L7.5 20.5l-4-4zM7.5 12.5l2 2M10.5 9.5l2 2M13.5 6.5l2 2"/></symbol>
+    <symbol id="i-sofa" viewBox="0 0 24 24"><path d="M5.5 11V8.5a2.5 2.5 0 0 1 2.5-2.5h8a2.5 2.5 0 0 1 2.5 2.5V11M3.5 13.5a2 2 0 0 1 4 0V14h9v-.5a2 2 0 0 1 4 0V18h-17v-4.5zM6 18v1.5M18 18v1.5"/></symbol>
+    <symbol id="i-pot" viewBox="0 0 24 24"><path d="M4.5 10.5h15V15a4 4 0 0 1-4 4h-7a4 4 0 0 1-4-4v-4.5zM3 10.5h18M9.5 7c0-1.3 5-1.3 5 0M10 3.5v1.4M14 3.5v1.4"/></symbol>
+    <symbol id="i-bath" viewBox="0 0 24 24"><path d="M4 12.5h16V15a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-2.5zM6.5 12.5v-6a2.25 2.25 0 0 1 4.5-.4M7.5 19l-1 1.8M16.5 19l1 1.8"/></symbol>
+    <symbol id="i-bed" viewBox="0 0 24 24"><path d="M3.5 6.5V19M3.5 16.5h17M20.5 19v-6a3 3 0 0 0-3-3h-14"/><circle cx="7.2" cy="12" r="1.7"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><path d="M6.5 20.5v-16a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M4 20.5h16"/><circle cx="14.8" cy="12.5" r=".9"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5.5 18.5C5.5 9.5 12 4.5 20 4.5c0 8-5 14-14.5 14zM5.5 18.5C9 13.5 12.5 10 16.5 7.5"/></symbol>
+    <symbol id="i-sq-min" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1.5"/><path d="M9.5 12h5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.2 2.8 5.5 13.2h4.8l-1.5 8 7.7-10.4h-4.8l1.5-8z"/></symbol>
+    <symbol id="i-arch" viewBox="0 0 24 24"><path d="M6.5 20.5v-9a5.5 5.5 0 0 1 11 0v9M4 20.5h16"/></symbol>
+    <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5V12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V5.5M5 12v6.5C5 19.9 8.1 21 12 21s7-1.1 7-2.5V12"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5h3.4l1.8-2.5h5.6l1.8 2.5H20V19H4V8.5z"/><circle cx="12" cy="13.5" r="3.2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4.2 4.2L19 7"/></symbol>
+    <symbol id="i-check-c" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.4 2.4 4.9-5"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4.5" y="5.5" width="15" height="14" rx="1.5"/><path d="M4.5 9.5h15M9 3.5v4M15 3.5v4"/></symbol>
+    <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M6.7 6.7l10.6 10.6"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M9 4.5h6v2.8H9zM9 5.5H7a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V7A1.5 1.5 0 0 0 17 5.5h-2M9.5 12h5M9.5 15.5h5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="1.5"/><path d="M15.5 5.5h-11v11"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4.2 21 20H3L12 4.2zM12 10.5v4M12 17.2v.1"/></symbol>
+    <symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M4.5 12h15M13.5 6l6 6-6 6"/></symbol>
+    <symbol id="i-arrow-l" viewBox="0 0 24 24"><path d="M19.5 12h-15M10.5 6l-6 6 6 6"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M3.5 10.8 20.5 4l-6.8 17-2.6-7.6-7.6-2.6zM20.5 4 11.1 13.4"/></symbol>
+    <symbol id="i-cone" viewBox="0 0 24 24"><path d="M9.4 15.5 11.2 6a.85.85 0 0 1 1.6 0l1.8 9.5M4 19h16M6.8 19l2.1-3.5h6.2l2.1 3.5M9.9 11.5h4.2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path d="M7.5 11V8.5a4.5 4.5 0 0 1 9 0V11"/><rect x="5" y="11" width="14" height="9.5" rx="1.5"/><path d="M12 15v2"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9.5 3.5V8M14.5 3.5V8M6.5 8h11v2.5a5.5 5.5 0 0 1-11 0V8zM12 16v4.5"/></symbol>
+    <symbol id="i-wall" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12"/><path d="M3.5 12h17M12 6v6M8 12v6M16 12v6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M15.5 15.5 21 21"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M12 3.5a5.5 5.5 0 0 0-3.7 9.6c.8.7 1.2 1.4 1.2 2.4h5c0-1 .4-1.7 1.2-2.4A5.5 5.5 0 0 0 12 3.5zM9.5 18.5h5M10.5 21h3"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M12 5v14M6.5 12H9M15 12h2.5"/></symbol>
+    <symbol id="i-plank" viewBox="0 0 24 24"><path d="M3.5 7.5h17v9h-17zM9 7.5v9M14.5 7.5v9"/><path d="M5.5 10.5h1.6M11 13.5h1.6M16.5 10.5h1.6"/></symbol>
+    <symbol id="i-list-check" viewBox="0 0 24 24"><path d="M4 6l1.4 1.4 2.4-2.6M4 12l1.4 1.4 2.4-2.6M4 18l1.4 1.4 2.4-2.6M11.5 6.5h9M11.5 12.5h9M11.5 18.5h9"/></symbol>
+    <symbol id="i-blueprint" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 12.5h7.5v7M11 12.5V4.5M15.5 12.5h5M15.5 4.5v4"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3.5l8 4.3v8.4l-8 4.3-8-4.3V7.8l8-4.3zM4 7.8l8 4.4 8-4.4M12 12.2v8.3"/></symbol>
+    <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 3.8c3.4 4 6 6.9 6 10.2a6 6 0 0 1-12 0c0-3.3 2.6-6.2 6-10.2z"/></symbol>
+  </defs>
+</svg>
+
+<!-- 原型工具列:切換角色視角 -->
+<div class="proto-bar">
+  <div class="container">
+    <span class="lbl"><svg class="ic sm"><use href="#i-sliders"/></svg><strong>原型模式</strong> 切換視角:</span>
+    <button class="role-btn active" data-role="owner" onclick="setRole('owner')"><svg class="ic sm"><use href="#i-home"/></svg>屋主(客戶)</button>
+    <button class="role-btn" data-role="vendor" onclick="setRole('vendor')"><svg class="ic sm"><use href="#i-hammer"/></svg>裝修業者</button>
+    <button class="role-btn" data-role="admin" onclick="setRole('admin')"><svg class="ic sm"><use href="#i-archive"/></svg>平台管理員</button>
+    <button onclick="demoLoading()"><svg class="ic sm"><use href="#i-clock"/></svg>載入體驗展示</button>
+  </div>
+</div>
+
+<!-- 品牌 Splash(首次載入 / 展示用) -->
+<div class="splash" id="splash">
+  <div class="mark">家</div>
+  <div class="name">好宅裝修</div>
+  <div class="hint">正在為您準備靈感⋯</div>
+</div>
+
+<header class="site">
+  <div class="container">
+    <div class="logo">好宅裝修</div>
+    <nav class="main" id="nav"></nav>
+    <div class="avatar" id="avatar">王</div>
+  </div>
+</header>
+
+<main class="container" id="screens">
+
+<!-- ============ 屋主:首頁 ============ -->
+<section class="screen" data-role="owner" id="o-home">
+  <div class="hero">
+    <div class="hero-txt">
+      <div class="kicker">Renovation Marketplace · Taiwan</div>
+      <h1>找到對的人,<br>安心裝修</h1>
+      <p class="sub">結構化報價比較 × 分期託管付款 × 完工才付尾款</p>
+      <div class="cta">
+        <button class="btn accent" onclick="go('o-wizard')">我要開始裝修,免費取得報價</button>
+        <button class="btn light" onclick="go('o-home')">先看看靈感</button>
+      </div>
+      <div class="trust"><span>1,200+ 家已驗證業者</span><span>平台託管,驗收才撥款</span><span>真實成交評價</span></div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 520 460" preserveAspectRatio="xMidYMax slice">
+        <circle cx="398" cy="112" r="72" fill="#cf7247"/>
+        <g fill="#f5efe2" opacity=".45">
+          <circle cx="52" cy="64" r="2.6"/><circle cx="82" cy="64" r="2.6"/><circle cx="112" cy="64" r="2.6"/>
+          <circle cx="52" cy="94" r="2.6"/><circle cx="82" cy="94" r="2.6"/><circle cx="112" cy="94" r="2.6"/>
+          <circle cx="52" cy="124" r="2.6"/><circle cx="82" cy="124" r="2.6"/><circle cx="112" cy="124" r="2.6"/>
+        </g>
+        <rect x="58" y="238" width="72" height="72" fill="none" stroke="#8fb3a2" stroke-width="2.5" transform="rotate(12 94 274)"/>
+        <circle cx="468" cy="330" r="38" fill="none" stroke="#8fb3a2" stroke-width="2.5"/>
+        <path d="M128 460V262a112 112 0 0 1 224 0v198z" fill="#f5efe2"/>
+        <rect x="128" y="392" width="224" height="68" fill="#e5d7b5"/>
+        <path d="M128 392h224" stroke="#cbb98f" stroke-width="2"/>
+        <rect x="156" y="322" width="132" height="28" rx="9" fill="#c96f47"/>
+        <rect x="150" y="348" width="146" height="32" rx="8" fill="#b25a33"/>
+        <rect x="168" y="328" width="50" height="20" rx="6" fill="#e0a382"/>
+        <rect x="226" y="328" width="50" height="20" rx="6" fill="#d98a5c"/>
+        <rect x="158" y="380" width="9" height="14" fill="#1e3d30"/><rect x="278" y="380" width="9" height="14" fill="#1e3d30"/>
+        <path d="M306 384h34l-5 30h-24z" fill="#1e3d30"/>
+        <ellipse cx="322" cy="352" rx="9" ry="20" fill="#2e8763"/>
+        <ellipse cx="308" cy="360" rx="8" ry="16" fill="#58917a" transform="rotate(-24 308 360)"/>
+        <ellipse cx="336" cy="360" rx="8" ry="16" fill="#58917a" transform="rotate(24 336 360)"/>
+        <line x1="240" y1="150" x2="240" y2="196" stroke="#1e3d30" stroke-width="3"/>
+        <path d="M222 196h36l-8 22h-20z" fill="#1e3d30"/>
+        <circle cx="240" cy="226" r="5" fill="#e3a869"/>
+        <path d="M420 236v120M406 250h28" stroke="#f5efe2" stroke-width="2.5" opacity=".55"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="sec"><span class="no">01</span><div><span class="kicker">Inspiration</span><h2>裝修靈感 · 真實完工案例</h2></div></div>
+  <div class="grid c3">
+    <figure class="case">
+      <span class="scene"><svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" role="img" aria-label="北歐風客廳示意插畫">
+        <rect width="400" height="250" fill="#e9dcc3"/>
+        <rect y="188" width="400" height="62" fill="#c29a6b"/>
+        <path d="M0 209h400M0 230h400" stroke="#ad8757" stroke-width="2"/>
+        <path d="M252 188v-95a53 53 0 0 1 106 0v95z" fill="#f6efdd" stroke="#1e3d30" stroke-width="3"/>
+        <circle cx="305" cy="103" r="21" fill="#cf7247"/>
+        <path d="M256 146h98" stroke="#dcCDA8" stroke-width="2"/>
+        <rect x="58" y="44" width="56" height="68" fill="none" stroke="#1e3d30" stroke-width="3"/>
+        <circle cx="86" cy="78" r="15" fill="#8fb3a2"/>
+        <line x1="150" y1="0" x2="150" y2="50" stroke="#1e3d30" stroke-width="3"/>
+        <path d="M132 50h36l-8 20h-20z" fill="#1e3d30"/>
+        <circle cx="150" cy="77" r="5" fill="#e3a869"/>
+        <rect x="42" y="196" width="220" height="24" rx="12" fill="#efe4cd"/>
+        <rect x="58" y="118" width="150" height="34" rx="10" fill="#c96f47"/>
+        <rect x="50" y="148" width="166" height="36" rx="8" fill="#b25a33"/>
+        <rect x="70" y="126" width="56" height="24" rx="6" fill="#e0a382"/>
+        <rect x="134" y="126" width="56" height="24" rx="6" fill="#d98a5c"/>
+        <rect x="60" y="184" width="8" height="11" fill="#1e3d30"/><rect x="198" y="184" width="8" height="11" fill="#1e3d30"/>
+        <path d="M330 158h32l-5 28h-22z" fill="#1e3d30"/>
+        <ellipse cx="346" cy="130" rx="8" ry="17" fill="#35795c"/>
+        <ellipse cx="333" cy="139" rx="7" ry="13" fill="#58917a" transform="rotate(-25 333 139)"/>
+        <ellipse cx="359" cy="139" rx="7" ry="13" fill="#58917a" transform="rotate(25 359 139)"/>
+      </svg></span>
+      <figcaption class="cap">
+        <span class="k">Taipei · Nordic</span>
+        <strong>25坪北歐風老屋翻新</strong>
+        <div class="meta tiny">台北市 · 總價 NT$180萬 · 木質調</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="go('o-case')">查看案例詳情</button><button class="btn sm ghost" onclick="go('o-wizard')">以此發需求</button></div>
+      </figcaption>
+    </figure>
+    <figure class="case">
+      <span class="scene"><svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" role="img" aria-label="現代廚房示意插畫">
+        <rect width="400" height="250" fill="#2c5443"/>
+        <rect y="98" width="400" height="62" fill="#f3ead6"/>
+        <path d="M40 98v62M80 98v62M120 98v62M160 98v62M200 98v62M240 98v62M280 98v62M320 98v62M360 98v62M0 129h400" stroke="#dccdaa" stroke-width="2"/>
+        <rect y="198" width="400" height="52" fill="#cdbb97"/>
+        <rect x="28" y="158" width="344" height="10" fill="#b98a5f"/>
+        <rect x="28" y="168" width="344" height="42" fill="#24463a"/>
+        <path d="M96 168v42M164 168v42M232 168v42M300 168v42" stroke="#35604f" stroke-width="2.5"/>
+        <path d="M52 178h20M120 178h20M188 178h20M256 178h20M324 178h20" stroke="#e8ddbf" stroke-width="2.5"/>
+        <path d="M168 0h64v38l16 28h-96l16-28z" fill="#1e3d30"/>
+        <rect x="146" y="136" width="44" height="22" rx="4" fill="#a34d28"/>
+        <path d="M190 141h14" stroke="#1e3d30" stroke-width="4"/>
+        <path d="M160 124c5-6-5-10 0-17M176 124c5-6-5-10 0-17" stroke="#f3ead6" stroke-width="2.5" fill="none"/>
+        <circle cx="262" cy="146" r="12" fill="#e0a061"/>
+        <path d="M56 66h84" stroke="#f3ead6" stroke-width="3"/>
+        <rect x="66" y="44" width="14" height="22" fill="#8fb3a2"/>
+        <rect x="88" y="38" width="12" height="28" fill="#cf7247"/>
+        <rect x="108" y="48" width="16" height="18" fill="#e8ddbf"/>
+      </svg></span>
+      <figcaption class="cap">
+        <span class="k">New Taipei · Modern</span>
+        <strong>廚房局部改造</strong>
+        <div class="meta tiny">新北市 · 總價 NT$45萬 · 現代風</div>
+        <button class="btn sm ghost" style="margin-top:10px" onclick="go('o-wizard')">以此發需求</button>
+      </figcaption>
+    </figure>
+    <figure class="case">
+      <span class="scene"><svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" role="img" aria-label="浴室示意插畫">
+        <rect width="400" height="250" fill="#a9c4b5"/>
+        <path d="M40 0v172M80 0v172M120 0v172M160 0v172M200 0v172M240 0v172M280 0v172M320 0v172M360 0v172M0 43h400M0 86h400M0 129h400M0 172h400" stroke="#c2d5c8" stroke-width="2"/>
+        <rect y="172" width="400" height="78" fill="#efe8d6"/>
+        <circle cx="312" cy="84" r="30" fill="#eef3ec" stroke="#1e3d30" stroke-width="3"/>
+        <path d="M276 142h74" stroke="#1e3d30" stroke-width="3"/>
+        <rect x="294" y="142" width="30" height="46" fill="#cf7247"/>
+        <path d="M80 140v-24M80 116h18M94 122v3M100 128v3" stroke="#1e3d30" stroke-width="3.5" fill="none"/>
+        <rect x="52" y="140" width="196" height="13" rx="6" fill="#f9f4e6" stroke="#1e3d30" stroke-width="3"/>
+        <path d="M62 153h176v14a26 26 0 0 1-26 26H88a26 26 0 0 1-26-26z" fill="#f9f4e6" stroke="#1e3d30" stroke-width="3"/>
+        <path d="M84 193l-6 16M216 193l6 16" stroke="#1e3d30" stroke-width="3.5"/>
+        <path d="M28 188h24l-4 22h-16z" fill="#1e3d30"/>
+        <ellipse cx="40" cy="168" rx="7" ry="14" fill="#35795c"/>
+        <ellipse cx="30" cy="174" rx="6" ry="11" fill="#58917a" transform="rotate(-22 30 174)"/>
+        <ellipse cx="50" cy="174" rx="6" ry="11" fill="#58917a" transform="rotate(22 50 174)"/>
+      </svg></span>
+      <figcaption class="cap">
+        <span class="k">Package · 14 Days</span>
+        <strong>浴室乾濕分離套餐</strong>
+        <div class="meta tiny">套餐價 NT$28萬起 · 14天完工</div>
+        <button class="btn sm ghost" style="margin-top:10px" onclick="go('o-wizard')">以此發需求</button>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="sec"><span class="no">02</span><div><span class="kicker">Packages</span><h2>標準化套餐 · 不懂裝修也能選</h2></div></div>
+  <div class="grid c3">
+    <div class="pkg"><span class="badge clay">熱門</span><span class="idx">PKG · 01</span><h3>浴室翻新套餐</h3><p class="muted">拆除+防水+磁磚+衛浴設備,三種建材等級</p><p class="price-line">NT$28<small>萬 起</small></p></div>
+    <div class="pkg"><span class="idx">PKG · 02</span><h3>廚房翻新套餐</h3><p class="muted">廚具+水電移位+壁面,含三機設備選配</p><p class="price-line">NT$35<small>萬 起</small></p></div>
+    <div class="pkg"><span class="idx">PKG · 03</span><h3>全室粉刷+地板</h3><p class="muted">快速換新,7 天完工,租屋翻新首選</p><p class="price-line">NT$12<small>萬 起</small></p></div>
+  </div>
+</section>
+
+<!-- ============ 屋主:需求精靈 ============ -->
+<section class="screen" data-role="owner" id="o-wizard">
+  <div class="page-head">
+    <span class="kicker">Project Wizard</span>
+    <h1>需求精靈</h1>
+    <p class="muted">回答幾個小問題,自動生成需求單 — 全程點選,不用打字</p>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="wiz-head"><div class="tiny" id="wiz-progress">步驟 1 / 5</div></div>
+    <div class="wbar"><i id="wiz-bar" style="width:20%"></i></div>
+    <div id="wiz-body"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:18px">
+      <button class="btn ghost sm" id="wiz-prev" onclick="wizPrev()"><svg class="ic"><use href="#i-arrow-l"/></svg>上一步</button>
+      <button class="btn sm" id="wiz-next" onclick="wizNext()">下一步<svg class="ic"><use href="#i-arrow-r"/></svg></button>
+    </div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:每一步都是圖卡點選;最後一步顯示「行情預估區間」,讓屋主在送出前就得到價值。</span></div>
+</section>
+
+<!-- ============ 屋主:報價比較 ============ -->
+<section class="screen" data-role="owner" id="o-compare">
+  <div class="page-head">
+    <span class="kicker">Quote Comparison</span>
+    <h1>報價比較</h1>
+    <p class="muted">您的需求「30坪全屋翻新」已收到 3 家報價 — 同項目對齊,漏項一眼看穿</p>
+  </div>
+  <div class="tablewrap" style="margin-top:16px">
+    <table>
+      <thead><tr>
+        <th style="min-width:110px">工程分區</th>
+        <th style="min-width:150px">安心整合工程 <span class="badge ok">已驗證</span><br><span class="tiny">★4.9(31件)</span></th>
+        <th style="min-width:150px">大正室內設計 <span class="badge ok">已驗證</span><br><span class="tiny">★4.7(58件)</span></th>
+        <th style="min-width:150px">快省工程行<br><span class="tiny">★4.2(9件)</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td>拆除工程</td><td class="num">86,000</td><td class="num">92,000</td><td class="num">78,000</td></tr>
+        <tr><td>水電工程</td><td class="num">210,000</td><td class="num">198,000</td><td class="num">165,000<br><span class="badge warn">未含配電箱更新</span></td></tr>
+        <tr><td>泥作工程</td><td class="num">150,000</td><td class="num">168,000</td><td class="num">142,000</td></tr>
+        <tr><td>木作工程</td><td class="num">320,000</td><td class="num">355,000</td><td class="num">290,000</td></tr>
+        <tr><td>油漆工程</td><td class="num">96,000</td><td class="num">104,000</td><td class="num">88,000</td></tr>
+        <tr><td>廚衛設備</td><td class="num">245,000</td><td class="num">230,000</td><td class="num"><span class="badge bad">未包含</span></td></tr>
+        <tr class="row-total"><td>總價</td><td class="num">NT$1,107,000<br><span class="tiny" style="font-weight:400">含 6/6 大項</span></td><td class="num">NT$1,147,000<br><span class="tiny" style="font-weight:400">含 6/6 大項</span></td><td class="num">NT$763,000<br><span class="badge bad">僅含 5/6 大項</span></td></tr>
+        <tr><td>工期 / 付款</td><td>75 天 · 3:4:3 分期</td><td>80 天 · 3:3:4 分期</td><td>60 天 · 5:5</td></tr>
+        <tr><td></td>
+          <td><button class="btn sm" onclick="go('o-project')">查看明細</button> <button class="btn sm ghost" onclick="go('o-chat')">聊聊</button></td>
+          <td><button class="btn sm ghost" onclick="go('o-chat')">聊聊</button></td>
+          <td><button class="btn sm ghost" onclick="go('o-chat')">聊聊</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:總價低≠便宜。「僅含 5/6 大項」「未含配電箱」紅黃標讓漏項報價無所遁形 — 這是結構化報價才做得到的。</span></div>
+</section>
+
+<!-- ============ 屋主:建材選擇 ============ -->
+<section class="screen" data-role="owner" id="o-material">
+  <div class="page-head">
+    <span class="kicker">Materials</span>
+    <h1>建材選擇 · 客廳地板</h1>
+    <p class="muted">情境選材:選等級就好,規格留給想深究的人;價格即時反映到總價</p>
+  </div>
+  <div class="grid c3" style="margin-top:16px" id="tiers">
+    <div class="tier" data-price="0" onclick="pickTier(this)" role="button" tabindex="0">
+      <span class="scene"><svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" role="img" aria-label="超耐磨木地板紋理">
+        <rect width="400" height="110" fill="#ddbf92"/>
+        <path d="M0 28h400M0 56h400M0 84h400" stroke="#c9a878" stroke-width="3"/>
+        <path d="M120 0v28M280 0v28M60 28v28M220 28v28M340 28v28M150 56v28M300 56v28M90 84v26M250 84v26" stroke="#c9a878" stroke-width="3"/>
+        <ellipse cx="190" cy="14" rx="9" ry="3.5" fill="#c9a878"/>
+        <ellipse cx="320" cy="70" rx="8" ry="3" fill="#c9a878"/>
+      </svg></span>
+      <div class="pad">
+        <span class="badge">經濟 Good</span>
+        <h3 style="margin-top:8px">超耐磨木地板</h3>
+        <p class="tiny">耐磨等級 AC4 · 保固 5 年 · 12 完工案例</p>
+        <p class="price">NT$3,800<span class="u"> / 坪</span></p>
+      </div>
+    </div>
+    <div class="tier sel" data-price="48000" onclick="pickTier(this)" role="button" tabindex="0">
+      <span class="scene"><svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" role="img" aria-label="SPC 石塑地板紋理">
+        <rect width="400" height="110" fill="#b5a68f"/>
+        <path d="M0 28h400M0 56h400M0 84h400" stroke="#a1927b" stroke-width="3"/>
+        <path d="M100 0v28M260 0v28M40 28v28M200 28v28M360 28v28M130 56v28M290 56v28M70 84v26M230 84v26" stroke="#a1927b" stroke-width="3"/>
+        <path d="M30 12h40M300 40h44M160 68h36M90 96h44" stroke="#c2b49c" stroke-width="2"/>
+      </svg></span>
+      <div class="pad">
+        <span class="badge brand">標準 Better · 最多人選</span>
+        <h3 style="margin-top:8px">SPC 石塑防水地板</h3>
+        <p class="tiny">100% 防水 · 保固 10 年 · 47 完工案例</p>
+        <p class="price">NT$5,400<span class="u"> / 坪</span></p>
+        <button class="btn sm ghost" style="margin-top:10px" onclick="event.stopPropagation();go('o-material-detail')">規格與配件詳情<svg class="ic"><use href="#i-arrow-r"/></svg></button>
+      </div>
+    </div>
+    <div class="tier" data-price="132000" onclick="pickTier(this)" role="button" tabindex="0">
+      <span class="scene"><svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" role="img" aria-label="海島型實木地板紋理">
+        <rect width="400" height="110" fill="#98693f"/>
+        <path d="M0 28h400M0 56h400M0 84h400" stroke="#7e5330" stroke-width="3"/>
+        <path d="M140 0v28M300 0v28M80 28v28M240 28v28M170 56v28M330 56v28M110 84v26M270 84v26" stroke="#7e5330" stroke-width="3"/>
+        <path d="M20 14q60 6 120 0M220 42q70-6 140 0M40 70q60 6 110 0M180 98q70-6 150 0" stroke="#875c37" stroke-width="2.5" fill="none"/>
+      </svg></span>
+      <div class="pad">
+        <span class="badge">精緻 Best</span>
+        <h3 style="margin-top:8px">海島型實木地板</h3>
+        <p class="tiny">實木皮 3mm · 保固 10 年 · 21 完工案例</p>
+        <p class="price">NT$8,200<span class="u"> / 坪</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <div><strong>客廳地板(15 坪)</strong><div class="tiny" id="tier-note">已選:SPC 石塑防水地板</div></div>
+    <div style="text-align:right"><div class="tiny">對總價影響</div><div class="delta" id="tier-delta">+NT$48,000</div></div>
+    <button class="btn sm" onclick="go('o-project')">加入我的建材書</button>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:像選手機容量一樣「三選一」,附「幾個完工案例用過它」;切換等級,價差即時顯示(demo 可點上方卡片試試)。</span></div>
+</section>
+
+<!-- ============ 屋主:專案追蹤(左右欄構圖:進度主欄 + 付款側欄) ============ -->
+<section class="screen" data-role="owner" id="o-project">
+  <div class="page-head">
+    <span class="kicker">Project Tracker</span>
+    <h1>我的專案 · 30坪全屋翻新</h1>
+    <p class="muted">承攬:安心整合工程 · 合約總價 NT$1,107,000(含變更單 +NT$36,000)</p>
+  </div>
+  <div class="split">
+    <div>
+      <div class="card">
+        <span class="cardtitle"><svg class="ic"><use href="#i-cone"/></svg>工程進度</span>
+        <div class="steps">
+          <div class="step done">簽約</div><div class="step done">拆除</div><div class="step done">水電</div>
+          <div class="step now" role="button" tabindex="0" style="cursor:pointer" title="查看泥作階段施工說明" onclick="go('o-construction')">泥作</div><div class="step">木作</div><div class="step">油漆</div><div class="step">驗收</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+          <button class="btn sm" onclick="go('o-construction')"><svg class="ic"><use href="#i-list-check"/></svg>泥作階段施工說明</button>
+          <button class="btn sm ghost" onclick="go('o-plan')"><svg class="ic"><use href="#i-blueprint"/></svg>查看工程施工圖</button>
+        </div>
+      </div>
+      <div class="sec mini"><div><span class="kicker">Timeline</span><h2>進度照片時間軸</h2></div></div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+        <figure class="case">
+          <span class="scene short"><svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" role="img" aria-label="防水施工示意">
+            <rect width="400" height="160" fill="#d9d2c0"/>
+            <path d="M0 0h236l-28 160H0z" fill="#4f7d68"/>
+            <path d="M236 0h20l-28 160h-20z" fill="#6b967f" opacity=".65"/>
+            <rect x="268" y="58" width="52" height="28" rx="8" fill="#cf7247" stroke="#1e3d30" stroke-width="3"/>
+            <path d="M320 72h28v34" stroke="#1e3d30" stroke-width="4" fill="none"/>
+            <rect x="330" y="118" width="44" height="34" rx="4" fill="#1e3d30"/>
+            <path d="M338 118v-8h28" stroke="#1e3d30" stroke-width="3" fill="none"/>
+          </svg></span>
+          <figcaption class="cap"><span class="k">07/18 · 泥作</span><div class="meta">浴室防水第二層完成</div></figcaption>
+        </figure>
+        <figure class="case">
+          <span class="scene short"><svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" role="img" aria-label="配線施工示意">
+            <rect width="400" height="160" fill="#223f33"/>
+            <path d="M0 40h150a14 14 0 0 1 14 14v106M0 84h84a12 12 0 0 1 12 12v64M232 0v52a14 14 0 0 0 14 14h154" stroke="#e8ddbf" stroke-width="4" fill="none"/>
+            <circle cx="164" cy="54" r="11" fill="#cf7247"/>
+            <circle cx="246" cy="66" r="11" fill="#cf7247"/>
+            <rect x="300" y="98" width="48" height="48" rx="6" fill="none" stroke="#8fb3a2" stroke-width="3"/>
+            <path d="M316 112v10M332 112v10M310 132h28" stroke="#8fb3a2" stroke-width="3"/>
+          </svg></span>
+          <figcaption class="cap"><span class="k">07/10 · 水電</span><div class="meta">全室配線完成,已驗收</div></figcaption>
+        </figure>
+        <figure class="case">
+          <span class="scene short"><svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" role="img" aria-label="拆除工程示意">
+            <rect width="400" height="160" fill="#d8c1a4"/>
+            <path d="M0 40h400M0 80h400M0 120h400" stroke="#bfa583" stroke-width="3"/>
+            <path d="M100 0v40M240 0v40M40 40v40M180 40v40M320 40v40M120 80v40M260 80v40M60 120v40M200 120v40M340 120v40" stroke="#bfa583" stroke-width="3"/>
+            <path d="M212 34l60 20-14 44-58-12 4-30z" fill="#8a6b4c"/>
+            <path d="M226 44l32 12-8 24-30-7z" fill="#6f523a"/>
+          </svg></span>
+          <figcaption class="cap"><span class="k">06/28 · 拆除</span><div class="meta">拆除完成,結構無異常</div></figcaption>
+        </figure>
+      </div>
+    </div>
+    <aside>
+      <div class="card">
+        <span class="cardtitle"><svg class="ic"><use href="#i-clock"/></svg>待辦事項</span>
+        <div class="todo-box">
+          <span class="badge warn">待驗收</span>
+          <p style="margin:6px 0">泥作工程已完工,業者請求驗收第 2 期</p>
+          <p class="tiny">驗收通過後將自 escrow 託管撥款 NT$442,800</p>
+          <button class="btn sm" style="margin-top:8px"><svg class="ic"><use href="#i-camera"/></svg>查看照片並驗收</button>
+        </div>
+      </div>
+      <div class="pay-panel" style="margin-top:16px">
+        <span class="cardtitle"><svg class="ic"><use href="#i-lock"/></svg>付款總覽(平台託管)</span>
+        <table style="margin-top:8px">
+          <tr><td>第 1 期(簽約 30%)</td><td class="num">332,100</td><td><span class="badge ok">已撥款</span></td></tr>
+          <tr><td>第 2 期(期中 40%)</td><td class="num">442,800</td><td><span class="badge warn">託管中</span></td></tr>
+          <tr><td>第 3 期(驗收 30%)</td><td class="num">332,100</td><td><span class="badge">未支付</span></td></tr>
+        </table>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ 屋主:訊息 ============ -->
+<section class="screen" data-role="owner" id="o-chat">
+  <div class="page-head">
+    <span class="kicker">Messages</span>
+    <h1>訊息 · 安心整合工程</h1>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="chat">
+      <div class="bubble them">王先生您好,泥作已完成,跟您確認一件事:主臥牆面拆除後發現壁癌,建議加做防水處理。</div>
+      <div class="action-card">
+        <span class="badge warn">變更單 #CO-2</span>
+        <p style="margin:6px 0"><strong>主臥壁癌處理 + 防水工程</strong></p>
+        <table><tr><td>壁癌刮除打磨</td><td class="num">8,000</td></tr><tr><td>彈性水泥防水 ×2 道</td><td class="num">18,000</td></tr><tr><td>批土重新粉刷</td><td class="num">10,000</td></tr><tr style="font-weight:700"><td>合計(併入總帳)</td><td class="num">+NT$36,000</td></tr></table>
+        <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm"><svg class="ic"><use href="#i-check"/></svg>同意變更</button><button class="btn sm ghost">再議</button></div>
+      </div>
+      <div class="bubble me">好的,照片我看過了,同意處理。</div>
+    </div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:報價、變更單、驗收請求都是聊天室裡的「結構化卡片」,可直接確認 —— 同一份卡片 schema 在 LINE 端渲染成 Flex Message,App 端渲染成原生卡片。</span></div>
+</section>
+
+<!-- ============ 屋主:案例詳情 ============ -->
+<section class="screen" data-role="owner" id="o-case">
+  <div class="page-head">
+    <span class="kicker">Case Study</span>
+    <h1>25坪北歐風老屋翻新</h1>
+    <p class="muted">台北市中山區 · 屋齡 32 年 · 工期 84 天 · 總價 NT$1,800,000 · 承攬:安心整合工程 <span class="badge ok">已驗證</span></p>
+  </div>
+
+  <div class="sec"><span class="no">01</span><div><span class="kicker">Before / After</span><h2>翻新前後對比</h2></div></div>
+  <div class="ba-grid">
+    <figure class="case">
+      <span class="scene"><svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" role="img" aria-label="翻新前老屋原況示意插畫:昏暗、壁癌、雜物堆積">
+        <rect width="400" height="250" fill="#b3a78d"/>
+        <rect y="188" width="400" height="62" fill="#8b7c63"/>
+        <path d="M0 209h400M0 230h400" stroke="#75664e" stroke-width="2"/>
+        <path d="M40 26q22-16 42 0t-4 28q-26 10-40-6t2-22z" fill="#a1947a"/>
+        <path d="M312 22q18-12 34 0t-2 22q-20 8-32-4t0-18z" fill="#a1947a"/>
+        <path d="M150 0l-12 34 10 22-8 28 6 18" stroke="#82735a" stroke-width="2.5" fill="none"/>
+        <path d="M356 56l-10 28 8 20-6 22" stroke="#82735a" stroke-width="2.5" fill="none"/>
+        <path d="M196 100l14 8-4 12M296 128l12 6-2 10" stroke="#82735a" stroke-width="2" fill="none"/>
+        <rect x="58" y="44" width="56" height="68" fill="#94a091" stroke="#57503f" stroke-width="3"/>
+        <path d="M58 44l56 68M114 44l-56 68" stroke="#57503f" stroke-width="2"/>
+        <path d="M240 0v28q-9 12 0 22t-5 20" stroke="#3e392e" stroke-width="2.5" fill="none"/>
+        <circle cx="235" cy="78" r="7" fill="#d3c48c" stroke="#3e392e" stroke-width="2.5"/>
+        <rect x="48" y="150" width="62" height="38" fill="#83745b"/>
+        <rect x="64" y="122" width="46" height="28" fill="#93846a"/>
+        <path d="M48 150h62M64 122h46M87 122v28M79 150v38" stroke="#6b5d46" stroke-width="2"/>
+        <rect x="248" y="138" width="98" height="50" fill="#79694f"/>
+        <path d="M248 148q49 16 98 0" stroke="#61523b" stroke-width="3" fill="none"/>
+        <path d="M148 168l30 20M178 168l-30 20" stroke="#82735a" stroke-width="2.5"/>
+      </svg></span>
+      <figcaption class="cap">
+        <span class="ba-chip before">Before · 翻新前</span>
+        <strong style="display:block">32 年老屋原況</strong>
+        <div class="meta tiny">管線老化 · 牆面壁癌滲水 · 採光陰暗 · 格局零碎</div>
+      </figcaption>
+    </figure>
+    <figure class="case">
+      <span class="scene"><svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" role="img" aria-label="翻新後北歐風客廳示意插畫">
+        <rect width="400" height="250" fill="#e9dcc3"/>
+        <rect y="188" width="400" height="62" fill="#c29a6b"/>
+        <path d="M0 209h400M0 230h400" stroke="#ad8757" stroke-width="2"/>
+        <path d="M252 188v-95a53 53 0 0 1 106 0v95z" fill="#f6efdd" stroke="#1e3d30" stroke-width="3"/>
+        <circle cx="305" cy="103" r="21" fill="#cf7247"/>
+        <path d="M256 146h98" stroke="#dcCDA8" stroke-width="2"/>
+        <rect x="58" y="44" width="56" height="68" fill="none" stroke="#1e3d30" stroke-width="3"/>
+        <circle cx="86" cy="78" r="15" fill="#8fb3a2"/>
+        <line x1="150" y1="0" x2="150" y2="50" stroke="#1e3d30" stroke-width="3"/>
+        <path d="M132 50h36l-8 20h-20z" fill="#1e3d30"/>
+        <circle cx="150" cy="77" r="5" fill="#e3a869"/>
+        <rect x="42" y="196" width="220" height="24" rx="12" fill="#efe4cd"/>
+        <rect x="58" y="118" width="150" height="34" rx="10" fill="#c96f47"/>
+        <rect x="50" y="148" width="166" height="36" rx="8" fill="#b25a33"/>
+        <rect x="70" y="126" width="56" height="24" rx="6" fill="#e0a382"/>
+        <rect x="134" y="126" width="56" height="24" rx="6" fill="#d98a5c"/>
+        <rect x="60" y="184" width="8" height="11" fill="#1e3d30"/><rect x="198" y="184" width="8" height="11" fill="#1e3d30"/>
+        <path d="M330 158h32l-5 28h-22z" fill="#1e3d30"/>
+        <ellipse cx="346" cy="130" rx="8" ry="17" fill="#35795c"/>
+        <ellipse cx="333" cy="139" rx="7" ry="13" fill="#58917a" transform="rotate(-25 333 139)"/>
+        <ellipse cx="359" cy="139" rx="7" ry="13" fill="#58917a" transform="rotate(25 359 139)"/>
+      </svg></span>
+      <figcaption class="cap">
+        <span class="ba-chip after">After · 翻新後</span>
+        <strong style="display:block">溫暖木質北歐宅</strong>
+        <div class="meta tiny">開放式客餐廳 · 全屋管線更新 · SPC 防水地板 · 大面採光</div>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="sec"><span class="no">02</span><div><span class="kicker">Process</span><h2>施工過程時間軸</h2></div></div>
+  <div class="card">
+    <div class="tl">
+      <div class="tl-item"><div class="ph">拆除工程<span class="wk">Week 1–2</span></div><p>全室退場清運、保留可用鋁窗,同步進行結構檢查,確認無樑柱裂損。</p></div>
+      <div class="tl-item"><div class="ph">水電工程<span class="wk">Week 3–4</span></div><p>電線全面抽換 2.0mm、配電箱更新,新增專用迴路與插座共 14 組。</p></div>
+      <div class="tl-item"><div class="ph">泥作工程<span class="wk">Week 5–7</span></div><p>浴室彈性水泥防水 2 道 + 試水 48 小時,全室地面整平待鋪地板。</p></div>
+      <div class="tl-item"><div class="ph">木作工程<span class="wk">Week 8–10</span></div><p>天花板平釘含間接照明溝槽、電視牆與臥室系統櫃體組裝。</p></div>
+      <div class="tl-item"><div class="ph">油漆工程<span class="wk">Week 11–12</span></div><p>批土 3 道 AB 膠處理板縫,全室乳膠漆 2 底 2 面,交屋前細清。</p></div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="no">03</span><div><span class="kicker">Materials</span><h2>使用建材清單</h2></div></div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>區域</th><th>建材</th><th>等級</th><th class="num" style="text-align:right">每坪價</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>客廳+臥室地板</td><td>SPC 石塑防水地板</td><td><span class="badge brand">標準 Better</span></td><td class="num">5,400</td><td><a href="#" onclick="go('o-material-detail');return false">建材詳情</a></td></tr>
+        <tr><td>浴室壁地磚</td><td>國產石英磚 60×60</td><td><span class="badge brand">標準 Better</span></td><td class="num">4,600</td><td></td></tr>
+        <tr><td>天花板</td><td>矽酸鈣板 6mm 平釘</td><td><span class="badge">經濟 Good</span></td><td class="num">4,800</td><td></td></tr>
+        <tr><td>廚房壁面</td><td>烤漆玻璃 5mm</td><td><span class="badge brand">標準 Better</span></td><td class="num">3,200</td><td></td></tr>
+        <tr><td>全室牆面</td><td>低甲醛乳膠漆</td><td><span class="badge">經濟 Good</span></td><td class="num">1,600</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec"><span class="no">04</span><div><span class="kicker">Voice</span><h2>屋主心得</h2></div></div>
+  <div class="quoteblock">
+    <p>第一次裝修最怕被當肥羊。平台把每一筆錢對到每一個工項,每道工序都有照片、驗收完才撥款 —— 三個月下來,我幾乎沒有跟業者吵過架。</p>
+    <div class="who">台北市 · 王小姐 · 2025 年 12 月完工</div>
+    <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
+      <button class="btn accent" onclick="go('o-wizard')">以此案例發需求<svg class="ic"><use href="#i-arrow-r"/></svg></button>
+      <button class="btn light" style="background:transparent;color:var(--cream);border:1.5px solid rgba(245,239,226,.45)" onclick="go('o-home')">回首頁看更多案例</button>
+    </div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:案例頁不只是美圖 —— before/after、時間軸、建材清單全部對應平台結構化資料,「以此發需求」可直接把本案條件帶入需求精靈。</span></div>
+</section>
+
+<!-- ============ 屋主:建材詳情/配件選擇 ============ -->
+<section class="screen" data-role="owner" id="o-material-detail">
+  <div class="page-head">
+    <span class="kicker">Material Detail</span>
+    <h1>SPC 石塑防水地板</h1>
+    <p class="muted">標準 Better 等級 · 47 個完工案例使用 · NT$5,400/坪(含工帶料)· <a href="#" onclick="go('o-material');return false">← 回建材選擇</a></p>
+  </div>
+  <div class="split">
+    <div>
+      <figure class="case" style="margin-bottom:0">
+        <span class="scene"><svg viewBox="0 0 400 190" preserveAspectRatio="xMidYMid slice" role="img" aria-label="SPC 石塑地板紋理大圖">
+          <rect width="400" height="190" fill="#b5a68f"/>
+          <path d="M0 38h400M0 76h400M0 114h400M0 152h400" stroke="#a1927b" stroke-width="3"/>
+          <path d="M100 0v38M260 0v38M40 38v38M200 38v38M360 38v38M130 76v38M290 76v38M70 114v38M230 114v38M160 152v38M320 152v38" stroke="#a1927b" stroke-width="3"/>
+          <path d="M30 16h40M300 56h44M160 94h36M90 132h44M250 170h40" stroke="#c2b49c" stroke-width="2"/>
+        </svg></span>
+        <figcaption class="cap"><span class="k">SPC · Stone Plastic Composite</span><strong>石塑卡扣地板 · 淺灰橡木紋</strong><div class="meta tiny">石粉+PVC 複合基材,遇水不膨脹,適合台灣潮濕氣候與有寵物家庭。</div></figcaption>
+      </figure>
+
+      <div class="sec mini"><div><span class="kicker">Spec</span><h2>規格表</h2></div></div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th style="width:38%">規格項目</th><th>內容</th></tr></thead>
+          <tbody>
+            <tr><td>總厚度</td><td class="num" style="text-align:left">5.5mm(基材 5.0 + 耐磨層 0.5)</td></tr>
+            <tr><td>耐磨層</td><td class="num" style="text-align:left">0.5mm · 商用等級 AC5</td></tr>
+            <tr><td>防水性</td><td>100% 防水,泡水 72 小時不膨脹變形</td></tr>
+            <tr><td>防焰等級</td><td>CNS 防焰一級 <span class="badge ok">附測試報告</span></td></tr>
+            <tr><td>保固</td><td>10 年結構保固(平台連帶保固)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec mini"><div><span class="kicker">Installation</span><h2>施工方式</h2></div></div>
+      <div class="card">
+        <div class="wstep"><span class="n">a</span><div><h4>卡扣式免膠安裝</h4><p>企口卡扣直鋪工法,不上膠、無甲醛疑慮;單片可局部拆換,日後維修成本低。</p></div></div>
+        <div class="wstep"><span class="n">b</span><div><h4>進場靜置 48 小時</h4><p>地板需先進場平放靜置 48 小時,適應室內溫濕度後才可施工,避免完工後板材伸縮起拱。</p></div></div>
+        <div class="wstep"><span class="n">c</span><div><h4>素地要求與收邊</h4><p>地面高低差需 &lt;3mm/2m(超過需先整平);牆邊預留 8–10mm 伸縮縫,以踢腳板或收邊條收飾。</p></div></div>
+      </div>
+    </div>
+    <aside>
+      <div class="card">
+        <span class="cardtitle"><svg class="ic"><use href="#i-plus"/></svg>配件加購</span>
+        <p class="tiny" style="margin-top:4px">以您的客廳 15 坪、周長 18 米估算,勾選即時加總</p>
+        <div id="acc-list" style="margin-top:6px">
+          <label class="acc-row"><input type="checkbox" data-total="3240" onchange="accSum()"><span class="grow"><strong>踢腳板</strong><span class="tiny">NT$180 / 米 × 18 米</span></span><span class="num">3,240</span></label>
+          <label class="acc-row"><input type="checkbox" data-total="2160" onchange="accSum()"><span class="grow"><strong>收邊條</strong><span class="tiny">NT$120 / 米 × 18 米</span></span><span class="num">2,160</span></label>
+          <label class="acc-row"><input type="checkbox" data-total="3750" onchange="accSum()"><span class="grow"><strong>防潮墊</strong><span class="tiny">NT$250 / 坪 × 15 坪</span></span><span class="num">3,750</span></label>
+          <label class="acc-row"><input type="checkbox" data-total="12000" onchange="accSum()"><span class="grow"><strong>舊地板拆除</strong><span class="tiny">NT$800 / 坪 × 15 坪</span></span><span class="num">12,000</span></label>
+        </div>
+      </div>
+      <div class="total-panel" style="margin-top:16px">
+        <div class="lbl">Subtotal · 配置小計</div>
+        <div class="total-figure" id="acc-total">NT$0</div>
+        <div class="tiny" style="color:var(--cream-3)">含地板本體 15 坪:<span id="acc-grand">NT$81,000</span></div>
+        <button class="btn accent sm" style="margin-top:6px" onclick="go('o-material')">套用到我的建材書</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="sec mini"><div><span class="kicker">Cases</span><h2>用過它的完工案例</h2></div></div>
+  <div class="grid c3">
+    <figure class="case" onclick="go('o-case')" style="cursor:pointer" role="button" tabindex="0" aria-label="查看案例:25坪北歐風老屋翻新">
+      <span class="scene short"><svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" role="img" aria-label="北歐風客廳小圖">
+        <rect width="400" height="160" fill="#e9dcc3"/>
+        <rect y="118" width="400" height="42" fill="#c29a6b"/>
+        <path d="M0 132h400M0 146h400" stroke="#ad8757" stroke-width="2"/>
+        <rect x="52" y="62" width="150" height="30" rx="9" fill="#c96f47"/>
+        <rect x="44" y="88" width="166" height="30" rx="8" fill="#b25a33"/>
+        <rect x="64" y="68" width="52" height="20" rx="6" fill="#e0a382"/>
+        <rect x="124" y="68" width="52" height="20" rx="6" fill="#d98a5c"/>
+        <circle cx="300" cy="50" r="20" fill="#cf7247"/>
+        <path d="M280 118h44l-6 30h-32z" fill="#1e3d30"/>
+      </svg></span>
+      <figcaption class="cap"><span class="k">Taipei · Nordic</span><strong>25坪北歐風老屋翻新</strong><div class="meta tiny">客廳+臥室 21 坪使用 · 查看詳情 →</div></figcaption>
+    </figure>
+    <figure class="case">
+      <span class="scene short"><svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" role="img" aria-label="臥室木地板小圖">
+        <rect width="400" height="160" fill="#ead9be"/>
+        <rect y="118" width="400" height="42" fill="#b5a68f"/>
+        <path d="M0 132h400M0 146h400" stroke="#a1927b" stroke-width="2"/>
+        <rect x="48" y="36" width="12" height="82" fill="#1e3d30"/>
+        <rect x="60" y="66" width="150" height="52" rx="6" fill="#f6efdd" stroke="#1e3d30" stroke-width="3"/>
+        <rect x="70" y="52" width="46" height="22" rx="8" fill="#cf7247"/>
+        <circle cx="300" cy="52" r="16" fill="#e3a869"/>
+        <path d="M300 68v50" stroke="#1e3d30" stroke-width="3"/>
+      </svg></span>
+      <figcaption class="cap"><span class="k">Taoyuan · Bedroom</span><strong>主臥+更衣室換地板</strong><div class="meta tiny">桃園市 · 8 坪 · 2 天完工</div></figcaption>
+    </figure>
+    <figure class="case">
+      <span class="scene short"><svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" role="img" aria-label="書房木地板小圖">
+        <rect width="400" height="160" fill="#dfe7dd"/>
+        <rect y="118" width="400" height="42" fill="#b5a68f"/>
+        <path d="M0 132h400M0 146h400" stroke="#a1927b" stroke-width="2"/>
+        <path d="M80 70h120v8H80z" fill="#1e3d30"/>
+        <path d="M88 78v40M192 78v40" stroke="#1e3d30" stroke-width="4"/>
+        <rect x="112" y="44" width="42" height="26" fill="#cf7247"/>
+        <ellipse cx="300" cy="70" rx="9" ry="20" fill="#35795c"/>
+        <path d="M290 118h22l-4 20h-14z" fill="#1e3d30"/>
+      </svg></span>
+      <figcaption class="cap"><span class="k">Taipei · Pet Friendly</span><strong>寵物友善書房改造</strong><div class="meta tiny">台北市 · 5 坪 · 耐刮防水實測</div></figcaption>
+    </figure>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:配件加購直接以本案坪數/周長換算金額,勾選即時反映「配置小計」—— 屋主在建材頁就把隱藏費用看完,報價不再有驚喜。</span></div>
+</section>
+
+<!-- ============ 屋主:施工說明(泥作—浴室防水) ============ -->
+<section class="screen" data-role="owner" id="o-construction">
+  <div class="page-head">
+    <span class="kicker">Construction Guide</span>
+    <h1>施工說明 · 泥作階段</h1>
+    <p class="muted">本階段重點:浴室防水工程 · 07/14–07/28 · 安心整合工程 · <a href="#" onclick="go('o-project');return false">← 回我的專案</a></p>
+  </div>
+  <div class="split">
+    <div class="card">
+      <span class="cardtitle"><svg class="ic"><use href="#i-droplet"/></svg>浴室防水 · 工序步驟與驗收標準</span>
+      <div class="wstep"><span class="n">1</span><div><h4>素地整理</h4><p>打除至結構面,清除粉塵油污,地面不平處以水泥砂漿修補。</p><div class="accpt"><span class="badge ok">驗收標準</span><span>表面無浮漿、無沙塵,素地含水率 &lt;10% 才可進下一道。</span></div></div></div>
+      <div class="wstep"><span class="n">2</span><div><h4>防水底漆</h4><p>滲透型底漆全面塗佈,滲入毛細孔強化面層附著力。</p><div class="accpt"><span class="badge ok">驗收標準</span><span>塗佈均勻無漏區,乾燥 4 小時以上再施作面層。</span></div></div></div>
+      <div class="wstep"><span class="n">3</span><div><h4>彈性水泥 ×2 道</h4><p>第一道乾固(約 24 小時)後,交叉方向塗佈第二道;地面全面 + 牆面至 180cm。</p><div class="accpt"><span class="badge ok">驗收標準</span><span>兩道成膜總厚度 ≥2mm,無氣泡、裂縫與刷紋積水。</span></div></div></div>
+      <div class="wstep"><span class="n">4</span><div><h4>陰角不織布補強</h4><p>牆角、管根、落水頭周邊貼抗鹼不織布加強層,防止結構微裂拉裂防水層。</p><div class="accpt"><span class="badge ok">驗收標準</span><span>所有陰角與管根全數補強,不織布完全被覆、無翹邊。</span></div></div></div>
+      <div class="wstep"><span class="n">5</span><div><h4>試水 48 小時</h4><p>放水至 3–5cm 並標記水位,靜置 48 小時,同步觀察樓下天花板。</p><div class="accpt"><span class="badge ok">驗收標準</span><span>試水 48hr 水位下降 &lt;2mm,樓下無滲漏痕跡,拍照上傳後才可貼磚。</span></div></div></div>
+    </div>
+    <aside>
+      <div class="card">
+        <span class="cardtitle"><svg class="ic"><use href="#i-material"/></svg>使用材料與規格</span>
+        <table style="margin-top:8px">
+          <tr><td style="white-space:nowrap">防水底漆</td><td><span class="tiny">滲透型底漆 WP-100(示意型號)· 0.2kg/m²</span></td></tr>
+          <tr><td style="white-space:nowrap">彈性水泥</td><td><span class="tiny">高彈性水泥 CT-2000(示意型號)· 二道成膜 ≥2mm</span></td></tr>
+          <tr><td style="white-space:nowrap">補強層</td><td><span class="tiny">抗鹼不織布 50g/m²(陰角、管根)</span></td></tr>
+          <tr><td style="white-space:nowrap">施作範圍</td><td><span class="tiny">浴室地面全面 + 牆面至 180cm</span></td></tr>
+        </table>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <span class="cardtitle" style="color:var(--bad)"><svg class="ic"><use href="#i-alert"/></svg>常見偷工減料警示</span>
+        <div class="alert-box">
+          <p style="font-size:13.5px"><strong>只做一道防水就貼磚</strong><br><span class="tiny">厚度不足,通常 1–2 年內滲漏;拆磚重做代價是當初的數倍。</span></p>
+          <p style="font-size:13.5px;margin-top:10px"><strong>未做 48 小時試水</strong><br><span class="tiny">直接進下一工序,滲漏被磁磚蓋住,交屋後才爆發。</span></p>
+          <p style="font-size:13.5px;margin-top:10px"><strong>牆面防水未達高度</strong><br><span class="tiny">淋浴區牆面應施作至 180cm 以上,只做地面等於沒做。</span></p>
+        </div>
+        <p class="tiny" style="margin-top:10px">本平台要求每道工序上傳照片並經監工抽查,缺照片業者無法請款 —— 這就是託管撥款的底氣。</p>
+      </div>
+    </aside>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:把「看不見的工序」翻成屋主看得懂的驗收標準,並直說常見偷工手法 —— 資訊透明是平台信任感的來源。</span></div>
+</section>
+
+<!-- ============ 屋主:工程施工圖 ============ -->
+<section class="screen" data-role="owner" id="o-plan">
+  <div class="page-head">
+    <span class="kicker">Floor Plan</span>
+    <h1>工程施工圖 · 30坪 2房2廳</h1>
+    <p class="muted">點擊或移到平面圖上的房間,查看該區施工項目與進度 · <a href="#" onclick="go('o-project');return false">← 回我的專案</a></p>
+  </div>
+  <div class="split">
+    <div class="card">
+      <svg class="plan-svg" viewBox="0 0 560 400" role="img" aria-label="30坪 2房2廳平面圖,可點選房間查看施工進度">
+        <g class="plan-room" data-room="living" role="button" tabindex="0" aria-label="客廳施工項目" onclick="planPick('living')" onmouseenter="planPick('living')">
+          <rect x="23" y="23" width="304" height="194"/>
+          <text x="175" y="112">客廳</text><text class="pp" x="175" y="134">10 坪</text>
+          <circle cx="310" cy="40" r="5.5" fill="#b25a33"/>
+        </g>
+        <g class="plan-room" data-room="dining" role="button" tabindex="0" aria-label="餐廳施工項目" onclick="planPick('dining')" onmouseenter="planPick('dining')">
+          <rect x="23" y="223" width="174" height="154"/>
+          <text x="110" y="296">餐廳</text><text class="pp" x="110" y="318">4.5 坪</text>
+          <circle cx="180" cy="240" r="5.5" fill="#cfc8b2"/>
+        </g>
+        <g class="plan-room" data-room="kitchen" role="button" tabindex="0" aria-label="廚房施工項目" onclick="planPick('kitchen')" onmouseenter="planPick('kitchen')">
+          <rect x="203" y="223" width="124" height="154"/>
+          <text x="265" y="296">廚房</text><text class="pp" x="265" y="318">3.5 坪</text>
+          <circle cx="310" cy="240" r="5.5" fill="#1a7f4e"/>
+        </g>
+        <g class="plan-room" data-room="master" role="button" tabindex="0" aria-label="主臥施工項目" onclick="planPick('master')" onmouseenter="planPick('master')">
+          <rect x="333" y="23" width="204" height="174"/>
+          <text x="435" y="102">主臥</text><text class="pp" x="435" y="124">6 坪</text>
+          <circle cx="520" cy="40" r="5.5" fill="#b25a33"/>
+        </g>
+        <g class="plan-room" data-room="bath" role="button" tabindex="0" aria-label="浴室施工項目" onclick="planPick('bath')" onmouseenter="planPick('bath')">
+          <rect x="333" y="203" width="84" height="174"/>
+          <text x="375" y="282">浴室</text><text class="pp" x="375" y="304">2.5 坪</text>
+          <circle cx="400" cy="220" r="5.5" fill="#1a7f4e"/>
+        </g>
+        <g class="plan-room" data-room="second" role="button" tabindex="0" aria-label="次臥施工項目" onclick="planPick('second')" onmouseenter="planPick('second')">
+          <rect x="423" y="203" width="114" height="174"/>
+          <text x="480" y="282">次臥</text><text class="pp" x="480" y="304">3.5 坪</text>
+          <circle cx="520" cy="220" r="5.5" fill="#cfc8b2"/>
+        </g>
+        <!-- 牆線(留門口缺口) -->
+        <path class="plan-walls" d="M20 20H540V380H20V150M20 100V20"/>
+        <path class="plan-walls" d="M330 20V70M330 115V245M330 290V380"/>
+        <path class="plan-walls" d="M20 220H60M150 220H330"/>
+        <path class="plan-walls" d="M200 220V300M200 345V380"/>
+        <path class="plan-walls" d="M330 200H450M495 200H540"/>
+        <path class="plan-walls" d="M420 200V380"/>
+        <!-- 門弧 -->
+        <path class="plan-door" d="M20 100A50 50 0 0 1 70 150M20 100V150"/>
+        <path class="plan-door" d="M330 115A45 45 0 0 1 375 70"/>
+        <path class="plan-door" d="M330 290A45 45 0 0 1 375 245"/>
+        <path class="plan-door" d="M200 345A45 45 0 0 1 245 300"/>
+        <path class="plan-door" d="M450 200A45 45 0 0 0 495 245"/>
+        <text x="34" y="132" style="font-size:11px;fill:#7d897f;font-family:Georgia,serif;letter-spacing:.1em">ENTRY</text>
+      </svg>
+      <div class="plan-legend">
+        <span><i style="background:#b25a33"></i>進行中</span>
+        <span><i style="background:#1a7f4e"></i>本階段已完成</span>
+        <span><i style="background:#cfc8b2"></i>待開工</span>
+      </div>
+    </div>
+    <aside>
+      <div class="card" id="plan-info" aria-live="polite"></div>
+      <div class="note" style="margin-top:16px"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:施工圖不是死的 PDF —— 每個房間掛上工項與進度,和「我的專案」進度資料同源,監工回報後即時更新。</span></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ 骨架屏展示(載入中的首頁) ============ -->
+<section class="screen" data-role="owner" id="o-skeleton">
+  <div class="hero" style="display:block;padding:56px 48px;min-height:0">
+    <div class="sk skd title" style="width:38%"></div>
+    <div class="sk skd text" style="width:55%"></div>
+    <div class="sk skd btn" style="margin-top:20px"></div>
+  </div>
+  <div class="sk title" style="margin-top:44px"></div>
+  <div class="grid c3">
+    <div><div class="sk img"></div><div class="sk text" style="width:70%"></div><div class="sk text" style="width:45%"></div></div>
+    <div><div class="sk img"></div><div class="sk text" style="width:70%"></div><div class="sk text" style="width:45%"></div></div>
+    <div><div class="sk img"></div><div class="sk text" style="width:70%"></div><div class="sk text" style="width:45%"></div></div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:載入時顯示與最終版面同構的骨架屏(shimmer 微光),不用轉圈圈 —— 版面不跳動(CLS≈0),體感速度快很多。規則見 docs/06:0.3 秒內完成的請求不顯示任何 loading。</span></div>
+</section>
+
+<!-- ============ 業者:案件看板 ============ -->
+<section class="screen" data-role="vendor" id="v-board">
+  <div class="page-head">
+    <span class="kicker">Pipeline</span>
+    <h1>案件看板</h1>
+    <p class="muted">安心整合工程 · 本月新商機 12 件 · 進行中 4 件</p>
+  </div>
+  <div class="kanban" style="margin-top:16px">
+    <div class="kan-col"><h4><svg class="ic"><use href="#i-spark"/></svg>新商機<span class="cnt">3</span></h4>
+      <div class="kan-card" onclick="go('v-quote')"><strong>30坪全屋翻新</strong><br><span class="tiny">台北市大安區 · 預算 100–150萬 · 北歐風</span><br><span class="badge brand">符合度 92%</span></div>
+      <div class="kan-card"><strong>浴室翻新</strong><br><span class="tiny">新北市板橋 · 預算 25–35萬</span></div>
+      <div class="kan-card"><strong>辦公室裝修</strong><br><span class="tiny">內湖 · 45坪 · 預算 200萬+</span></div>
+    </div>
+    <div class="kan-col k-quoted"><h4><svg class="ic"><use href="#i-send"/></svg>已報價<span class="cnt">2</span></h4>
+      <div class="kan-card"><strong>25坪老屋翻新</strong><br><span class="tiny">報價 NT$142萬 · 3天前 · 已讀</span></div>
+      <div class="kan-card"><strong>廚房改造</strong><br><span class="tiny">報價 NT$38萬 · 今天 · 未讀</span></div>
+    </div>
+    <div class="kan-col k-doing"><h4><svg class="ic"><use href="#i-cone"/></svg>施工中<span class="cnt">2</span></h4>
+      <div class="kan-card"><strong>王宅 30坪全屋</strong><br><span class="tiny">泥作階段 · 進度 45%</span><br><span class="badge warn">待屋主驗收第2期</span></div>
+      <div class="kan-card"><strong>林宅浴室</strong><br><span class="tiny">貼磚中 · 進度 60%</span></div>
+    </div>
+    <div class="kan-col k-done"><h4><svg class="ic"><use href="#i-check-c"/></svg>待收款/完成</h4>
+      <div class="kan-card"><strong>陳宅局部翻新</strong><br><span class="tiny">已完工 · 尾款 NT$18.6萬 撥款中</span><span class="badge ok">評價 ★5.0</span></div>
+    </div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:業者首頁=看板,案件狀態一眼掌握。手機端同樣資料改為「今日待辦清單」呈現(工地情境:回報進度、回訊息)。</span></div>
+</section>
+
+<!-- ============ 業者:報價編輯器 ============ -->
+<section class="screen" data-role="vendor" id="v-quote">
+  <div class="page-head">
+    <span class="kicker">Quote Editor</span>
+    <h1>報價編輯器 · 30坪全屋翻新</h1>
+    <p class="muted">需求單已自動帶入坪數與範圍 · 使用範本「全屋翻新-標準」 · 目標 10 分鐘完成報價</p>
+  </div>
+  <div style="display:flex;gap:8px;margin:14px 0;flex-wrap:wrap">
+    <button class="btn sm ghost"><svg class="ic"><use href="#i-clipboard"/></svg>套用範本</button>
+    <button class="btn sm ghost"><svg class="ic"><use href="#i-copy"/></svg>複製舊報價</button>
+    <button class="btn sm ghost"><svg class="ic"><use href="#i-plus"/></svg>新增分區</button>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>項目</th><th>數量</th><th>單位</th><th class="num" style="text-align:right">單價</th><th class="num" style="text-align:right">小計</th><th>建材</th></tr></thead>
+      <tbody>
+        <tr class="row-sec"><td colspan="6">水電工程</td></tr>
+        <tr><td>全室電線抽換(含開關插座)</td><td>30</td><td>坪</td><td class="num">4,200</td><td class="num">126,000</td><td><span class="tiny">太平洋電線 2.0mm</span></td></tr>
+        <tr><td>配電箱更新</td><td>1</td><td>式</td><td class="num">28,000</td><td class="num">28,000</td><td><span class="tiny">士林電機</span></td></tr>
+        <tr><td>冷熱水管更新(不鏽鋼壓接)</td><td>8</td><td>口</td><td class="num">7,000</td><td class="num">56,000</td><td>—</td></tr>
+        <tr class="row-sec"><td colspan="6">木作工程</td></tr>
+        <tr><td>客廳地板鋪設</td><td>15</td><td>坪</td><td class="num">5,400</td><td class="num">81,000</td><td><span class="badge brand">SPC 標準級</span> <span class="tiny">可切換等級</span></td></tr>
+        <tr><td>天花板平釘(含間接照明溝槽)</td><td>22</td><td>坪</td><td class="num">4,800</td><td class="num">105,600</td><td><span class="tiny">矽酸鈣板 6mm</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="grid c2" style="margin-top:16px">
+    <div class="card">
+      <span class="cardtitle"><svg class="ic"><use href="#i-ban"/></svg>排除項目(明確告知不包含)</span>
+      <p class="muted" style="margin-top:6px">窗簾、活動家具、家電、冷氣安裝</p>
+      <span class="cardtitle" style="margin-top:14px;display:flex"><svg class="ic"><use href="#i-cal"/></svg>工期與付款</span>
+      <p class="muted" style="margin-top:6px">預估 75 天 · 分期 30% / 40% / 30%(平台託管)</p>
+    </div>
+    <div class="total-panel">
+      <div class="lbl">Total · 報價總計(v1)</div>
+      <div class="total-figure">NT$1,107,000</div>
+      <div style="display:flex;gap:8px"><button class="btn light sm" style="background:transparent;color:var(--cream);border:1.5px solid rgba(245,239,226,.45)">預覽屋主視角</button><button class="btn accent sm">送出報價</button></div>
+    </div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:範本 + 需求單自動帶入(坪數→數量初值)+ 建材庫帶參考價 = 快速產出<strong>結構化</strong>報價;屋主端的「對齊比價」就是吃這份資料。</span></div>
+</section>
+
+<!-- ============ 管理員 ============ -->
+<section class="screen" data-role="admin" id="a-review">
+  <div class="page-head">
+    <span class="kicker">Operations</span>
+    <h1>營運工作台</h1>
+  </div>
+  <div class="grid c2" style="margin-top:16px">
+    <div class="card">
+      <span class="cardtitle"><svg class="ic"><use href="#i-search"/></svg>業者審核佇列(3)</span>
+      <table style="margin-top:8px">
+        <tr><td><strong>木匠兄弟工作室</strong><br><span class="tiny">室內裝修業登記 ✓ 已上傳 · 統編 ✓ 核驗通過</span></td><td style="text-align:right"><button class="btn sm">審核</button></td></tr>
+        <tr><td><strong>永信水電行</strong><br><span class="tiny">甲種電匠證照 ✓ · 營業登記 待補件</span></td><td style="text-align:right"><button class="btn sm ghost">通知補件</button></td></tr>
+        <tr><td><strong>好室設計</strong><br><span class="tiny">文件齊全 · 待電話訪談</span></td><td style="text-align:right"><button class="btn sm">審核</button></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <span class="cardtitle"><svg class="ic"><use href="#i-scale"/></svg>糾紛處理(1)</span>
+      <div class="alert-box">
+        <span class="badge bad">第 2 期款項已凍結</span>
+        <p style="margin:6px 0"><strong>案件 #P-2214</strong> 屋主主張磁磚空心率超標,業者主張已依約施工</p>
+        <p class="tiny">可調閱:合約報價單 v2、變更單 ×1、進度照片 38 張、對話記錄</p>
+        <button class="btn sm" style="margin-top:8px">開啟仲裁檔案</button>
+      </div>
+    </div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>設計重點:因為報價、變更、驗收、對話全部在平台內結構化留痕,糾紛仲裁才有依據 —— 這是「託管金流」能成立的前提。</span></div>
+</section>
+
+</main>
+
+<footer>好宅裝修 · 互動原型(wireframe)· 所有數據為示意 · 對應設計文件 docs/01–04</footer>
+
+<script>
+/* ===== 角色與導覽(emoji 全面改為內嵌 SVG 圖示)===== */
+const NAVS = {
+  owner:  [["o-home","i-home","首頁"],["o-wizard","i-spark","發需求"],["o-compare","i-scale","比報價"],["o-material","i-material","選建材"],["o-project","i-folder","我的專案"],["o-chat","i-chat","訊息"],["o-case","i-photo","完工案例"],["o-material-detail","i-plank","建材詳情"],["o-construction","i-list-check","施工說明"],["o-plan","i-blueprint","施工圖"],["ext:preview-room.html","i-cube","預覽室"]],
+  vendor: [["v-board","i-board","案件看板"],["v-quote","i-quote","報價編輯器"]],
+  admin:  [["a-review","i-archive","營運工作台"]]
+};
+const AVATARS = {owner:"王", vendor:"安", admin:"管"};
+let role = "owner";
+
+function setRole(r){
+  role = r;
+  document.querySelectorAll(".role-btn").forEach(b=>b.classList.toggle("active", b.dataset.role===r));
+  document.getElementById("avatar").textContent = AVATARS[r];
+  const nav = document.getElementById("nav");
+  nav.innerHTML = "";
+  NAVS[r].forEach(([id,icon,label])=>{
+    const b = document.createElement("button");
+    b.innerHTML = `<svg class="ic" aria-hidden="true"><use href="#${icon}"/></svg><span>${label}</span>`;
+    if(id.startsWith("ext:")){
+      b.onclick = ()=>{ window.location.href = id.slice(4); };
+    }else{
+      b.dataset.target = id; b.onclick = ()=>go(id);
+    }
+    nav.appendChild(b);
+  });
+  go(NAVS[r][0][0]);
+}
+function go(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active", s.id===id));
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active", b.dataset.target===id));
+  window.scrollTo({top:0});
+}
+
+/* ===== 需求精靈(選項圖示同樣走 SVG 圖示庫)===== */
+const WIZ = [
+  {q:"您要裝修的是?", opts:[["i-building","中古屋(有人住過)"],["i-house-new","新成屋(毛胚/空屋)"],["i-store","商業空間"]]},
+  {q:"室內坪數大約?", opts:[["i-ruler","15 坪以下"],["i-ruler","15–25 坪"],["i-ruler","25–40 坪"],["i-ruler","40 坪以上"]]},
+  {q:"想要動哪些空間?(可複選)", multi:true, opts:[["i-sofa","客廳"],["i-pot","廚房"],["i-bath","浴室"],["i-bed","臥室"],["i-door","全室"]]},
+  {q:"哪種風格比較像您想要的家?", opts:[["i-leaf","溫暖木質北歐風"],["i-sq-min","俐落現代簡約風"],["i-bolt","個性工業風"],["i-arch","奶油法式風"]]},
+  {q:"預算大約抓多少?", opts:[["i-coins","50 萬以下"],["i-coins","50–100 萬"],["i-coins","100–200 萬"],["i-coins","200 萬以上"]],
+   done:"✓ 需求單已生成!依平台成交行情,您的條件預估 <strong>NT$95–140 萬</strong>。<br>送出後將通知符合條件的已驗證業者,一般 48 小時內收到 2–4 份報價。"}
+];
+let wizStep = 0;
+function renderWiz(){
+  const s = WIZ[wizStep];
+  document.getElementById("wiz-progress").textContent = `步驟 ${wizStep+1} / ${WIZ.length}`;
+  document.getElementById("wiz-bar").style.width = ((wizStep+1)/WIZ.length*100) + "%";
+  let html = `<h3 style="margin:16px 0 4px">${s.q}</h3>${s.multi?'<p class="tiny">可複選</p>':''}<div class="wiz-opts">`;
+  s.opts.forEach(([icon,label])=>{
+    html += `<div class="wiz-opt" role="button" tabindex="0" onclick="wizPick(this,${s.multi?'true':'false'})"><span class="wic"><svg class="ic" aria-hidden="true"><use href="#${icon}"/></svg></span>${label}</div>`;
+  });
+  html += "</div>";
+  if(wizStep === WIZ.length-1){
+    html += `<div id="wiz-done" style="display:none" class="note"><svg class="ic"><use href="#i-check-c"/></svg><span>${s.done} <br><button class="btn sm" style="margin-top:8px" onclick="go('o-compare')">送出需求 → 等待報價</button></span></div>`;
+  }
+  document.getElementById("wiz-body").innerHTML = html;
+  document.getElementById("wiz-prev").style.visibility = wizStep===0 ? "hidden":"visible";
+  document.getElementById("wiz-next").style.display = wizStep===WIZ.length-1 ? "none":"inline-flex";
+}
+function wizPick(el, multi){
+  if(!multi) el.parentElement.querySelectorAll(".wiz-opt").forEach(o=>o.classList.remove("sel"));
+  el.classList.toggle("sel");
+  const done = document.getElementById("wiz-done");
+  if(done) done.style.display = "flex";
+}
+function wizNext(){ if(wizStep < WIZ.length-1){ wizStep++; renderWiz(); } }
+function wizPrev(){ if(wizStep > 0){ wizStep--; renderWiz(); } }
+
+/* ===== 建材等級切換 ===== */
+const TIER_NAMES = {0:"超耐磨木地板", 48000:"SPC 石塑防水地板", 132000:"海島型實木地板"};
+function pickTier(el){
+  document.querySelectorAll(".tier").forEach(t=>t.classList.remove("sel"));
+  el.classList.add("sel");
+  const p = parseInt(el.dataset.price);
+  document.getElementById("tier-delta").textContent = p===0 ? "基準價" : "+NT$"+p.toLocaleString();
+  document.getElementById("tier-note").textContent = "已選:" + TIER_NAMES[p];
+}
+
+/* ===== 建材詳情:配件加購即時加總(15 坪、周長 18 米估算)===== */
+function accSum(){
+  let sum = 0;
+  document.querySelectorAll("#acc-list input:checked").forEach(c=>sum += parseInt(c.dataset.total,10));
+  document.getElementById("acc-total").textContent = "NT$" + sum.toLocaleString();
+  document.getElementById("acc-grand").textContent = "NT$" + (81000 + sum).toLocaleString();
+}
+
+/* ===== 工程施工圖:房間 → 施工項目與進度 ===== */
+const PLAN_DATA = {
+  living:{name:"客廳", ping:"10 坪", items:[["SPC 地板鋪設","進行中 40%","warn"],["天花板平釘(間接照明)","待開工",""],["全室油漆","待開工",""]]},
+  dining:{name:"餐廳", ping:"4.5 坪", items:[["天花板平釘","待開工",""],["油漆粉刷","待開工",""]]},
+  kitchen:{name:"廚房", ping:"3.5 坪", items:[["水電配管移位","已完成","ok"],["壁面烤漆玻璃","待開工",""],["廚具安裝","待開工",""]]},
+  bath:{name:"浴室", ping:"2.5 坪", items:[["彈性水泥防水 ×2 道","已完成","ok"],["試水 48 小時","已完成","ok"],["磁磚鋪貼","下週進場",""]]},
+  master:{name:"主臥", ping:"6 坪", items:[["壁癌處理+防水(變更單 #CO-2)","進行中","warn"],["系統櫃木作","待開工",""]]},
+  second:{name:"次臥", ping:"3.5 坪", items:[["電路更新","已完成","ok"],["油漆粉刷","待開工",""]]}
+};
+function planPick(key){
+  document.querySelectorAll(".plan-room").forEach(g=>g.classList.toggle("sel", g.dataset.room===key));
+  const d = PLAN_DATA[key];
+  let html = `<span style="display:block;font-family:var(--serif);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--clay-ink)">Room Progress</span>`;
+  html += `<h3 style="font-size:19px;margin-top:4px">${d.name}<span class="tiny" style="font-weight:400;margin-left:8px">${d.ping}</span></h3>`;
+  html += `<table style="margin-top:8px">`;
+  d.items.forEach(([n,s,cls])=>{ html += `<tr><td style="padding:10px 4px">${n}</td><td style="text-align:right;padding:10px 4px"><span class="badge ${cls}">${s}</span></td></tr>`; });
+  html += `</table><button class="btn sm ghost" style="margin-top:10px" onclick="go('o-construction')">查看本階段施工說明</button>`;
+  document.getElementById("plan-info").innerHTML = html;
+}
+
+/* ===== 載入體驗展示:Splash(1.4s)→ 骨架屏(1.4s)→ 首頁 ===== */
+function demoLoading(){
+  setRole("owner");
+  const sp = document.getElementById("splash");
+  sp.classList.add("show");
+  setTimeout(()=>{
+    sp.classList.remove("show");
+    go("o-skeleton");
+    setTimeout(()=>go("o-home"), 1400);
+  }, 1400);
+}
+
+renderWiz();
+setRole("owner");
+accSum();
+planPick("living");
+</script>
+</body>
+</html>

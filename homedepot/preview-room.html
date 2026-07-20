@@ -65,8 +65,9 @@
   .muted{color:var(--ink-2);font-size:14.5px}
   .tiny{color:var(--ink-3);font-size:12.5px;line-height:1.6}
 
-  .layout{display:grid;grid-template-columns:1.45fr 1fr;gap:22px;align-items:start;margin-top:22px}
-  .stage-col{position:sticky;top:86px}
+  /* 單欄:預覽在上(全寬),控制項堆疊於下方(PC 與手機一致) */
+  .layout{display:grid;grid-template-columns:1fr;gap:20px;align-items:start;margin-top:22px}
+  .stage-col{position:static}
 
   /* =====================================================
      3D 舞台:淺色方眼「圖紙」+ 細圖框角標(C)
@@ -97,13 +98,27 @@
   .plane.left{width:var(--dpx);height:var(--hpx);transform:translate(-50%,-50%) rotateY(90deg) translateZ(calc(var(--wpx) / -2))}
   .plane.right{width:var(--dpx);height:var(--hpx);transform:translate(-50%,-50%) rotateY(-90deg) translateZ(calc(var(--wpx) / -2))}
 
-  /* 假光影:窗光在後左,右牆最暗 */
+  /* ===== 烘焙光(baked lighting):固定光源=後左窗暖光,右牆最暗;含 AO 角落遮蔽 ===== */
+  /* 地板:窗光暖池 + 邊緣 AO 暈影 + 前後明暗 */
   .plane.floor::after{content:"";position:absolute;inset:0;pointer-events:none;background:
-    radial-gradient(52% 42% at 26% 16%,rgba(255,246,218,.16),transparent 72%),
-    linear-gradient(180deg,rgba(16,28,20,.16),rgba(16,28,20,.02) 52%,rgba(16,28,20,.06))}
-  .plane.back::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(20,32,24,.14),transparent 42%,rgba(20,32,24,.07))}
-  .plane.left::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(20,32,24,.10),rgba(20,32,24,.26))}
-  .plane.right::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(20,32,24,.34),rgba(20,32,24,.16))}
+    radial-gradient(58% 50% at 22% 14%,rgba(255,244,212,.34),transparent 62%),
+    radial-gradient(125% 120% at 50% 46%,transparent 52%,rgba(12,22,16,.24)),
+    linear-gradient(180deg,rgba(12,22,16,.20),rgba(12,22,16,.015) 46%,rgba(12,22,16,.11))}
+  /* 後牆:左亮(近窗)→右暗 + 上下 AO(接天花/地板) */
+  .plane.back::after{content:"";position:absolute;inset:0;pointer-events:none;background:
+    linear-gradient(90deg,rgba(255,246,220,.16),transparent 44%,rgba(14,24,18,.16)),
+    linear-gradient(180deg,rgba(14,24,18,.20),transparent 30%,transparent 74%,rgba(14,24,18,.20))}
+  /* 左牆(窗側,最亮):暖色受光 + 前緣 AO */
+  .plane.left::after{content:"";position:absolute;inset:0;pointer-events:none;background:
+    linear-gradient(90deg,rgba(255,246,220,.12),transparent 55%,rgba(14,24,18,.20)),
+    linear-gradient(180deg,rgba(14,24,18,.18),transparent 28%,transparent 76%,rgba(14,24,18,.16))}
+  /* 右牆(背光,最暗) */
+  .plane.right::after{content:"";position:absolute;inset:0;pointer-events:none;background:
+    linear-gradient(90deg,rgba(14,24,18,.36),rgba(14,24,18,.14)),
+    linear-gradient(180deg,rgba(14,24,18,.20),transparent 28%,transparent 76%,rgba(14,24,18,.16))}
+  /* 牆-地接縫 AO:地板四周內陰影;牆面下緣加深 */
+  .plane.floor{box-shadow:0 0 60px rgba(28,37,48,.18),inset 0 0 46px rgba(12,22,16,.20)}
+  .plane.wall{box-shadow:0 0 30px rgba(28,37,48,.10),inset 0 -26px 30px rgba(12,22,16,.14)}
 
   /* 藝術塗料質感(乳膠漆=平滑,無此層) */
   .room.f-art .plane.wall::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.75;background:
@@ -142,6 +157,12 @@
   .bx .f.lf{width:var(--bd);height:var(--bh);transform:translate(-50%,-100%) rotateY(90deg) translateZ(calc(var(--bw) / -2));background-color:var(--cs)}
   .bx .f.rt{width:var(--bd);height:var(--bh);transform:translate(-50%,-100%) rotateY(-90deg) translateZ(calc(var(--bw) / -2));background-color:var(--cs2)}
   .bx .f.tp{width:var(--bw);height:var(--bd);transform:translate(-50%,-50%) rotateX(90deg) translateZ(var(--bh));background-color:var(--ct)}
+  /* 家具烘焙光:直立面上亮下暗(頂光+接地 AO);頂面斜向高光 */
+  .bx .f.fr::after,.bx .f.lf::after,.bx .f.rt::after,.bx .f.bk::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,253,244,.12),transparent 26%,transparent 62%,rgba(10,16,12,.20))}
+  .bx .f.rt::after{background:linear-gradient(180deg,rgba(255,253,244,.05),transparent 26%,transparent 58%,rgba(10,16,12,.26))}
+  .bx .f.tp::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(118deg,rgba(255,251,238,.20) 6%,transparent 44%,rgba(10,16,12,.06))}
 
   /* 門板材質(前面板) */
   .door-wood .f.fr{background-image:repeating-linear-gradient(90deg,rgba(90,58,28,.30) 0 2px,transparent 2px 54px),repeating-linear-gradient(90deg,rgba(255,240,214,.06) 0 1px,transparent 1px 7px),linear-gradient(180deg,rgba(255,255,255,.07),rgba(70,42,16,.10))}
@@ -185,7 +206,7 @@
   /* =====================================================
      右側控制面板(B 白卡)
      ===================================================== */
-  .panel{display:flex;flex-direction:column;gap:16px}
+  .panel{display:flex;flex-direction:column;gap:16px;width:100%;max-width:760px;margin:0 auto}
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
   .cardtitle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;margin-bottom:12px}
   .cardtitle .ic{width:17px;height:17px;color:var(--brand-700)}
@@ -351,7 +372,7 @@
   <div class="page-head">
     <span class="kicker">Preview Room · Live Configurator</span>
     <h1>預覽室 — 輸入尺寸,即刻看見你的家</h1>
-    <p class="muted">拖曳環視空間;從建材目錄自由搭配,或一鍵套用案例風格 — 右側估價即時更新。</p>
+    <p class="muted">拖曳環視空間;從建材目錄自由搭配,或一鍵套用案例風格 — 下方估價即時更新。</p>
   </div>
 
   <div class="layout">

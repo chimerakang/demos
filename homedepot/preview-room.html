@@ -72,8 +72,8 @@
      3D 舞台:淺色方眼「圖紙」+ 細圖框角標(C)
      外框大圓角+柔和陰影(B)
      ===================================================== */
-  .stage{position:relative;border-radius:var(--radius-lg);overflow:hidden;height:clamp(360px,56vh,580px);
-       perspective:1250px;perspective-origin:50% 42%;cursor:grab;touch-action:none;
+  .stage{position:relative;border-radius:var(--radius-lg);overflow:hidden;height:clamp(440px,64vh,640px);
+       perspective:1000px;perspective-origin:50% 50%;cursor:grab;touch-action:none;
        background-color:var(--doc-paper);
        background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),
                         linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);
@@ -87,7 +87,7 @@
   .stage .sheettag.br{bottom:3px;right:26px}
   .halo{position:absolute;left:50%;top:58%;width:70%;height:34%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(255,246,218,.55),transparent 72%);pointer-events:none}
 
-  .room{position:absolute;left:50%;top:48%;width:0;height:0;transform-style:preserve-3d;transform:rotateX(var(--pitch,22deg)) rotateY(var(--yaw,-18deg)) scale(var(--zoom,1));transition:transform .5s ease-out;pointer-events:none}
+  .room{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;transform-origin:50% 50%;transition:transform .45s ease-out;pointer-events:none}
   .room.drag{transition:none}
 
   .plane{position:absolute;left:0;top:0;transition:background-color .3s ease-out}
@@ -287,10 +287,13 @@
   @media (max-width:960px){
     .layout{grid-template-columns:1fr}
     .stage-col{position:static}
-    .stage{height:clamp(300px,52vw,460px)}
+    .stage{height:clamp(420px,62vh,600px)}
   }
   @media (max-width:640px){
     .container{padding:0 14px}
+    /* 手機:預覽佔滿整個螢幕寬度,材質等面板堆疊於下方 */
+    .stage{margin:0 -14px;border-radius:0;height:clamp(400px,66vh,560px)}
+    .stage .frameline{inset:8px}
     main{padding:20px 0 56px}
     h1{font-size:23px}
     .card{padding:16px}
@@ -367,9 +370,9 @@
         <div class="dimchip" id="dimchip"></div>
         <div class="draghint"><svg class="ic sm"><use href="#i-move"/></svg>拖曳環視 · 滾輪縮放</div>
         <div class="orbitbar">
-          <label>環視 <input type="range" id="yawR" min="-45" max="45" step="1" value="-18" oninput="setOrbit('yaw',this.value)" aria-label="水平環視角度"></label>
-          <label>俯視 <input type="range" id="pitchR" min="2" max="78" step="1" value="22" oninput="setOrbit('pitch',this.value)" aria-label="俯視角度"></label>
-          <label>縮放 <input type="range" id="zoomR" min="60" max="260" step="1" value="100" oninput="setZoom(this.value)" aria-label="縮放"></label>
+          <label>環視 <input type="range" id="yawR" min="-32" max="32" step="1" value="-10" oninput="setOrbit('yaw',this.value)" aria-label="水平環視角度"></label>
+          <label>俯視 <input type="range" id="pitchR" min="0" max="34" step="1" value="12" oninput="setOrbit('pitch',this.value)" aria-label="俯視角度"></label>
+          <label>縮放 <input type="range" id="zoomR" min="60" max="240" step="1" value="100" oninput="setZoom(this.value)" aria-label="縮放"></label>
         </div>
       </div>
       <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>概念驗證:任何 SKU 只要掛上對應 slot(地板/牆面/櫃體/檯面/設備)即可進入預覽室 — 目錄結構見程式內 <code>CATALOG</code> 物件,將沿用至正式資料模型。</span></div>
@@ -493,7 +496,7 @@ var state = {
   appl:{island:true, upper:true, hood:true},
   style:"nordic",
   tab:"floor",
-  yaw:-18, pitch:22, zoom:1
+  yaw:-10, pitch:12, zoom:1
 };
 window.PR_STATE = state;
 
@@ -516,6 +519,23 @@ var U = 70; // px per meter(依舞台大小自動調整)
 function fit(){
   var r = stage.getBoundingClientRect();
   U = Math.min(104, r.width*0.70/state.w, r.height*0.72/state.h, r.width*0.84/state.d);
+}
+
+/* 視野角度(FOV):越大越廣但邊緣越失真;自然室內約 78–92° */
+var FOV_DEG = 82;
+/* 正規第一人稱攝影機:站在房間開口、眼睛高度,往內看
+   transform = scale(zoom) · translateZ(P) · rotateX(-俯視) · rotateY(環視) · translate(-攝影機位置)
+   俯視為 rotateX 負值 → 低頭看地板;P 由 FOV 決定 */
+function applyCamera(){
+  var w = stage.clientWidth || 480;
+  var P = (w/2) / Math.tan(FOV_DEG*Math.PI/360);   // 由 FOV 反推 perspective
+  stage.style.perspective = P.toFixed(1)+"px";
+  var camY = (state.h/2 - 1.5) * U;                // 眼睛離地 1.5m(CSS +y 朝下)
+  var camZ = (state.d/2 + 0.7) * U;                // 站在開口前方,看得到整個房間
+  room.style.transform =
+    "scale("+state.zoom+") translateZ("+P.toFixed(1)+"px)"+
+    " rotateX("+(-state.pitch)+"deg) rotateY("+state.yaw+"deg)"+
+    " translate3d(0px,"+(-camY).toFixed(1)+"px,"+(-camZ).toFixed(1)+"px)";
 }
 
 /* box 量體:wrapper(定位)+ 5 面 */
@@ -622,9 +642,8 @@ function renderScene(){
   room.style.setProperty("--wpx",(W*U)+"px");
   room.style.setProperty("--dpx",(D*U)+"px");
   room.style.setProperty("--hpx",(H*U)+"px");
-  room.style.setProperty("--yaw",state.yaw+"deg");
-  room.style.setProperty("--pitch",state.pitch+"deg");
-  room.style.setProperty("--zoom",state.zoom);
+  pFloor.style.height=((D+2.4)*U)+"px";  // 地板往鏡頭方向延伸,前緣超出畫面下緣 → 俯視不會看到地板底面
+  applyCamera();
 
   // 地板材質
   var fl=find("floor",state.sel.floor);
@@ -880,16 +899,19 @@ function applyPreset(k){
   state.style=k;
   renderAll();
 }
+var _zt=0;
+function camLive(){                      // 互動(滑桿/滾輪)時暫時關閉過場,反應更即時
+  room.classList.add("drag");
+  applyCamera();
+  clearTimeout(_zt); _zt=setTimeout(function(){ room.classList.remove("drag"); },160);
+}
 function setOrbit(kind,v){
   state[kind]=parseFloat(v);
-  room.style.setProperty("--"+kind,state[kind]+"deg");
+  camLive();
 }
-var _zt=0;
 function setZoom(v){
   state.zoom=clamp(parseFloat(v)/100, 0.6, 2.6);
-  room.classList.add("drag");           // 縮放時關閉過場,拖動更即時
-  room.style.setProperty("--zoom",state.zoom);
-  clearTimeout(_zt); _zt=setTimeout(function(){ room.classList.remove("drag"); },160);
+  camLive();
 }
 
 /* 拖曳環視 + 雙指縮放(Pointer Events,支援 Safari / LINE WebView) */
@@ -901,17 +923,16 @@ function setZoom(v){
   function applyZoom(z){
     state.zoom=clamp(z,0.6,2.6);
     room.classList.add("drag");
-    room.style.setProperty("--zoom",state.zoom);
+    applyCamera();
     $("zoomR").value=Math.round(state.zoom*100);
     clearTimeout(idleT); idleT=setTimeout(function(){ if(!dragging&&!pinch) room.classList.remove("drag"); },160);
   }
   function apply(){
     raf=0;
     if(!pending) return;
-    state.yaw=clamp(yaw0+pending.dx*0.16,-45,45);
-    state.pitch=clamp(pitch0-pending.dy*0.13,2,78);
-    room.style.setProperty("--yaw",state.yaw+"deg");
-    room.style.setProperty("--pitch",state.pitch+"deg");
+    state.yaw=clamp(yaw0+pending.dx*0.16,-32,32);
+    state.pitch=clamp(pitch0-pending.dy*0.13,0,34);   // 拖曳向上 → 俯視變大(低頭看地板)
+    applyCamera();
     $("yawR").value=Math.round(state.yaw);
     $("pitchR").value=Math.round(state.pitch);
   }

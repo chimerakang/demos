@@ -50,7 +50,7 @@
   .proto-bar a.back:hover{background:var(--brand-50)}
 
   /* ===== 頁首:淺色懸浮列 ===== */
-  header.site{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);color:var(--ink);position:sticky;top:0;z-index:20;
+  header.site{background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--ink);position:sticky;top:0;z-index:20;
        border-bottom:1px solid #f0e9dc;box-shadow:0 6px 24px rgba(72,62,46,.06)}
   header.site .container{display:flex;align-items:center;gap:16px;height:62px}
   .logo{font-size:18px;font-weight:900;color:var(--ink);letter-spacing:.04em;display:flex;align-items:center;gap:10px;white-space:nowrap}
@@ -87,7 +87,7 @@
   .stage .sheettag.br{bottom:3px;right:26px}
   .halo{position:absolute;left:50%;top:58%;width:70%;height:34%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(255,246,218,.55),transparent 72%);pointer-events:none}
 
-  .room{position:absolute;left:50%;top:48%;width:0;height:0;transform-style:preserve-3d;transform:rotateX(var(--pitch,19deg)) rotateY(var(--yaw,-18deg));transition:transform .5s ease-out;pointer-events:none}
+  .room{position:absolute;left:50%;top:48%;width:0;height:0;transform-style:preserve-3d;transform:rotateX(var(--pitch,22deg)) rotateY(var(--yaw,-18deg)) scale(var(--zoom,1));transition:transform .5s ease-out;pointer-events:none}
   .room.drag{transition:none}
 
   .plane{position:absolute;left:0;top:0;transition:background-color .3s ease-out}
@@ -176,11 +176,11 @@
   .dimchip{position:absolute;top:16px;left:20px;z-index:6;font-family:var(--serif);font-size:11.5px;letter-spacing:.06em;
        color:var(--doc-ink);background:rgba(253,252,249,.92);border:1px solid rgba(28,37,48,.28);border-radius:999px;padding:3px 13px;pointer-events:none}
   .draghint{position:absolute;top:18px;right:22px;z-index:6;display:flex;align-items:center;gap:6px;font-size:12px;color:#6d7683;pointer-events:none}
-  .orbitbar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:6;display:flex;gap:16px;align-items:center;
-       background:rgba(255,255,255,.9);backdrop-filter:blur(6px);border:1px solid rgba(28,37,48,.22);border-radius:999px;
+  .orbitbar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:6;display:flex;gap:13px;align-items:center;max-width:calc(100% - 24px);
+       background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(28,37,48,.22);border-radius:999px;
        padding:7px 18px;color:var(--doc-ink);font-size:12px;white-space:nowrap;box-shadow:var(--shadow-sm)}
   .orbitbar label{display:flex;align-items:center;gap:8px}
-  .orbitbar input[type=range]{width:104px;accent-color:var(--brand-600)}
+  .orbitbar input[type=range]{width:88px;accent-color:var(--brand-600)}
 
   /* =====================================================
      右側控制面板(B 白卡)
@@ -365,10 +365,11 @@
           <div class="plane wall right" id="pRight"></div>
         </div>
         <div class="dimchip" id="dimchip"></div>
-        <div class="draghint"><svg class="ic sm"><use href="#i-move"/></svg>拖曳環視</div>
+        <div class="draghint"><svg class="ic sm"><use href="#i-move"/></svg>拖曳環視 · 滾輪縮放</div>
         <div class="orbitbar">
-          <label>環視 <input type="range" id="yawR" min="-30" max="30" step="1" value="-18" oninput="setOrbit('yaw',this.value)" aria-label="水平環視角度"></label>
-          <label>俯角 <input type="range" id="pitchR" min="4" max="30" step="1" value="19" oninput="setOrbit('pitch',this.value)" aria-label="俯視角度"></label>
+          <label>環視 <input type="range" id="yawR" min="-45" max="45" step="1" value="-18" oninput="setOrbit('yaw',this.value)" aria-label="水平環視角度"></label>
+          <label>俯視 <input type="range" id="pitchR" min="2" max="78" step="1" value="22" oninput="setOrbit('pitch',this.value)" aria-label="俯視角度"></label>
+          <label>縮放 <input type="range" id="zoomR" min="60" max="260" step="1" value="100" oninput="setZoom(this.value)" aria-label="縮放"></label>
         </div>
       </div>
       <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><span>概念驗證:任何 SKU 只要掛上對應 slot(地板/牆面/櫃體/檯面/設備)即可進入預覽室 — 目錄結構見程式內 <code>CATALOG</code> 物件,將沿用至正式資料模型。</span></div>
@@ -492,7 +493,7 @@ var state = {
   appl:{island:true, upper:true, hood:true},
   style:"nordic",
   tab:"floor",
-  yaw:-18, pitch:19
+  yaw:-18, pitch:22, zoom:1
 };
 window.PR_STATE = state;
 
@@ -514,7 +515,7 @@ var U = 70; // px per meter(依舞台大小自動調整)
 
 function fit(){
   var r = stage.getBoundingClientRect();
-  U = Math.min(82, r.width*0.60/state.w, r.height*0.64/state.h, r.width*0.72/state.d);
+  U = Math.min(104, r.width*0.70/state.w, r.height*0.72/state.h, r.width*0.84/state.d);
 }
 
 /* box 量體:wrapper(定位)+ 5 面 */
@@ -623,6 +624,7 @@ function renderScene(){
   room.style.setProperty("--hpx",(H*U)+"px");
   room.style.setProperty("--yaw",state.yaw+"deg");
   room.style.setProperty("--pitch",state.pitch+"deg");
+  room.style.setProperty("--zoom",state.zoom);
 
   // 地板材質
   var fl=find("floor",state.sel.floor);
@@ -882,34 +884,83 @@ function setOrbit(kind,v){
   state[kind]=parseFloat(v);
   room.style.setProperty("--"+kind,state[kind]+"deg");
 }
+var _zt=0;
+function setZoom(v){
+  state.zoom=clamp(parseFloat(v)/100, 0.6, 2.6);
+  room.classList.add("drag");           // 縮放時關閉過場,拖動更即時
+  room.style.setProperty("--zoom",state.zoom);
+  clearTimeout(_zt); _zt=setTimeout(function(){ room.classList.remove("drag"); },160);
+}
 
-/* 拖曳環視(rAF) */
+/* 拖曳環視 + 雙指縮放(Pointer Events,支援 Safari / LINE WebView) */
 (function(){
+  var pts={};              // pointerId → {x,y} 目前按住的指標
   var dragging=false, sx=0, sy=0, yaw0=0, pitch0=0, pending=null, raf=0;
+  var pinch=false, pinchD0=0, zoom0=1, idleT=0;
+  function nPts(){ return Object.keys(pts).length; }
+  function applyZoom(z){
+    state.zoom=clamp(z,0.6,2.6);
+    room.classList.add("drag");
+    room.style.setProperty("--zoom",state.zoom);
+    $("zoomR").value=Math.round(state.zoom*100);
+    clearTimeout(idleT); idleT=setTimeout(function(){ if(!dragging&&!pinch) room.classList.remove("drag"); },160);
+  }
   function apply(){
     raf=0;
     if(!pending) return;
-    state.yaw=clamp(yaw0+pending.dx*0.14,-30,30);
-    state.pitch=clamp(pitch0-pending.dy*0.10,4,30);
+    state.yaw=clamp(yaw0+pending.dx*0.16,-45,45);
+    state.pitch=clamp(pitch0-pending.dy*0.13,2,78);
     room.style.setProperty("--yaw",state.yaw+"deg");
     room.style.setProperty("--pitch",state.pitch+"deg");
     $("yawR").value=Math.round(state.yaw);
     $("pitchR").value=Math.round(state.pitch);
   }
+  function dist(){
+    var k=Object.keys(pts); if(k.length<2) return 0;
+    var a=pts[k[0]], b=pts[k[1]];
+    return Math.hypot(a.x-b.x, a.y-b.y);
+  }
   stage.addEventListener("pointerdown",function(e){
     if(e.target.closest(".orbitbar")) return;
-    dragging=true; sx=e.clientX; sy=e.clientY; yaw0=state.yaw; pitch0=state.pitch;
-    stage.classList.add("grabbing"); room.classList.add("drag");
+    pts[e.pointerId]={x:e.clientX,y:e.clientY};
     stage.setPointerCapture(e.pointerId);
+    if(nPts()===2){                                   // 進入雙指縮放
+      pinch=true; dragging=false; pinchD0=dist(); zoom0=state.zoom;
+      stage.classList.remove("grabbing"); room.classList.add("drag");
+    }else if(nPts()===1){                             // 單指環視
+      dragging=true; sx=e.clientX; sy=e.clientY; yaw0=state.yaw; pitch0=state.pitch;
+      stage.classList.add("grabbing"); room.classList.add("drag");
+    }
   });
   stage.addEventListener("pointermove",function(e){
+    if(!(e.pointerId in pts)) return;
+    pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    if(pinch){
+      var d=dist();
+      if(pinchD0>0 && d>0) applyZoom(zoom0*(d/pinchD0));
+      return;
+    }
     if(!dragging) return;
     pending={dx:e.clientX-sx, dy:e.clientY-sy};
     if(!raf) raf=requestAnimationFrame(apply);
   });
-  function end(){ dragging=false; stage.classList.remove("grabbing"); room.classList.remove("drag"); }
-  stage.addEventListener("pointerup",end);
-  stage.addEventListener("pointercancel",end);
+  function release(e){
+    delete pts[e.pointerId];
+    if(nPts()<2) pinch=false;
+    if(nPts()===0){ dragging=false; stage.classList.remove("grabbing"); room.classList.remove("drag"); }
+    else if(nPts()===1){                              // 縮放後剩一指 → 接續環視
+      var k=Object.keys(pts)[0];
+      dragging=true; sx=pts[k].x; sy=pts[k].y; yaw0=state.yaw; pitch0=state.pitch;
+    }
+  }
+  stage.addEventListener("pointerup",release);
+  stage.addEventListener("pointercancel",release);
+
+  /* 桌機滾輪 / 觸控板雙指縮放 */
+  stage.addEventListener("wheel",function(e){
+    e.preventDefault();
+    applyZoom(state.zoom*(e.deltaY<0?1.09:0.917));
+  },{passive:false});
 })();
 
 var _rz=0;

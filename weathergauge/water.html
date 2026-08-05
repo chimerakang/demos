@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>怒海列陣 — 古董海圖水面 demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #241b12; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; font-family: "Songti TC", "Noto Serif TC", "Noto Serif CJK TC", serif; }
+  #frame {
+    position: relative;
+    border: 10px double #5a4632;
+    box-shadow: 0 0 60px rgba(0,0,0,.7), inset 0 0 40px rgba(40,25,10,.5);
+    background: #d9c99a;
+  }
+  canvas { display: block; }
+  #overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #ui {
+    position: absolute; right: 14px; top: 12px;
+    background: rgba(233,217,176,.92); border: 1px solid #6b5638;
+    padding: 8px 12px; color: #3c2f1c; font-size: 13px; line-height: 1.9;
+    box-shadow: 2px 3px 0 rgba(60,40,20,.25);
+  }
+  #ui button {
+    font-family: inherit; font-size: 12px; color: #3c2f1c;
+    background: #e9d9b0; border: 1px solid #6b5638; cursor: pointer; padding: 1px 8px;
+  }
+  #ui button:hover { background: #f4e8c8; }
+  #ui input[type=range] { width: 110px; vertical-align: middle; accent-color: #a13527; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="gl" width="960" height="600"></canvas>
+  <canvas id="overlay" width="960" height="600"></canvas>
+  <div id="ui">
+    風向 <button id="windBtn">轉 45°</button><br>
+    浪高 <input id="ampSlider" type="range" min="0.4" max="2.0" step="0.05" value="1.0">
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 波場：沿用 TSURIBAKU（wave-racer-proto）的 6 波 Gerstner 參數
+// 每波：[方向角(rad), 振幅(m), 波長(m), 陡度(0..1)]
+// ============================================================
+const WAVES = [
+  [0.00, 0.55, 60.0, 0.55],
+  [2.39, 0.35, 31.0, 0.50],
+  [5.50, 0.22, 18.0, 0.45],
+  [1.05, 0.14, 9.5, 0.40],
+  [3.98, 0.08, 5.3, 0.35],
+  [0.50, 0.05, 2.8, 0.30],
+];
+const GRAVITY = 9.8;
+const waveA = new Float32Array(24), waveB = new Float32Array(24);
+let maxH = 0;
+WAVES.forEach((w, i) => {
+  const k = Math.PI * 2 / w[2];
+  waveA.set([Math.cos(w[0]), Math.sin(w[0]), w[1], k], i * 4);
+  waveB.set([Math.sqrt(GRAVITY / k), w[3] / (k * w[1] * WAVES.length), 0, 0], i * 4);
+  maxH += w[1];
+});
+
+// ============================================================
+// WebGL：俯視海面，古董海圖色盤（紙色 → 淡墨 → 濃墨 + 飛白 + 金箔）
+// ============================================================
+const glCanvas = document.getElementById('gl');
+const gl = glCanvas.getContext('webgl');
+const W = glCanvas.width, H = glCanvas.height;
+const VIEW_M = 90.0;             // 畫面縱向可見公尺數
+const m2px = H / VIEW_M;
+
+const FRAG = `
+precision highp float;
+uniform vec2  u_res;
+uniform float u_time;
+uniform vec4  u_wave_a[6];   // dir.x, dir.y, amplitude, k
+uniform vec4  u_wave_b[6];   // 相速 c, 陡度 q, -, -
+uniform float u_amp;         // 天氣浪高倍率
+uniform float u_maxh;
+uniform vec2  u_wind;        // 風向（墨線波紋沿風向拉伸）
+
+// 古董海圖色盤
+const vec3 INK_DARK = vec3(0.33, 0.26, 0.17);  // 濃墨（浪谷陰影）
+const vec3 INK_WASH = vec3(0.56, 0.47, 0.33);  // 淡墨
+const vec3 PARCH    = vec3(0.84, 0.75, 0.56);  // 羊皮紙基調
+const vec3 PARCH_HI = vec3(0.96, 0.91, 0.78);  // 飛白（浪尖乾筆）
+const vec3 GOLD     = vec3(0.80, 0.63, 0.21);  // 金箔粼光
+
+float hash21(vec2 p) {
+  p = fract(p * vec2(234.34, 435.345));
+  p += dot(p, p + 34.23);
+  return fract(p.x * p.y);
+}
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+void main() {
+  float scale = ${VIEW_M.toFixed(1)} / u_res.y;
+  vec2 p = (gl_FragCoord.xy - 0.5 * u_res) * scale;
+
+  // Gerstner 高度場 + 解析法線（俯視只取高度，不需水平位移）
+  float h = 0.0;
+  vec3 n = vec3(0.0, 1.0, 0.0);
+  for (int i = 0; i < 6; i++) {
+    vec2 d = u_wave_a[i].xy;
+    float amp = u_wave_a[i].z * u_amp;
+    float k = u_wave_a[i].w;
+    float c = u_wave_b[i].x;
+    float q = u_wave_b[i].y;
+    float f = k * (dot(d, p) - c * u_time);
+    float s = sin(f), cf = cos(f);
+    h += amp * s;
+    float wa = k * amp;
+    n.x -= d.x * wa * cf;
+    n.z -= d.y * wa * cf;
+    n.y -= q * wa * s;
+  }
+  vec3 nrm = normalize(n);
+
+  // 亮度 = 光照 30% + 浪高 70%，硬切三段（同 TSURIBAKU 結構、換海圖色盤）
+  vec3 sun = normalize(vec3(0.4, 0.6, 0.3));
+  float ndl = clamp(dot(nrm, sun), 0.0, 1.0);
+  float hn = clamp(h / (u_maxh * u_amp) * 0.5 + 0.5, 0.0, 1.0);
+  float tone = ndl * 0.3 + hn * 0.7;
+
+  vec3 col = INK_WASH;
+  col = mix(INK_DARK, col, step(0.33, tone));
+  col = mix(col, PARCH, step(0.48, tone));
+
+  // 墨線波紋：噪聲沿風向拉伸 —— 斑紋本身就是風向可視化
+  vec2 wperp = vec2(-u_wind.y, u_wind.x);
+  vec2 wuv = vec2(dot(p, u_wind) * 0.05 - u_time * 0.03,
+                  dot(p, wperp) * 0.22);
+  float streak = vnoise(wuv) * 0.6 + vnoise(wuv * 2.3 + 3.7) * 0.4;
+  col = mix(col, INK_WASH * 0.9, 0.55 * step(0.64, streak) * step(0.48, tone));
+
+  // 浪尖飛白：高度門檻 + 噪聲破碎（乾筆觸感）
+  float crest = step(0.84, hn) * step(0.5, vnoise(p * 1.6));
+  col = mix(col, PARCH_HI, crest);
+
+  // 量化金箔高光（取代原方案的白色太陽高光）
+  vec3 view = vec3(0.0, 1.0, 0.0);
+  vec3 hv = normalize(sun + view);
+  float spec = pow(clamp(dot(nrm, hv), 0.0, 1.0), 80.0);
+  col += GOLD * step(0.75, spec) * 0.13;
+
+  // 紙張顆粒 + 陳年邊緣（往焦褐壓暗）
+  col *= 1.0 + (vnoise(p * 4.1) - 0.5) * 0.10;
+  vec2 uvq = gl_FragCoord.xy / u_res;
+  float edge = smoothstep(0.38, 0.72, distance(uvq, vec2(0.5)));
+  col = mix(col, col * vec3(0.72, 0.58, 0.40), edge * 0.55);
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+function makeShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, makeShader(gl.VERTEX_SHADER,
+  'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}'));
+gl.attachShader(prog, makeShader(gl.FRAGMENT_SHADER, FRAG));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'a');
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const U = n => gl.getUniformLocation(prog, n);
+gl.uniform2f(U('u_res'), W, H);
+gl.uniform4fv(U('u_wave_a'), waveA);
+gl.uniform4fv(U('u_wave_b'), waveB);
+gl.uniform1f(U('u_maxh'), maxH);
+const uTime = U('u_time'), uAmp = U('u_amp'), uWind = U('u_wind');
+
+// UI 狀態
+let windAngle = 0.35;      // 風向（rad）
+let ampMult = 1.0;         // 浪高倍率
+document.getElementById('windBtn').onclick = () => { windAngle += Math.PI / 4; };
+document.getElementById('ampSlider').oninput = e => { ampMult = +e.target.value; };
+
+// ============================================================
+// 海圖裝飾層（2D overlay）：海盜帝國元素
+//   墨線艦隊（戰列線）、硃砂航跡、羅盤玫瑰、恆向線、
+//   藏寶島 + 硃砂 X + 虛線尋寶航線、海怪標記、題名框
+// ============================================================
+const ov = document.getElementById('overlay').getContext('2d');
+const INK = '#33281a', VERMILION = '#a13527', PAPER = '#e9d9b0';
+
+function w2s(x, z) { return [W / 2 + x * m2px, H / 2 - z * m2px]; }
+
+// 艦隊：3 艘沿大圓弧走戰列線（縱列），留硃砂航跡
+const FLEET_R = 26, FLEET_CX = 2, FLEET_CZ = -3;
+const SHIP_GAP = 10 / FLEET_R;  // 艦距（弧角）
+let fleetPhi = 0;
+const trail = [];
+let trailTimer = 0;
+
+function shipPose(i, phi) {
+  const a = phi - i * SHIP_GAP;
+  return {
+    x: FLEET_CX + FLEET_R * Math.cos(a),
+    z: FLEET_CZ + FLEET_R * Math.sin(a),
+    heading: a + Math.PI / 2,   // 圓的切線方向
+  };
+}
+
+function drawShip(x, z, heading, t, flagship) {
+  const [sx, sy] = w2s(x, z);
+  const L = 10 * m2px;                        // 船長 ≈ 10m（海圖符號尺度，略放大求可讀）
+  ov.save();
+  ov.translate(sx, sy);
+  ov.rotate(-heading + Math.PI / 2 + Math.sin(t * 1.3 + x) * 0.03); // 微幅搖晃
+  // 船體（墨色，艏尖艉方）
+  ov.beginPath();
+  ov.moveTo(0, -L * 0.5);
+  ov.quadraticCurveTo(L * 0.16, -L * 0.1, L * 0.13, L * 0.42);
+  ov.lineTo(-L * 0.13, L * 0.42);
+  ov.quadraticCurveTo(-L * 0.16, -L * 0.1, 0, -L * 0.5);
+  ov.fillStyle = INK;
+  ov.fill();
+  // 兩面橫帆（紙色帆面 + 墨線帆桁）
+  for (const fy of [-L * 0.18, L * 0.12]) {
+    ov.beginPath();
+    ov.moveTo(-L * 0.22, fy);
+    ov.quadraticCurveTo(0, fy + L * 0.14, L * 0.22, fy);
+    ov.lineTo(L * 0.18, fy + L * 0.06);
+    ov.quadraticCurveTo(0, fy + L * 0.2, -L * 0.18, fy + L * 0.06);
+    ov.closePath();
+    ov.fillStyle = '#f4ead2';
+    ov.fill();
+    ov.strokeStyle = INK;
+    ov.lineWidth = 1;
+    ov.stroke();
+  }
+  // 旗艦掛硃砂燕尾旗
+  if (flagship) {
+    ov.beginPath();
+    ov.moveTo(0, -L * 0.5);
+    ov.lineTo(L * 0.28, -L * 0.62);
+    ov.lineTo(L * 0.18, -L * 0.54);
+    ov.lineTo(L * 0.28, -L * 0.46);
+    ov.closePath();
+    ov.fillStyle = VERMILION;
+    ov.fill();
+  }
+  ov.restore();
+}
+
+function drawRhumbLines(cx, cy) {
+  ov.save();
+  ov.strokeStyle = 'rgba(51,40,26,0.10)';
+  ov.lineWidth = 1;
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI / 8;
+    ov.beginPath();
+    ov.moveTo(cx, cy);
+    ov.lineTo(cx + Math.cos(a) * 1400, cy + Math.sin(a) * 1400);
+    ov.stroke();
+  }
+  ov.restore();
+}
+
+function drawCompass(cx, cy, r) {
+  ov.save();
+  ov.translate(cx, cy);
+  ov.strokeStyle = INK;
+  ov.fillStyle = INK;
+  ov.lineWidth = 1.5;
+  ov.beginPath(); ov.arc(0, 0, r, 0, 7); ov.stroke();
+  ov.beginPath(); ov.arc(0, 0, r * 0.62, 0, 7);
+  ov.lineWidth = 0.8; ov.stroke();
+  // 八芒星：四長四短
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4;
+    const len = i % 2 === 0 ? r * 0.92 : r * 0.55;
+    const halfW = r * 0.1;
+    ov.save();
+    ov.rotate(a);
+    ov.beginPath();
+    ov.moveTo(0, -len);
+    ov.lineTo(halfW, 0);
+    ov.lineTo(-halfW, 0);
+    ov.closePath();
+    ov.fillStyle = i === 0 ? VERMILION : INK;   // 北針硃砂
+    ov.fill();
+    ov.restore();
+  }
+  ov.font = `${Math.round(r * 0.34)}px serif`;
+  ov.textAlign = 'center';
+  ov.textBaseline = 'middle';
+  ov.fillStyle = INK;
+  ov.fillText('北', 0, -r * 1.22);
+  ov.fillText('南', 0, r * 1.22);
+  ov.fillText('東', r * 1.22, 0);
+  ov.fillText('西', -r * 1.22, 0);
+  ov.restore();
+}
+
+function drawIslandAndX() {
+  const [ix, iy] = w2s(-31, 21);
+  ov.save();
+  // 島：不規則海岸 + 影線
+  ov.beginPath();
+  const pts = [[-30,-12],[-10,-24],[14,-20],[30,-6],[24,12],[4,20],[-18,16],[-32,2]];
+  pts.forEach(([px, py], i) => i ? ov.lineTo(ix + px, iy + py) : ov.moveTo(ix + px, iy + py));
+  ov.closePath();
+  ov.fillStyle = 'rgba(233,217,176,0.85)';
+  ov.fill();
+  ov.strokeStyle = INK;
+  ov.lineWidth = 1.5;
+  ov.stroke();
+  ov.save();
+  ov.clip();
+  ov.lineWidth = 0.7;
+  ov.strokeStyle = 'rgba(51,40,26,0.4)';
+  for (let d = -30; d < 34; d += 5) {
+    ov.beginPath();
+    ov.moveTo(ix + d - 20, iy - 26);
+    ov.lineTo(ix + d + 20, iy + 22);
+    ov.stroke();
+  }
+  ov.restore();
+  // 硃砂 X
+  ov.strokeStyle = VERMILION;
+  ov.lineWidth = 4;
+  ov.lineCap = 'round';
+  ov.beginPath();
+  ov.moveTo(ix - 8, iy - 8); ov.lineTo(ix + 8, iy + 8);
+  ov.moveTo(ix + 8, iy - 8); ov.lineTo(ix - 8, iy + 8);
+  ov.stroke();
+  ov.restore();
+  return [ix, iy];
+}
+
+function drawTreasureRoute(ix, iy, lead) {
+  const [lx, ly] = w2s(lead.x, lead.z);
+  ov.save();
+  ov.strokeStyle = 'rgba(161,53,39,0.75)';
+  ov.lineWidth = 1.6;
+  ov.setLineDash([7, 6]);
+  ov.beginPath();
+  ov.moveTo(lx, ly);
+  ov.quadraticCurveTo((lx + ix) / 2 + 40, (ly + iy) / 2 - 60, ix, iy);
+  ov.stroke();
+  ov.restore();
+}
+
+function drawSerpent(t) {
+  const [sx, sy] = w2s(33, 6);
+  ov.save();
+  ov.strokeStyle = INK;
+  ov.lineWidth = 2.2;
+  ov.lineCap = 'round';
+  // 三段出水蛇身
+  for (let i = 0; i < 3; i++) {
+    const px = sx + i * 22, bob = Math.sin(t * 0.8 + i) * 2;
+    ov.beginPath();
+    ov.arc(px, sy + bob, 10, Math.PI, 0);
+    ov.stroke();
+  }
+  // 蛇首
+  const hb = Math.sin(t * 0.8 + 3) * 2;
+  ov.beginPath();
+  ov.moveTo(sx + 66, sy + hb);
+  ov.quadraticCurveTo(sx + 78, sy - 16 + hb, sx + 88, sy - 8 + hb);
+  ov.stroke();
+  ov.fillStyle = INK;
+  ov.font = '12px serif';
+  ov.textAlign = 'center';
+  ov.fillText('此處有蛟龍', sx + 44, sy + 26);
+  ov.restore();
+}
+
+function drawWindArrow() {
+  const cx = 70, cy = 54;
+  ov.save();
+  ov.translate(cx, cy);
+  ov.fillStyle = INK;
+  ov.font = '14px serif';
+  ov.textAlign = 'center';
+  ov.fillText('風', 0, -30);
+  ov.rotate(-windAngle);   // 世界 z 朝上 → 螢幕 y 朝下
+  ov.strokeStyle = VERMILION;
+  ov.fillStyle = VERMILION;
+  ov.lineWidth = 2.5;
+  ov.beginPath(); ov.moveTo(-18, 0); ov.lineTo(14, 0); ov.stroke();
+  ov.beginPath(); ov.moveTo(22, 0); ov.lineTo(8, -6); ov.lineTo(8, 6); ov.closePath(); ov.fill();
+  ov.restore();
+}
+
+function drawCartouche() {
+  const x = 18, y = H - 92, w = 240, h = 74;
+  ov.save();
+  ov.fillStyle = 'rgba(233,217,176,0.92)';
+  ov.fillRect(x, y, w, h);
+  ov.strokeStyle = INK;
+  ov.lineWidth = 2;
+  ov.strokeRect(x, y, w, h);
+  ov.lineWidth = 0.8;
+  ov.strokeRect(x + 4, y + 4, w - 8, h - 8);
+  ov.fillStyle = INK;
+  ov.textAlign = 'left';
+  ov.font = '20px serif';
+  ov.fillText('怒海列陣', x + 14, y + 30);
+  ov.font = '11px serif';
+  ov.fillText('WEATHERGAUGE · 古董海圖水面試作', x + 14, y + 48);
+  ov.fillStyle = VERMILION;
+  ov.fillText('☠ 海盜帝國海域圖 · 僅供艦隊調度官參閱', x + 14, y + 63);
+  ov.restore();
+}
+
+// ============================================================
+// 主迴圈
+// ============================================================
+const t0 = performance.now();
+let lastT = 0;
+function frame() {
+  const t = (performance.now() - t0) / 1000;
+  const dt = Math.min(t - lastT, 0.1);
+  lastT = t;
+
+  // 水面
+  gl.uniform1f(uTime, t);
+  gl.uniform1f(uAmp, ampMult);
+  gl.uniform2f(uWind, Math.cos(windAngle), Math.sin(windAngle));
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // 艦隊前進 + 航跡取樣
+  fleetPhi += dt * 0.045;
+  const lead = shipPose(0, fleetPhi);
+  trailTimer += dt;
+  if (trailTimer > 0.5) {
+    trailTimer = 0;
+    trail.push([lead.x, lead.z]);
+    if (trail.length > 70) trail.shift();
+  }
+
+  // 裝飾層
+  ov.clearRect(0, 0, W, H);
+  drawRhumbLines(W - 96, H - 96);
+  const [ix, iy] = drawIslandAndX();
+  drawTreasureRoute(ix, iy, lead);
+  // 硃砂航跡（旗艦走過的路）
+  if (trail.length > 1) {
+    ov.save();
+    ov.strokeStyle = 'rgba(161,53,39,0.55)';
+    ov.lineWidth = 2;
+    ov.setLineDash([2, 5]);
+    ov.beginPath();
+    trail.forEach(([x, z], i) => {
+      const [px, py] = w2s(x, z);
+      i ? ov.lineTo(px, py) : ov.moveTo(px, py);
+    });
+    ov.stroke();
+    ov.restore();
+  }
+  drawSerpent(t);
+  for (let i = 2; i >= 0; i--) {
+    const s = shipPose(i, fleetPhi);
+    drawShip(s.x, s.z, s.heading, t + i, i === 0);
+  }
+  drawCompass(W - 96, H - 96, 46);
+  drawWindArrow();
+  drawCartouche();
+
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

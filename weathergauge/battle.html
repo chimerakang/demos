@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>怒海列陣 — 海圖自動海戰 demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #241b12; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; font-family: "Songti TC", "Noto Serif TC", "Noto Serif CJK TC", serif; }
+  #frame {
+    position: relative;
+    border: 10px double #5a4632;
+    box-shadow: 0 0 60px rgba(0,0,0,.7), inset 0 0 40px rgba(40,25,10,.5);
+    background: #d9c99a;
+  }
+  canvas { display: block; }
+  #overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #ui {
+    position: absolute; right: 14px; top: 12px;
+    background: rgba(233,217,176,.92); border: 1px solid #6b5638;
+    padding: 8px 12px; color: #3c2f1c; font-size: 13px; line-height: 1.9;
+    box-shadow: 2px 3px 0 rgba(60,40,20,.25);
+  }
+  #ui button {
+    font-family: inherit; font-size: 12px; color: #3c2f1c;
+    background: #e9d9b0; border: 1px solid #6b5638; cursor: pointer; padding: 1px 8px;
+  }
+  #ui button:hover { background: #f4e8c8; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="gl" width="960" height="600"></canvas>
+  <canvas id="overlay" width="960" height="600"></canvas>
+  <div id="ui">
+    風向 <button id="windBtn">轉 45°</button><br>
+    <button id="restartBtn">重新開戰</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 水面：與 water-chart-demo.html 相同（TSURIBAKU 6 波 Gerstner + 海圖色盤）
+// ============================================================
+const WAVES = [
+  [0.00, 0.55, 60.0, 0.55],
+  [2.39, 0.35, 31.0, 0.50],
+  [5.50, 0.22, 18.0, 0.45],
+  [1.05, 0.14, 9.5, 0.40],
+  [3.98, 0.08, 5.3, 0.35],
+  [0.50, 0.05, 2.8, 0.30],
+];
+const GRAVITY = 9.8;
+const waveA = new Float32Array(24), waveB = new Float32Array(24);
+let maxH = 0;
+WAVES.forEach((w, i) => {
+  const k = Math.PI * 2 / w[2];
+  waveA.set([Math.cos(w[0]), Math.sin(w[0]), w[1], k], i * 4);
+  waveB.set([Math.sqrt(GRAVITY / k), w[3] / (k * w[1] * WAVES.length), 0, 0], i * 4);
+  maxH += w[1];
+});
+
+const glCanvas = document.getElementById('gl');
+const gl = glCanvas.getContext('webgl');
+const W = glCanvas.width, H = glCanvas.height;
+const VIEW_M = 110.0;
+const m2px = H / VIEW_M;
+
+const FRAG = `
+precision highp float;
+uniform vec2  u_res;
+uniform float u_time;
+uniform vec4  u_wave_a[6];
+uniform vec4  u_wave_b[6];
+uniform float u_amp;
+uniform float u_maxh;
+uniform vec2  u_wind;
+
+const vec3 INK_DARK = vec3(0.33, 0.26, 0.17);
+const vec3 INK_WASH = vec3(0.56, 0.47, 0.33);
+const vec3 PARCH    = vec3(0.84, 0.75, 0.56);
+const vec3 PARCH_HI = vec3(0.96, 0.91, 0.78);
+const vec3 GOLD     = vec3(0.80, 0.63, 0.21);
+
+float hash21(vec2 p) {
+  p = fract(p * vec2(234.34, 435.345));
+  p += dot(p, p + 34.23);
+  return fract(p.x * p.y);
+}
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+void main() {
+  float scale = ${VIEW_M.toFixed(1)} / u_res.y;
+  vec2 p = (gl_FragCoord.xy - 0.5 * u_res) * scale;
+
+  float h = 0.0;
+  vec3 n = vec3(0.0, 1.0, 0.0);
+  for (int i = 0; i < 6; i++) {
+    vec2 d = u_wave_a[i].xy;
+    float amp = u_wave_a[i].z * u_amp;
+    float k = u_wave_a[i].w;
+    float c = u_wave_b[i].x;
+    float q = u_wave_b[i].y;
+    float f = k * (dot(d, p) - c * u_time);
+    float s = sin(f), cf = cos(f);
+    h += amp * s;
+    float wa = k * amp;
+    n.x -= d.x * wa * cf;
+    n.z -= d.y * wa * cf;
+    n.y -= q * wa * s;
+  }
+  vec3 nrm = normalize(n);
+
+  vec3 sun = normalize(vec3(0.4, 0.6, 0.3));
+  float ndl = clamp(dot(nrm, sun), 0.0, 1.0);
+  float hn = clamp(h / (u_maxh * u_amp) * 0.5 + 0.5, 0.0, 1.0);
+  float tone = ndl * 0.3 + hn * 0.7;
+
+  vec3 col = INK_WASH;
+  col = mix(INK_DARK, col, step(0.33, tone));
+  col = mix(col, PARCH, step(0.48, tone));
+
+  vec2 wperp = vec2(-u_wind.y, u_wind.x);
+  vec2 wuv = vec2(dot(p, u_wind) * 0.05 - u_time * 0.03,
+                  dot(p, wperp) * 0.22);
+  float streak = vnoise(wuv) * 0.6 + vnoise(wuv * 2.3 + 3.7) * 0.4;
+  col = mix(col, INK_WASH * 0.9, 0.55 * step(0.64, streak) * step(0.48, tone));
+
+  float crest = step(0.84, hn) * step(0.5, vnoise(p * 1.6));
+  col = mix(col, PARCH_HI, crest);
+
+  vec3 view = vec3(0.0, 1.0, 0.0);
+  vec3 hv = normalize(sun + view);
+  float spec = pow(clamp(dot(nrm, hv), 0.0, 1.0), 80.0);
+  col += GOLD * step(0.75, spec) * 0.13;
+
+  col *= 1.0 + (vnoise(p * 4.1) - 0.5) * 0.10;
+  vec2 uvq = gl_FragCoord.xy / u_res;
+  float edge = smoothstep(0.38, 0.72, distance(uvq, vec2(0.5)));
+  col = mix(col, col * vec3(0.72, 0.58, 0.40), edge * 0.55);
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+function makeShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, makeShader(gl.VERTEX_SHADER,
+  'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}'));
+gl.attachShader(prog, makeShader(gl.FRAGMENT_SHADER, FRAG));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'a');
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const U = n => gl.getUniformLocation(prog, n);
+gl.uniform2f(U('u_res'), W, H);
+gl.uniform4fv(U('u_wave_a'), waveA);
+gl.uniform4fv(U('u_wave_b'), waveB);
+gl.uniform1f(U('u_maxh'), maxH);
+gl.uniform1f(U('u_amp'), 1.0);
+const uTime = U('u_time'), uWind = U('u_wind');
+
+// ============================================================
+// 自動海戰模擬（表現層草稿，非確定性版；規則見 GDD §3.2/3.3）
+//   WEGO：每 10 秒一個軍令節拍，節拍時艦隊 AI 依規則鏈下令，
+//   節拍之間只是執行 —— 玩家（觀眾）看結果。
+// ============================================================
+const ov = document.getElementById('overlay').getContext('2d');
+const INK = '#33281a', VERMILION = '#a13527', INDIGO = '#31506b', PAPER = '#e9d9b0';
+
+const TICK_LEN = 10;        // 軍令節拍（秒）
+const SHIP_SPEED = 3.2;     // 基準航速 m/s
+const TURN_RATE = 0.35;     // 轉向角速度 rad/s
+const GUN_RANGE = 34;       // 射程 m
+const GUN_ARC = 0.55;       // 舷側射界半角 rad
+const RELOAD = 5.5;         // 裝填秒數
+const FOLLOW_GAP = 11;      // 戰列線艦距 m
+
+let windAngle = 0.35;
+document.getElementById('windBtn').onclick = () => { windAngle += Math.PI / 4; };
+document.getElementById('restartBtn').onclick = () => reset();
+
+const FLEETS = [
+  { name: '硃砂艦隊', color: VERMILION, ships: [] },
+  { name: '玄墨艦隊', color: INDIGO, ships: [] },
+];
+let projectiles = [], smokes = [], splashes = [], floats = [], wrecks = [];
+let logs = [];
+let tickTimer = 0, battleOver = null, simT = 0;
+
+function pushLog(text) {
+  logs.push({ text, t: simT });
+  if (logs.length > 5) logs.shift();
+}
+
+function reset() {
+  FLEETS[0].ships = [];
+  FLEETS[1].ships = [];
+  for (let i = 0; i < 3; i++) {
+    FLEETS[0].ships.push({
+      fleet: 0, x: -42 + i * 3, z: -16 - i * FOLLOW_GAP * 0.8,
+      heading: 0.3, order: 0.3, hp: 100, cd: RELOAD * Math.random(), sunk: false, sinkT: 0,
+    });
+    FLEETS[1].ships.push({
+      fleet: 1, x: 42 - i * 3, z: 16 + i * FOLLOW_GAP * 0.8,
+      heading: Math.PI - 0.3, order: Math.PI - 0.3, hp: 100, cd: RELOAD * Math.random(), sunk: false, sinkT: 0,
+    });
+  }
+  projectiles = []; smokes = []; splashes = []; floats = []; wrecks = [];
+  logs = [];
+  tickTimer = 0; battleOver = null;
+  pushLog('兩軍對陣，軍令節拍開始');
+}
+
+const angNorm = a => Math.atan2(Math.sin(a), Math.cos(a));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+function w2s(x, z) { return [W / 2 + x * m2px, H / 2 - z * m2px]; }
+function alive(f) { return FLEETS[f].ships.filter(s => !s.sunk); }
+function centroid(ships) {
+  const c = { x: 0, z: 0 };
+  ships.forEach(s => { c.x += s.x / ships.length; c.z += s.z / ships.length; });
+  return c;
+}
+
+// 上風位：質心在風的來向側者持 weather gauge（傷害 +15%）
+function upwindFleet() {
+  const a = alive(0), b = alive(1);
+  if (!a.length || !b.length) return -1;
+  const wx = -Math.cos(windAngle), wz = -Math.sin(windAngle); // 風的來向
+  const ca = centroid(a), cb = centroid(b);
+  return (ca.x - cb.x) * wx + (ca.z - cb.z) * wz > 0 ? 0 : 1;
+}
+
+// 節拍：艦隊 AI 依「規則鏈」下令（demo 版寫死兩條規則）
+function fleetOrders(f) {
+  const own = alive(f), foe = alive(1 - f);
+  if (!own.length || !foe.length) return;
+  const lead = own[0], target = centroid(foe);
+  const d = dist(lead, target);
+  const bearing = Math.atan2(target.z - lead.z, target.x - lead.x);
+  if (d > GUN_RANGE + 6) {
+    lead.order = bearing;   // 規則 1：距離 > 射程 → 接敵
+    pushLog(`${FLEETS[f].name}：距離 ${Math.round(d)}m → 接敵搶位`);
+  } else {
+    // 規則 2：進入射程 → 轉平行航線，保持戰列線舷側齊射
+    const c1 = bearing + Math.PI / 2, c2 = bearing - Math.PI / 2;
+    const pick = Math.abs(angNorm(c1 - lead.heading)) < Math.abs(angNorm(c2 - lead.heading)) ? c1 : c2;
+    lead.order = d > GUN_RANGE * 0.7 ? pick + 0.2 * Math.sign(angNorm(bearing - pick)) : pick;
+    pushLog(`${FLEETS[f].name}：距離 ${Math.round(d)}m → 列陣舷側齊射`);
+  }
+}
+
+function shipUpdate(s, dt) {
+  if (s.sunk) { s.sinkT += dt; return; }
+  const own = alive(s.fleet);
+  const idx = own.indexOf(s);
+  let desired;
+  if (idx <= 0) {
+    desired = s.order;
+  } else {
+    // 跟隨前艦艉後定點 → 自然維持戰列線
+    const ahead = own[idx - 1];
+    const px = ahead.x - Math.cos(ahead.heading) * FOLLOW_GAP;
+    const pz = ahead.z - Math.sin(ahead.heading) * FOLLOW_GAP;
+    desired = Math.atan2(pz - s.z, px - s.x);
+  }
+  // 海圖邊界：出界就掉頭回戰場中央
+  if (Math.abs(s.x) > 48 || Math.abs(s.z) > 24)
+    desired = Math.atan2(-s.z, -s.x);
+  const turn = angNorm(desired - s.heading);
+  s.heading += Math.max(-TURN_RATE * dt, Math.min(TURN_RATE * dt, turn));
+  // 風帆速度：順風快、頂風慢（戰略層與戰鬥層都吃風向）
+  const wf = 0.65 + 0.35 * Math.max(0,
+    Math.cos(s.heading) * Math.cos(windAngle) + Math.sin(s.heading) * Math.sin(windAngle));
+  s.x += Math.cos(s.heading) * SHIP_SPEED * wf * dt;
+  s.z += Math.sin(s.heading) * SHIP_SPEED * wf * dt;
+
+  // 舷側炮：射程 + 射界 + 裝填就緒 → 齊射
+  s.cd -= dt;
+  if (s.cd <= 0) {
+    const foes = alive(1 - s.fleet);
+    let best = null, bestD = GUN_RANGE;
+    foes.forEach(e => { const d = dist(s, e); if (d < bestD) { bestD = d; best = e; } });
+    if (best) {
+      const b = Math.atan2(best.z - s.z, best.x - s.x);
+      const offL = Math.abs(angNorm(b - (s.heading + Math.PI / 2)));
+      const offR = Math.abs(angNorm(b - (s.heading - Math.PI / 2)));
+      if (Math.min(offL, offR) < GUN_ARC) {
+        fireVolley(s, best);
+        s.cd = RELOAD + Math.random() * 1.5;
+      }
+    }
+  }
+}
+
+function fireVolley(s, target) {
+  const bonus = upwindFleet() === s.fleet ? 1.15 : 1.0; // weather gauge 優勢
+  for (let i = 0; i < 3; i++) {
+    projectiles.push({
+      x0: s.x, z0: s.z,
+      x1: target.x + (Math.random() - 0.5) * 7,
+      z1: target.z + (Math.random() - 0.5) * 7,
+      t: -i * 0.13, dur: 0.9,
+      hit: Math.random() < 0.55, target, bonus,
+    });
+  }
+  smokes.push({ x: s.x, z: s.z, t: 0, dur: 1.6, big: false });
+}
+
+function projUpdate(p, dt) {
+  p.t += dt;
+  if (p.t < p.dur) return true;
+  if (p.hit && !p.target.sunk) {
+    const dmg = Math.round((8 + Math.random() * 8) * p.bonus);
+    p.target.hp -= dmg;
+    smokes.push({ x: p.target.x, z: p.target.z, t: 0, dur: 2.0, big: true });
+    floats.push({ x: p.target.x, z: p.target.z, text: `-${dmg}`, t: 0 });
+    if (p.target.hp <= 0 && !p.target.sunk) {
+      p.target.sunk = true;
+      wrecks.push({ x: p.target.x, z: p.target.z });
+      pushLog(`${FLEETS[p.target.fleet].name}戰船沉沒！`);
+    }
+  } else {
+    splashes.push({ x: p.x1, z: p.z1, t: 0 });
+  }
+  return false;
+}
+
+// ---------- 繪製 ----------
+function drawShip(s, t) {
+  const fade = s.sunk ? Math.max(0, 1 - s.sinkT / 4) : 1;
+  if (fade <= 0) return;
+  const [sx, sy] = w2s(s.x, s.z);
+  const L = 9 * m2px;
+  ov.save();
+  ov.globalAlpha = fade;
+  ov.translate(sx, sy);
+  ov.rotate(Math.PI / 2 - s.heading + (s.sunk ? s.sinkT * 0.25 : Math.sin(t * 1.3 + s.x) * 0.03));
+  ov.beginPath();
+  ov.moveTo(0, -L * 0.5);
+  ov.quadraticCurveTo(L * 0.16, -L * 0.1, L * 0.13, L * 0.42);
+  ov.lineTo(-L * 0.13, L * 0.42);
+  ov.quadraticCurveTo(-L * 0.16, -L * 0.1, 0, -L * 0.5);
+  ov.fillStyle = INK;
+  ov.fill();
+  for (const fy of [-L * 0.18, L * 0.12]) {
+    ov.beginPath();
+    ov.moveTo(-L * 0.22, fy);
+    ov.quadraticCurveTo(0, fy + L * 0.14, L * 0.22, fy);
+    ov.lineTo(L * 0.18, fy + L * 0.06);
+    ov.quadraticCurveTo(0, fy + L * 0.2, -L * 0.18, fy + L * 0.06);
+    ov.closePath();
+    ov.fillStyle = '#f4ead2';
+    ov.fill();
+    ov.strokeStyle = INK;
+    ov.lineWidth = 1;
+    ov.stroke();
+  }
+  // 艦隊識別旗
+  ov.beginPath();
+  ov.moveTo(0, -L * 0.5);
+  ov.lineTo(L * 0.28, -L * 0.62);
+  ov.lineTo(L * 0.18, -L * 0.54);
+  ov.lineTo(L * 0.28, -L * 0.46);
+  ov.closePath();
+  ov.fillStyle = FLEETS[s.fleet].color;
+  ov.fill();
+  ov.restore();
+  // 船體條（世界軸對齊）
+  if (!s.sunk) {
+    ov.save();
+    ov.globalAlpha = 0.85;
+    ov.fillStyle = INK;
+    ov.fillRect(sx - 14, sy + L * 0.62, 28, 3);
+    ov.fillStyle = FLEETS[s.fleet].color;
+    ov.fillRect(sx - 13, sy + L * 0.62 + 0.5, 26 * Math.max(0, s.hp) / 100, 2);
+    ov.restore();
+  }
+}
+
+function drawEffects(dt) {
+  // 炮彈：墨點 + 細尾線
+  projectiles.forEach(p => {
+    if (p.t < 0) return;
+    const k = p.t / p.dur;
+    const x = p.x0 + (p.x1 - p.x0) * k, z = p.z0 + (p.z1 - p.z0) * k;
+    const [sx, sy] = w2s(x, z);
+    const [tx, ty] = w2s(p.x0 + (p.x1 - p.x0) * Math.max(0, k - 0.12),
+                         p.z0 + (p.z1 - p.z0) * Math.max(0, k - 0.12));
+    ov.strokeStyle = 'rgba(51,40,26,0.5)';
+    ov.lineWidth = 1.2;
+    ov.beginPath(); ov.moveTo(tx, ty); ov.lineTo(sx, sy); ov.stroke();
+    ov.fillStyle = INK;
+    ov.beginPath(); ov.arc(sx, sy, 2.2, 0, 7); ov.fill();
+  });
+  // 炮煙：淡墨暈開
+  smokes = smokes.filter(s => (s.t += dt) < s.dur);
+  smokes.forEach(s => {
+    const k = s.t / s.dur;
+    const [sx, sy] = w2s(s.x, s.z);
+    ov.fillStyle = `rgba(90,76,56,${0.4 * (1 - k)})`;
+    const r = (s.big ? 6 : 4) + k * (s.big ? 26 : 14);
+    ov.beginPath(); ov.arc(sx + k * 6, sy - k * 8, r, 0, 7); ov.fill();
+  });
+  // 水花：墨圈
+  splashes = splashes.filter(s => (s.t += dt) < 0.9);
+  splashes.forEach(s => {
+    const k = s.t / 0.9;
+    const [sx, sy] = w2s(s.x, s.z);
+    ov.strokeStyle = `rgba(51,40,26,${0.55 * (1 - k)})`;
+    ov.lineWidth = 1.5;
+    ov.beginPath(); ov.arc(sx, sy, 3 + k * 12, 0, 7); ov.stroke();
+  });
+  // 傷害浮字
+  floats = floats.filter(f => (f.t += dt) < 1.4);
+  floats.forEach(f => {
+    const [sx, sy] = w2s(f.x, f.z);
+    ov.fillStyle = `rgba(161,53,39,${1 - f.t / 1.4})`;
+    ov.font = '13px serif';
+    ov.textAlign = 'center';
+    ov.fillText(f.text, sx, sy - 18 - f.t * 14);
+  });
+  // 沉船殘骸：硃砂 ✕
+  wrecks.forEach(wk => {
+    const [sx, sy] = w2s(wk.x, wk.z);
+    ov.strokeStyle = 'rgba(161,53,39,0.8)';
+    ov.lineWidth = 3;
+    ov.lineCap = 'round';
+    ov.beginPath();
+    ov.moveTo(sx - 6, sy - 6); ov.lineTo(sx + 6, sy + 6);
+    ov.moveTo(sx + 6, sy - 6); ov.lineTo(sx - 6, sy + 6);
+    ov.stroke();
+  });
+}
+
+function drawCompass(cx, cy, r) {
+  ov.save();
+  ov.translate(cx, cy);
+  ov.strokeStyle = INK;
+  ov.lineWidth = 1.5;
+  ov.beginPath(); ov.arc(0, 0, r, 0, 7); ov.stroke();
+  ov.beginPath(); ov.arc(0, 0, r * 0.62, 0, 7);
+  ov.lineWidth = 0.8; ov.stroke();
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4;
+    const len = i % 2 === 0 ? r * 0.92 : r * 0.55;
+    ov.save();
+    ov.rotate(a);
+    ov.beginPath();
+    ov.moveTo(0, -len);
+    ov.lineTo(r * 0.1, 0);
+    ov.lineTo(-r * 0.1, 0);
+    ov.closePath();
+    ov.fillStyle = i === 0 ? VERMILION : INK;
+    ov.fill();
+    ov.restore();
+  }
+  ov.font = `${Math.round(r * 0.34)}px serif`;
+  ov.textAlign = 'center';
+  ov.textBaseline = 'middle';
+  ov.fillStyle = INK;
+  ov.fillText('北', 0, -r * 1.22);
+  ov.restore();
+}
+
+function drawHud(t) {
+  // 軍令節拍環
+  const cx = W / 2, cy = 34, r = 15;
+  ov.save();
+  ov.strokeStyle = 'rgba(51,40,26,0.35)';
+  ov.lineWidth = 3;
+  ov.beginPath(); ov.arc(cx, cy, r, 0, 7); ov.stroke();
+  ov.strokeStyle = VERMILION;
+  ov.beginPath();
+  ov.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (tickTimer / TICK_LEN) * Math.PI * 2);
+  ov.stroke();
+  ov.fillStyle = INK;
+  ov.font = '12px serif';
+  ov.textAlign = 'center';
+  ov.fillText('軍令節拍', cx, cy + r + 14);
+  const uw = upwindFleet();
+  if (uw >= 0) {
+    ov.fillStyle = FLEETS[uw].color;
+    ov.fillText(`上風位：${FLEETS[uw].name}（傷害 +15%）`, cx, cy + r + 30);
+  }
+  // 規則鏈紀錄
+  ov.textAlign = 'left';
+  logs.forEach((l, i) => {
+    const age = simT - l.t;
+    ov.fillStyle = `rgba(51,40,26,${Math.max(0, Math.min(0.9, 3 - age * 0.35))})`;
+    ov.font = '12px serif';
+    ov.fillText(`◦ ${l.text}`, 18, 96 + i * 17);
+  });
+  // 風向箭頭
+  ov.save();
+  ov.translate(70, 54);
+  ov.fillStyle = INK;
+  ov.font = '14px serif';
+  ov.textAlign = 'center';
+  ov.fillText('風', 0, -30);
+  ov.rotate(-windAngle);
+  ov.strokeStyle = VERMILION;
+  ov.fillStyle = VERMILION;
+  ov.lineWidth = 2.5;
+  ov.beginPath(); ov.moveTo(-18, 0); ov.lineTo(14, 0); ov.stroke();
+  ov.beginPath(); ov.moveTo(22, 0); ov.lineTo(8, -6); ov.lineTo(8, 6); ov.closePath(); ov.fill();
+  ov.restore();
+  // 題名框 / 勝負旗
+  const x = 18, y = H - 74, w = 250, h = 56;
+  ov.fillStyle = 'rgba(233,217,176,0.92)';
+  ov.fillRect(x, y, w, h);
+  ov.strokeStyle = INK;
+  ov.lineWidth = 2;
+  ov.strokeRect(x, y, w, h);
+  ov.fillStyle = INK;
+  ov.font = '18px serif';
+  ov.fillText('怒海列陣 · 自動海戰試作', x + 12, y + 24);
+  ov.font = '11px serif';
+  if (battleOver) {
+    ov.fillStyle = VERMILION;
+    ov.fillText(`☠ 勝負已分 —— ${battleOver}勝，按「重新開戰」再演一局`, x + 12, y + 43);
+  } else {
+    ov.fillText('WEGO 節拍下令 · 節拍間自動演算 · 玩家不微操', x + 12, y + 43);
+  }
+  ov.restore();
+}
+
+// ============================================================
+// 主迴圈
+// ============================================================
+reset();
+const t0 = performance.now();
+let lastT = 0;
+function frame() {
+  const t = (performance.now() - t0) / 1000;
+  const dt = Math.min(t - lastT, 0.1);
+  lastT = t;
+  simT = t;
+
+  gl.uniform1f(uTime, t);
+  gl.uniform2f(uWind, Math.cos(windAngle), Math.sin(windAngle));
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  if (!battleOver) {
+    tickTimer += dt;
+    if (tickTimer >= TICK_LEN) {
+      tickTimer = 0;
+      fleetOrders(0);
+      fleetOrders(1);
+    }
+    FLEETS.forEach(f => f.ships.forEach(s => shipUpdate(s, dt)));
+    projectiles = projectiles.filter(p => projUpdate(p, dt));
+    if (!alive(0).length) battleOver = FLEETS[1].name;
+    if (!alive(1).length) battleOver = FLEETS[0].name;
+  } else {
+    FLEETS.forEach(f => f.ships.forEach(s => { if (s.sunk) s.sinkT += dt; }));
+  }
+
+  ov.clearRect(0, 0, W, H);
+  FLEETS.forEach(f => f.ships.forEach(s => drawShip(s, t)));
+  drawEffects(dt);
+  drawCompass(W - 66, H - 66, 36);
+  drawHud(t);
+
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

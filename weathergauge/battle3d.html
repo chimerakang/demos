@@ -84,6 +84,7 @@
   <!-- 戰鬥中 UI -->
   <div id="battleUI" class="panel hidden">
     風向 <button id="windBtn">轉 45°</button>
+    <button id="muteBtn">🔊</button>
   </div>
 </div>
 
@@ -431,6 +432,122 @@ const ENEMY_DOCTRINES = [
 const SIM_DT = 1 / 30;
 const TICK_LEN = 10, SHIP_SPEED = 3.4, TURN_RATE = 0.35;
 const GUN_RANGE = 34, GUN_ARC = 0.6, RELOAD = 5.5, FOLLOW_GAP = 12;
+const SHIP_RADIUS = 3.8;   // 碰撞圓半徑（船長 10m、寬 3m 的折衷）
+
+// ============================================================
+// 音效（WebAudio 全程序合成，零音檔）
+// ============================================================
+let AC = null, masterGain = null, noiseBuf = null, muted = false;
+function audioInit() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = AC.createGain();
+  masterGain.gain.value = 0.6;
+  masterGain.connect(AC.destination);
+  // 2 秒白噪音緩衝，所有噪音類音效共用
+  noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  // 海浪環境音：噪音 → 低通 → 慢速起伏
+  const mkLoop = (freq, q, base, lfoHz, depth) => {
+    const src = AC.createBufferSource();
+    src.buffer = noiseBuf; src.loop = true;
+    const flt = AC.createBiquadFilter();
+    flt.type = 'lowpass'; flt.frequency.value = freq; flt.Q.value = q;
+    const g = AC.createGain(); g.gain.value = base;
+    const lfo = AC.createOscillator(), lg = AC.createGain();
+    lfo.frequency.value = lfoHz; lg.gain.value = depth;
+    lfo.connect(lg); lg.connect(g.gain);
+    src.connect(flt); flt.connect(g); g.connect(masterGain);
+    src.start(); lfo.start();
+  };
+  mkLoop(320, 0.7, 0.10, 0.07, 0.05);   // 湧浪
+  mkLoop(900, 0.5, 0.035, 0.19, 0.02);  // 風嘯
+}
+function panOf(x, y, z) {
+  const scr = project(x, y, z);
+  return scr ? Math.max(-1, Math.min(1, (scr[0] / W) * 2 - 1)) : 0;
+}
+function sfxNode(pan, vol) {
+  const g = AC.createGain();
+  g.gain.value = vol;
+  const p = AC.createStereoPanner ? AC.createStereoPanner() : null;
+  if (p) { p.pan.value = pan; g.connect(p); p.connect(masterGain); }
+  else g.connect(masterGain);
+  return g;
+}
+function sfxBoom(x, z) {   // 炮擊：低頻鎚 + 悶爆噪音
+  if (!AC || muted) return;
+  const t = AC.currentTime, pan = panOf(x, 2, z);
+  const out = sfxNode(pan, 0.5);
+  const osc = AC.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(75 + Math.random() * 15, t);
+  osc.frequency.exponentialRampToValueAtTime(38, t + 0.35);
+  const og = AC.createGain();
+  og.gain.setValueAtTime(0.9, t);
+  og.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  osc.connect(og); og.connect(out);
+  osc.start(t); osc.stop(t + 0.55);
+  const n = AC.createBufferSource();
+  n.buffer = noiseBuf;
+  n.playbackRate.value = 0.7 + Math.random() * 0.2;
+  const nf = AC.createBiquadFilter();
+  nf.type = 'lowpass'; nf.frequency.setValueAtTime(600, t);
+  nf.frequency.exponentialRampToValueAtTime(120, t + 0.4);
+  const ng = AC.createGain();
+  ng.gain.setValueAtTime(0.8, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+  n.connect(nf); nf.connect(ng); ng.connect(out);
+  n.start(t); n.stop(t + 0.45);
+}
+function sfxHit(x, z) {    // 命中：木裂脆響
+  if (!AC || muted) return;
+  const t = AC.currentTime;
+  const out = sfxNode(panOf(x, 2, z), 0.4);
+  const n = AC.createBufferSource();
+  n.buffer = noiseBuf;
+  n.playbackRate.value = 1.4 + Math.random() * 0.5;
+  const f = AC.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.value = 1100 + Math.random() * 500; f.Q.value = 1.2;
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.9, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+  n.connect(f); f.connect(g); g.connect(out);
+  n.start(t); n.stop(t + 0.2);
+}
+function sfxSplash(x, z) { // 落水
+  if (!AC || muted) return;
+  const t = AC.currentTime;
+  const out = sfxNode(panOf(x, 0, z), 0.25);
+  const n = AC.createBufferSource();
+  n.buffer = noiseBuf;
+  const f = AC.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.setValueAtTime(2400, t);
+  f.frequency.exponentialRampToValueAtTime(700, t + 0.3);
+  f.Q.value = 0.8;
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.7, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+  n.connect(f); f.connect(g); g.connect(out);
+  n.start(t); n.stop(t + 0.35);
+}
+function sfxSink(x, z) {   // 沉船：下滑呻吟
+  if (!AC || muted) return;
+  const t = AC.currentTime;
+  const out = sfxNode(panOf(x, 1, z), 0.4);
+  const osc = AC.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(95, t);
+  osc.frequency.exponentialRampToValueAtTime(30, t + 1.6);
+  const f = AC.createBiquadFilter();
+  f.type = 'lowpass'; f.frequency.value = 240;
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.5, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 1.7);
+  osc.connect(f); f.connect(g); g.connect(out);
+  osc.start(t); osc.stop(t + 1.8);
+}
 
 function mulberry32(a) {
   return function () {
@@ -484,6 +601,7 @@ function setupFleets() {
         hull: 100, sail: 100, crew: 100,
         cd: 0, sunk: false, sinkT: 0, order: fi === 0 ? 0.28 : Math.PI - 0.28,
         ammo: 'solid', stance: 'engage',
+        listSide: i % 2 === 0 ? 1 : -1,   // 戰損傾側方向
       });
     }
   });
@@ -502,6 +620,7 @@ function startBattle() {
   tickTimer = TICK_LEN;  // 開場立即下第一道軍令
   battleOver = null; battleT = 0; fleeTimer = 0;
   pushLog(`敵艦隊採用未知教義 —— 交戰後由行為研判`);
+  audioInit();   // 使用者手勢觸發，符合瀏覽器自動播放政策
   phase = 'battle';
   document.getElementById('plan').classList.add('hidden');
   document.getElementById('report').classList.add('hidden');
@@ -632,6 +751,7 @@ function shipUpdate(s, dt) {
       const offR = Math.abs(angNorm(b - (s.heading - Math.PI / 2)));
       if (Math.min(offL, offR) < GUN_ARC) {
         fireVolley(s, best, ammo, bestD);
+        sfxBoom(s.x, s.z);
         s.cd = (RELOAD + rng() * 1.5) * (1 + (1 - s.crew / 100) * 0.8);
       }
     }
@@ -674,13 +794,16 @@ function projUpdate(p, dt) {
       tgt.hull -= h; FLEETS[p.from].dmg.grape += v; text = `-${v} 人員`;
     }
     spawnSmoke(tgt.x, 2.2, tgt.z, true);
+    sfxHit(tgt.x, tgt.z);
     floats.push({ x: tgt.x, z: tgt.z, text, t: 0 });
     if (tgt.hull <= 0 && !tgt.sunk) {
       tgt.sunk = true;
+      sfxSink(tgt.x, tgt.z);
       pushLog(`${FLEETS[tgt.fleet].name}戰船沉沒！`);
     }
   } else if (!p.hit) {
     spawnSplash(p.x1, p.z1);
+    sfxSplash(p.x1, p.z1);
   }
   return false;
 }
@@ -718,6 +841,7 @@ function simStep(dt) {
     });
   }
   FLEETS.forEach(f => f.ships.forEach(s => shipUpdate(s, dt)));
+  resolveCollisions();
   projectiles = projectiles.filter(p => projUpdate(p, dt));
 
   // 勝負判定
@@ -738,6 +862,29 @@ function simStep(dt) {
       endBattle(h0 >= h1 ? 0 : 1, '時限判定');
     }
   }
+}
+
+// 船艦碰撞：圓形近似 + 位置分離（殘骸是不動的障礙物）
+function resolveCollisions() {
+  const ships = [];
+  FLEETS.forEach(f => f.ships.forEach(s => ships.push(s)));
+  const R = SHIP_RADIUS * 2;
+  for (let i = 0; i < ships.length; i++)
+    for (let j = i + 1; j < ships.length; j++) {
+      const a = ships[i], b = ships[j];
+      if (a.sunk && b.sunk) continue;
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const d = Math.hypot(dx, dz);
+      if (d >= R || d < 0.01) continue;
+      const push = R - d;
+      const nx = dx / d, nz = dz / d;
+      if (a.sunk) { b.x += nx * push; b.z += nz * push; }
+      else if (b.sunk) { a.x -= nx * push; a.z -= nz * push; }
+      else {
+        a.x -= nx * push * 0.5; a.z -= nz * push * 0.5;
+        b.x += nx * push * 0.5; b.z += nz * push * 0.5;
+      }
+    }
 }
 
 function endBattle(winner, how) {
@@ -855,6 +1002,11 @@ document.getElementById('newBtn').onclick = () => {
   document.getElementById('seedLabel').textContent = '#' + seed;
 };
 document.getElementById('windBtn').onclick = () => { windAngle += Math.PI / 4; };
+document.getElementById('muteBtn').onclick = () => {
+  muted = !muted;
+  if (masterGain) masterGain.gain.value = muted ? 0 : 0.6;
+  document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
+};
 renderRules();
 setupFleets();   // 軍議背景先擺出兩軍
 
@@ -880,6 +1032,10 @@ function shipModelMatrix(s, t) {
   let y = (bow + aft) * 0.5;
   let pitch = Math.atan2(bow - aft, 8) * 0.6;
   let roll = Math.atan2(prt - stb, 2.8) * 0.45;
+  // 戰損傾側：船體越破，吃水越深、越向一側傾
+  const dmg = 1 - Math.max(0, s.hull) / 100;
+  roll += (s.listSide || 1) * dmg * 0.16;
+  y -= dmg * 0.35;
   if (s.sunk) {
     const k = Math.min(1, s.sinkT / 5);
     y -= k * 1.2;
@@ -938,6 +1094,28 @@ function frame() {
     p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
     if (p.grav) p.vy -= 9.8 * dt;
   });
+  // 戰損持續特效：受損冒黑煙、重損著火（純表現層，不吃模擬 RNG）
+  if (phase === 'battle')
+    FLEETS.forEach(f => f.ships.forEach(s => {
+      if (s.sunk) return;
+      if (s.hull < 65 && Math.random() < dt * (65 - s.hull) / 22)
+        particles.push({
+          x: s.x + (Math.random() - 0.5) * 3, y: 2.5, z: s.z + (Math.random() - 0.5) * 3,
+          vx: Math.cos(windAngle) * 1.5 + (Math.random() - 0.5) * 0.5,
+          vy: 1.4 + Math.random() * 0.6,
+          vz: Math.sin(windAngle) * 1.5 + (Math.random() - 0.5) * 0.5,
+          t: 0, dur: 2.6 + Math.random(), size0: 1.0, grow: 2.2,
+          col: [0.16, 0.15, 0.14], a0: 0.45,
+        });
+      if (s.hull < 30 && Math.random() < dt * 5)
+        particles.push({
+          x: s.x + (Math.random() - 0.5) * 2.5, y: 2.2, z: s.z + (Math.random() - 0.5) * 2.5,
+          vx: (Math.random() - 0.5) * 0.6, vy: 1.8 + Math.random(),
+          vz: (Math.random() - 0.5) * 0.6,
+          t: 0, dur: 0.5, size0: 0.6, grow: 0.3,
+          col: [1.0, 0.45 + Math.random() * 0.2, 0.1], a0: 0.95,
+        });
+    }));
 
   // ---- 相機 ----
   const all = alive(0).concat(alive(1));
@@ -1010,7 +1188,9 @@ function frame() {
     gl.bindBuffer(gl.ARRAY_BUFFER, g.col);
     gl.enableVertexAttribArray(aC);
     gl.vertexAttribPointer(aC, 3, gl.FLOAT, false, 0, 0);
-    gl.uniform3fv(gl.getUniformLocation(shipProg, 'u_tint'), f.tint);
+    const dk = s.sunk ? 0.75 : 0.62 + 0.38 * Math.max(0, s.hull) / 100; // 戰損燻黑
+    gl.uniform3fv(gl.getUniformLocation(shipProg, 'u_tint'),
+      [f.tint[0] * dk, f.tint[1] * dk, f.tint[2] * dk]);
     gl.uniformMatrix4fv(gl.getUniformLocation(shipProg, 'u_model'), false, shipModelMatrix(s, t));
     gl.drawArrays(gl.TRIANGLES, 0, g.count);
   }));

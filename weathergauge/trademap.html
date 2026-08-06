@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>怒海列陣 — 琉璃海商道圖（P1 戰略原型）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #241b12; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center;
+         font-family: "Songti TC", "Noto Serif TC", "Noto Serif CJK TC", serif; }
+  #wrap { display: flex; box-shadow: 0 0 60px rgba(0,0,0,.75); }
+  #mapFrame { position: relative; border: 8px double #5a4632; background: #d9c99a; }
+  canvas { display: block; }
+  /* 側欄：帳房 */
+  #side {
+    width: 330px; background: #e9d9b0; border: 8px double #5a4632; border-left: none;
+    color: #3c2f1c; font-size: 13px; padding: 12px 14px; overflow-y: auto; max-height: 640px;
+    box-sizing: border-box;
+  }
+  #side h2 { margin: 0 0 2px; font-size: 17px; letter-spacing: 3px; color: #7a2a1e; }
+  #side h3 { margin: 12px 0 4px; font-size: 13.5px; border-bottom: 1px solid #6b5638; padding-bottom: 2px; }
+  .row { display: flex; justify-content: space-between; align-items: center; margin: 2px 0; }
+  .muted { color: #7a6a4e; font-size: 11.5px; }
+  button {
+    font-family: inherit; font-size: 12px; color: #3c2f1c;
+    background: #f4e8c8; border: 1px solid #6b5638; cursor: pointer; padding: 1px 8px;
+  }
+  button:hover { background: #fff4d8; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: #a13527; color: #f4e8c8; font-size: 14px; padding: 5px 0; width: 100%; margin-top: 10px; }
+  button.primary:hover { background: #c0432f; }
+  select { font-family: inherit; font-size: 12px; background: #f4e8c8; color: #3c2f1c; border: 1px solid #6b5638; }
+  .card { border: 1px solid #6b5638; padding: 5px 7px; margin: 5px 0; background: rgba(255,244,216,.5); }
+  .card.assigned { background: rgba(161,53,39,.12); }
+  .bar { height: 6px; background: rgba(60,47,28,.25); position: relative; margin: 2px 0; }
+  .bar > i { position: absolute; left: 0; top: 0; bottom: 0; }
+  .tag { display: inline-block; padding: 0 5px; border: 1px solid #6b5638; font-size: 11px; margin-right: 4px; }
+  #log { font-size: 11.5px; line-height: 1.55; max-height: 110px; overflow-y: auto; }
+  /* 結算捲軸 */
+  #modal {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(30,20,10,.55);
+  }
+  #modalCard {
+    width: 460px; max-height: 520px; overflow-y: auto; background: #e9d9b0;
+    border: 6px double #5a4632; padding: 16px 20px; color: #3c2f1c; font-size: 13px;
+  }
+  #modalCard h2 { margin: 0 0 8px; font-size: 18px; letter-spacing: 3px; color: #7a2a1e; }
+  .btl { border: 1px solid #6b5638; margin: 8px 0; padding: 6px 9px; }
+  .btl .vs { font-size: 12px; color: #7a6a4e; }
+  .win { color: #1e6b30; font-weight: bold; }
+  .lose { color: #a13527; font-weight: bold; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="mapFrame">
+    <canvas id="map" width="700" height="624"></canvas>
+    <div id="modal" class="hidden"><div id="modalCard"></div></div>
+  </div>
+  <div id="side"></div>
+</div>
+
+<script src="data/world-seed.js"></script>
+<script>
+'use strict';
+// ============================================================
+// P1 戰略原型：商道圖 + 回合經濟 + 合約戰鬥（抽象結算）
+// 驗證命題：玩家會不會為了「保住一條線」而在意一場海戰？
+// 戰鬥結算之後可替換為 battle-3d-demo 的完整 WEGO 模擬。
+// ============================================================
+const MAXTURN = 12, GOAL_ASSET = 2000;
+const DOCTRINES = {
+  assault: { label: '強攻', beats: 'boarding' },   // 教義環：強攻剋接舷、接舷剋襲擾、襲擾剋強攻
+  harass: { label: '襲擾', beats: 'assault' },
+  boarding: { label: '接舷', beats: 'harass' },
+};
+const CLASSES = Object.fromEntries(WORLD.shipClasses.map(c => [c.id, c]));
+const FACTIONS = Object.fromEntries(WORLD.factions.map(f => [f.id, f]));
+const PORTS = Object.fromEntries(WORLD.ports.map(p => [p.id, p]));
+const SHIP_PRICE = { frigate: 250, shipOfLine: 500, fireship: 120, boarder: 350 };
+const COMMAND_CAP = 8;
+
+// 航道歸屬：取兩端非中立港的勢力（皆中立 → 白帆）
+function routeOwner(r) {
+  const f0 = PORTS[r.ports[0]].faction, f1 = PORTS[r.ports[1]].faction;
+  if (f0 !== 'neutral') return f0;
+  if (f1 !== 'neutral') return f1;
+  return 'fa_baifan';
+}
+WORLD.routes.forEach(r => { r.owner = routeOwner(r); r.raidedFlash = 0; });
+
+const state = {
+  turn: 1, gold: 500,
+  rep: { fa_zhuyuan: 30, fa_xuanchao: 10, fa_baifan: 50 },
+  navy: { fa_zhuyuan: 90, fa_xuanchao: 110, fa_baifan: 60 },  // 海軍預算池（敵艦隊強度來源）
+  fleets: [{
+    id: 'f1', name: '第一艦隊', doctrine: 'assault', assignment: null,
+    ships: [
+      { cls: 'frigate', hull: 100 },
+      { cls: 'shipOfLine', hull: 100 },
+      { cls: 'boarder', hull: 100 },
+    ],
+  }],
+  contracts: [], log: [], over: null, raidCount: {},
+};
+function pushLog(t) { state.log.unshift(`【第${state.turn}回合】${t}`); if (state.log.length > 40) state.log.pop(); }
+
+// ---------- 合約生成 ----------
+let cid = 0;
+function genContracts() {
+  state.contracts = state.contracts.filter(c => c.accepted);   // 未接的過期
+  const offers = [];
+  const routes = [...WORLD.routes];
+  // 護航：勢力請你保它的航道（風險越高、報酬越高）
+  for (let i = 0; i < 2; i++) {
+    const r = routes.splice(Math.floor(Math.random() * routes.length), 1)[0];
+    const issuer = r.owner;
+    offers.push({
+      id: 'c' + (++cid), type: 'escort', issuer, route: r.id,
+      reward: Math.round(60 + r.baseFlow * 1.2 + r.risk * 30),
+      repDelta: 8, desc: `護航 ${PORTS[r.ports[0]].name}—${PORTS[r.ports[1]].name}`,
+    });
+  }
+  // 劫掠：某勢力出錢打對手的航道
+  const fids = WORLD.factions.map(f => f.id);
+  const issuer = fids[Math.floor(Math.random() * fids.length)];
+  const targets = WORLD.routes.filter(r => r.owner !== issuer);
+  const tr = targets[Math.floor(Math.random() * targets.length)];
+  offers.push({
+    id: 'c' + (++cid), type: 'raid', issuer, route: tr.id,
+    reward: Math.round(90 + tr.baseFlow * 1.4),
+    repDelta: 10, desc: `劫掠 ${FACTIONS[tr.owner].name}的 ${PORTS[tr.ports[0]].name}—${PORTS[tr.ports[1]].name} 商道`,
+  });
+  // 翻盤機制：窮的時候必出私掠許可
+  if (state.gold < 150) {
+    const r2 = WORLD.routes[Math.floor(Math.random() * WORLD.routes.length)];
+    offers.push({
+      id: 'c' + (++cid), type: 'privateer', issuer: 'fa_baifan', route: r2.id,
+      reward: Math.round(120 + r2.baseFlow), repDelta: 5,
+      desc: `私掠許可：${PORTS[r2.ports[0]].name}—${PORTS[r2.ports[1]].name}（戰利品三七分）`,
+    });
+  }
+  state.contracts.push(...offers);
+}
+
+// ---------- 艦隊數值 ----------
+const fleetCommand = f => f.ships.reduce((s, x) => s + CLASSES[x.cls].command, 0);
+const fleetUpkeep = f => f.ships.reduce((s, x) => s + CLASSES[x.cls].upkeep, 0);
+const shipValue = x => Math.round(SHIP_PRICE[x.cls] * 0.6 * x.hull / 100);
+const fleetPower = f => f.ships.reduce((s, x) =>
+  s + (CLASSES[x.cls].guns * 40 + CLASSES[x.cls].crew * 0.15) * (x.hull / 100), 0);
+const totalAssets = () => Math.round(state.gold +
+  state.fleets.reduce((s, f) => s + f.ships.reduce((t, x) => t + shipValue(x), 0), 0));
+
+// ---------- 回合結算 ----------
+function resolveTurn() {
+  const reports = [];
+  state.raidCount = {};
+  // 1. 執行已指派的合約 → 抽象海戰
+  state.fleets.forEach(fl => {
+    if (fl.assignment === 'repair') {
+      let cost = 0;
+      fl.ships.forEach(x => {
+        const heal = Math.min(100 - x.hull, 45);
+        cost += Math.round(heal * 1.4);
+        x.hull += heal;
+      });
+      state.gold -= cost;
+      reports.push({ kind: 'repair', text: `${fl.name}入塢整補，修繕費 ${cost} 金`, cost });
+      return;
+    }
+    const c = state.contracts.find(x => x.id === fl.assignment);
+    if (!c) return;
+    const r = WORLD.routes.find(x => x.id === c.route);
+    // 敵艦隊：對手勢力的巡邏/劫掠隊，強度吃海軍預算 —— 斷敵商道的回饋在這裡
+    const foeFaction = c.type === 'escort'
+      ? WORLD.factions.filter(f => f.id !== c.issuer)[Math.floor(Math.random() * 2)].id
+      : r.owner;
+    const navy = state.navy[foeFaction];
+    const foeDoctrine = FACTIONS[foeFaction].doctrineBias;
+    let foePower = 30 + navy * 0.55 + Math.random() * 20;
+    let myPower = fleetPower(fl);
+    // 教義環 ±25%
+    let edge = '';
+    if (DOCTRINES[fl.doctrine].beats === foeDoctrine) { myPower *= 1.25; edge = '剋制優勢'; }
+    else if (DOCTRINES[foeDoctrine].beats === fl.doctrine) { myPower *= 0.8; edge = '被剋制'; }
+    // 風位擲骰 ±12%
+    const windLuck = Math.random() < 0.5;
+    myPower *= windLuck ? 1.12 : 0.94;
+    const ratio = myPower / foePower;
+    const win = Math.random() < ratio / (ratio + 0.9);
+    // 戰損：與敵我強度比掛鉤 —— 打贏也可能是虧本仗
+    const dmgScale = win ? 0.5 : 1.1;
+    const losses = [];
+    fl.ships.forEach(x => {
+      const d = Math.round((8 + Math.random() * 18) * (foePower / myPower) * dmgScale);
+      x.hull = Math.max(0, x.hull - d);
+      losses.push(`${CLASSES[x.cls].name}-${d}`);
+    });
+    const sunk = fl.ships.filter(x => x.hull <= 0);
+    fl.ships = fl.ships.filter(x => x.hull > 0);
+    // 獎懲
+    let text, prize = null;
+    if (win) {
+      state.gold += c.reward;
+      state.rep[c.issuer] = Math.min(100, state.rep[c.issuer] + c.repDelta);
+      if (c.type !== 'escort') {
+        state.navy[foeFaction] = Math.max(10, state.navy[foeFaction] - 18);
+        state.rep[foeFaction] = Math.max(0, state.rep[foeFaction] - 10);
+        state.raidCount[foeFaction] = (state.raidCount[foeFaction] || 0) + 1;
+        r.raidedFlash = 2;
+      }
+      // 接舷勝 → 有機會俘獲戰利船
+      if (fl.doctrine === 'boarding' && Math.random() < 0.5) {
+        const cap = Math.random() < 0.6 ? 'frigate' : 'boarder';
+        if (fleetCommand(fl) + CLASSES[cap].command <= COMMAND_CAP) {
+          fl.ships.push({ cls: cap, hull: 50 });
+          prize = `俘獲${CLASSES[cap].name}（船體 50%，已編入）`;
+        } else {
+          state.gold += Math.round(SHIP_PRICE[cap] * 0.4);
+          prize = `俘獲${CLASSES[cap].name}，統率已滿 → 轉賣 +${Math.round(SHIP_PRICE[cap] * 0.4)} 金`;
+        }
+      }
+      text = `${c.desc} —— 得勝！賞金 +${c.reward}`;
+    } else {
+      state.rep[c.issuer] = Math.max(0, state.rep[c.issuer] - 4);
+      text = `${c.desc} —— 敗退，無賞金`;
+    }
+    reports.push({
+      kind: 'battle', win, text,
+      vs: `我方${DOCTRINES[fl.doctrine].label} ${Math.round(myPower)} vs ${FACTIONS[foeFaction].name}${DOCTRINES[foeDoctrine].label} ${Math.round(foePower)}` +
+          (edge ? `｜${edge}` : '') + (windLuck ? '｜搶得上風位' : '｜屈居下風位'),
+      losses: `戰損：${losses.join('、')}` + (sunk.length ? `｜${sunk.map(x => CLASSES[x.cls].name).join('、')}沉沒！` : ''),
+      prize,
+    });
+    c.done = true;
+    fl.assignment = null;
+  });
+  state.contracts = state.contracts.filter(c => !c.done);
+  // 2. 經濟 tick
+  const upkeep = state.fleets.reduce((s, f) => s + fleetUpkeep(f), 0);
+  state.gold -= upkeep;
+  reports.push({ kind: 'eco', text: `艦隊維護費 -${upkeep} 金` });
+  // 3. 勢力海軍：商道收入 × navalShare 回填（被劫的漲不回來）
+  WORLD.factions.forEach(f => {
+    const income = WORLD.routes.filter(r => r.owner === f.id)
+      .reduce((s, r) => s + r.baseFlow * (1 + r.wind * 0.15), 0);
+    const regen = income * f.navalShare * 0.06;
+    state.navy[f.id] = Math.min(150, state.navy[f.id] + regen);
+    if (state.raidCount[f.id])
+      pushLog(`${f.name}商道受創，海軍預算縮水 —— 下回合巡邏將更弱`);
+  });
+  WORLD.routes.forEach(r => { if (r.raidedFlash > 0) r.raidedFlash--; });
+  // 4. 破產與勝負
+  if (state.gold < 0) {
+    while (state.gold < 0 && state.fleets[0] && state.fleets[0].ships.length) {
+      const x = state.fleets[0].ships.pop();
+      state.gold += shipValue(x);
+      reports.push({ kind: 'eco', text: `付不出維護費，變賣${CLASSES[x.cls].name} +${shipValue(x)} 金` });
+    }
+    if (!state.fleets.some(f => f.ships.length)) state.over = { win: false, why: '艦隊變賣一空，商會除名' };
+  }
+  state.turn++;
+  if (!state.over) {
+    if (totalAssets() >= GOAL_ASSET) state.over = { win: true, why: `資產達 ${totalAssets()} 金，琉璃海見旗低頭` };
+    else if (state.turn > MAXTURN) state.over = {
+      win: totalAssets() >= GOAL_ASSET * 0.6,
+      why: `章節結束，總資產 ${totalAssets()} 金（目標 ${GOAL_ASSET}）`,
+    };
+  }
+  genContracts();
+  showReports(reports);
+  renderSide();
+}
+
+// ---------- 結算捲軸 ----------
+function showReports(reports) {
+  const m = document.getElementById('modal'), card = document.getElementById('modalCard');
+  let html = `<h2>第 ${state.turn - 1} 回合結算</h2>`;
+  reports.forEach(rp => {
+    if (rp.kind === 'battle') {
+      html += `<div class="btl"><div class="${rp.win ? 'win' : 'lose'}">${rp.win ? '勝' : '敗'}｜${rp.text}</div>` +
+        `<div class="vs">${rp.vs}</div><div class="vs">${rp.losses}</div>` +
+        (rp.prize ? `<div class="vs" style="color:#7a2a1e">☠ ${rp.prize}</div>` : '') + `</div>`;
+    } else html += `<div class="muted" style="margin:4px 0">◦ ${rp.text}</div>`;
+  });
+  if (state.over)
+    html += `<div class="btl" style="text-align:center"><div class="${state.over.win ? 'win' : 'lose'}" style="font-size:16px">` +
+      `${state.over.win ? '章節目標達成' : '出師未捷'}</div><div>${state.over.why}</div></div>`;
+  html += `<div style="text-align:center;margin-top:10px"><button onclick="document.getElementById('modal').classList.add('hidden')">收起海圖</button></div>`;
+  card.innerHTML = html;
+  m.classList.remove('hidden');
+}
+
+// ---------- 側欄（帳房）----------
+function renderSide() {
+  const el = document.getElementById('side');
+  const cmd = state.fleets.reduce((s, f) => s + fleetCommand(f), 0);
+  let h = `<h2>琉璃海・帳房</h2>
+    <div class="muted">第 ${Math.min(state.turn, MAXTURN)}/${MAXTURN} 回合｜章節目標：總資產 ${GOAL_ASSET} 金</div>
+    <div class="row"><b>金庫 ${state.gold} 金</b><span>總資產 ${totalAssets()}</span></div>
+    <div class="row"><span>統率 ${cmd}/${COMMAND_CAP}</span><span class="muted">維護 -${state.fleets.reduce((s, f) => s + fleetUpkeep(f), 0)}/回合</span></div>`;
+
+  h += `<h3>艦隊</h3>`;
+  state.fleets.forEach(fl => {
+    h += `<div class="card"><div class="row"><b>${fl.name}</b>
+      <span>教義 <select onchange="setDoctrine('${fl.id}',this.value)">` +
+      Object.entries(DOCTRINES).map(([k, v]) =>
+        `<option value="${k}" ${fl.doctrine === k ? 'selected' : ''}>${v.label}</option>`).join('') +
+      `</select></span></div>`;
+    fl.ships.forEach(x => {
+      h += `<div class="row"><span>${CLASSES[x.cls].name}</span><span style="width:110px" class="bar"><i style="width:${x.hull}%;background:${x.hull > 50 ? '#1e6b30' : '#a13527'}"></i></span></div>`;
+    });
+    const opts = [`<option value="">待命</option>`, `<option value="repair" ${fl.assignment === 'repair' ? 'selected' : ''}>入塢整補</option>`]
+      .concat(state.contracts.filter(c => c.accepted && (!c.fleet || c.fleet === fl.id))
+        .map(c => `<option value="${c.id}" ${fl.assignment === c.id ? 'selected' : ''}>${c.desc}</option>`));
+    h += `<div class="row"><span>任務</span><select onchange="assign('${fl.id}',this.value)">${opts.join('')}</select></div></div>`;
+  });
+  // 造船
+  h += `<div class="muted">造船（佔統率）：` + Object.entries(SHIP_PRICE).map(([k, p]) =>
+    `<button onclick="buyShip('${k}')" ${state.gold < p || cmd + CLASSES[k].command > COMMAND_CAP ? 'disabled' : ''}>${CLASSES[k].name} ${p}金</button>`).join(' ') + `</div>`;
+
+  h += `<h3>合約（點擊承接）</h3>`;
+  state.contracts.forEach(c => {
+    h += `<div class="card ${c.accepted ? 'assigned' : ''}" onclick="acceptContract('${c.id}')" style="cursor:pointer">
+      <div class="row"><span><span class="tag">${{ escort: '護航', raid: '劫掠', privateer: '私掠' }[c.type]}</span>${c.desc}</span></div>
+      <div class="row muted"><span>${FACTIONS[c.issuer].name}發包</span><span>賞金 ${c.reward}｜聲望 +${c.repDelta}</span></div></div>`;
+  });
+
+  h += `<h3>勢力（海軍預算 = 商道收入 × 軍費比）</h3>`;
+  WORLD.factions.forEach(f => {
+    h += `<div class="row"><span style="color:${f.color}">■ ${f.name}</span><span class="muted">聲望 ${state.rep[f.id]}</span></div>
+      <div class="bar"><i style="width:${(state.navy[f.id] / 150) * 100}%;background:${f.color}"></i></div>`;
+  });
+  h += `<div class="muted">劫掠某勢力商道 → 其海軍預算下降 → 下回合它的巡邏更弱。</div>`;
+
+  h += `<button class="primary" onclick="endTurn()" ${state.over ? 'disabled' : ''}>${state.over ? '章節已結束' : '結束回合・執行軍議'}</button>`;
+  h += `<h3>航海誌</h3><div id="log">${state.log.map(l => `<div>◦ ${l}</div>`).join('')}</div>`;
+  el.innerHTML = h;
+}
+window.setDoctrine = (fid, v) => { state.fleets.find(f => f.id === fid).doctrine = v; };
+window.assign = (fid, v) => {
+  const fl = state.fleets.find(f => f.id === fid);
+  if (fl.assignment && fl.assignment !== 'repair') {
+    const old = state.contracts.find(c => c.id === fl.assignment);
+    if (old) old.fleet = null;
+  }
+  fl.assignment = v || null;
+  const c = state.contracts.find(x => x.id === v);
+  if (c) c.fleet = fid;
+  renderSide();
+};
+window.acceptContract = (id) => {
+  const c = state.contracts.find(x => x.id === id);
+  if (c && !c.accepted) { c.accepted = true; pushLog(`承接：${c.desc}`); renderSide(); }
+};
+window.buyShip = (cls) => {
+  state.gold -= SHIP_PRICE[cls];
+  state.fleets[0].ships.push({ cls, hull: 100 });
+  pushLog(`新船下水：${CLASSES[cls].name}`);
+  renderSide();
+};
+window.endTurn = () => { if (!state.over) resolveTurn(); };
+
+// ---------- 海圖渲染（古董海圖風，承 water-chart-demo 色盤）----------
+const cv = document.getElementById('map').getContext('2d');
+const MW = 700, MH = 624;
+const INK = '#33281a', VERM = '#a13527', PAPER = '#e9d9b0';
+const sx = x => x * MW / 1000, sy = y => y * MH / 600 + 12;
+
+function hash(x, y) { const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); }
+function drawMap(t) {
+  cv.fillStyle = '#ddcda0';
+  cv.fillRect(0, 0, MW, MH);
+  // 紙紋
+  for (let i = 0; i < 300; i++) {
+    const x = hash(i, 1) * MW, y = hash(i, 2) * MH;
+    cv.fillStyle = `rgba(120,95,60,${0.03 + hash(i, 3) * 0.04})`;
+    cv.fillRect(x, y, 20 + hash(i, 4) * 40, 1);
+  }
+  // 恆向線
+  cv.strokeStyle = 'rgba(51,40,26,0.07)';
+  cv.lineWidth = 1;
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI / 8;
+    cv.beginPath();
+    cv.moveTo(MW - 80, MH - 80);
+    cv.lineTo(MW - 80 + Math.cos(a) * 1200, MH - 80 + Math.sin(a) * 1200);
+    cv.stroke();
+  }
+  // 航道（墨線，粗細 = 流量；虛線流動）
+  WORLD.routes.forEach(r => {
+    const [a, b] = r.ports.map(p => PORTS[p]);
+    const w = 1 + r.baseFlow / 30;
+    cv.save();
+    cv.strokeStyle = r.raidedFlash ? VERM : 'rgba(51,40,26,0.55)';
+    cv.lineWidth = r.raidedFlash ? w + 1.5 : w;
+    cv.setLineDash([6, 7]);
+    cv.lineDashOffset = -t * 12;
+    cv.beginPath();
+    cv.moveTo(sx(a.pos[0]), sy(a.pos[1]));
+    cv.lineTo(sx(b.pos[0]), sy(b.pos[1]));
+    cv.stroke();
+    cv.restore();
+    // 被劫掠的線標 ✕
+    if (r.raidedFlash) {
+      const mx = (sx(a.pos[0]) + sx(b.pos[0])) / 2, my = (sy(a.pos[1]) + sy(b.pos[1])) / 2;
+      cv.strokeStyle = VERM;
+      cv.lineWidth = 3; cv.lineCap = 'round';
+      cv.beginPath();
+      cv.moveTo(mx - 6, my - 6); cv.lineTo(mx + 6, my + 6);
+      cv.moveTo(mx + 6, my - 6); cv.lineTo(mx - 6, my + 6);
+      cv.stroke();
+    }
+  });
+  // 海峽
+  WORLD.chokes.forEach(ch => {
+    const x = sx(ch.pos[0]), y = sy(ch.pos[1]);
+    cv.save();
+    cv.translate(x, y - 22);
+    cv.rotate(Math.PI / 4);
+    cv.strokeStyle = VERM; cv.lineWidth = 2;
+    cv.strokeRect(-6, -6, 12, 12);
+    cv.restore();
+    cv.fillStyle = VERM;
+    cv.font = '11px serif'; cv.textAlign = 'center';
+    cv.fillText(ch.name, x, y - 34);
+  });
+  // 港口
+  WORLD.ports.forEach(p => {
+    const x = sx(p.pos[0]), y = sy(p.pos[1]);
+    const r = 5 + p.scale * 2;
+    cv.fillStyle = PAPER;
+    cv.beginPath(); cv.arc(x, y, r, 0, 7); cv.fill();
+    cv.lineWidth = 2.5;
+    cv.strokeStyle = p.faction === 'neutral' ? INK : FACTIONS[p.faction].color;
+    cv.stroke();
+    cv.fillStyle = INK;
+    cv.beginPath(); cv.arc(x, y, 2.5, 0, 7); cv.fill();
+    cv.font = 'bold 13px serif';
+    cv.textAlign = 'center';
+    cv.fillStyle = INK;
+    cv.fillText(p.name, x, y - r - 5);
+    // 有艦隊駐留任務的航道端點畫小船旗
+  });
+  // 已承接合約的目標航道 → 朱砂圈標
+  state.contracts.filter(c => c.accepted).forEach(c => {
+    const r = WORLD.routes.find(x => x.id === c.route);
+    if (!r) return;
+    const [a, b] = r.ports.map(p => PORTS[p]);
+    const mx = (sx(a.pos[0]) + sx(b.pos[0])) / 2, my = (sy(a.pos[1]) + sy(b.pos[1])) / 2;
+    cv.strokeStyle = 'rgba(161,53,39,0.8)';
+    cv.lineWidth = 1.8;
+    cv.beginPath(); cv.arc(mx, my, 14 + Math.sin(t * 3) * 2, 0, 7); cv.stroke();
+  });
+  // 羅盤
+  const cxp = MW - 80, cyp = MH - 80;
+  cv.strokeStyle = INK; cv.lineWidth = 1.5;
+  cv.beginPath(); cv.arc(cxp, cyp, 34, 0, 7); cv.stroke();
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4, len = i % 2 === 0 ? 31 : 18;
+    cv.save(); cv.translate(cxp, cyp); cv.rotate(a);
+    cv.beginPath(); cv.moveTo(0, -len); cv.lineTo(3.4, 0); cv.lineTo(-3.4, 0); cv.closePath();
+    cv.fillStyle = i === 0 ? VERM : INK; cv.fill();
+    cv.restore();
+  }
+  cv.fillStyle = INK; cv.font = '12px serif';
+  cv.fillText('北', cxp, cyp - 44);
+  // 題名
+  cv.fillStyle = 'rgba(233,217,176,0.9)';
+  cv.fillRect(14, MH - 64, 240, 50);
+  cv.strokeStyle = INK; cv.lineWidth = 2;
+  cv.strokeRect(14, MH - 64, 240, 50);
+  cv.textAlign = 'left';
+  cv.fillStyle = INK;
+  cv.font = '17px serif';
+  cv.fillText('琉璃海商道總圖', 26, MH - 42);
+  cv.font = '10.5px serif';
+  cv.fillText('☠ 戰爭是手段，商道是目的 —— P1 戰略原型', 26, MH - 24);
+}
+function loop() {
+  drawMap(performance.now() / 1000);
+  requestAnimationFrame(loop);
+}
+
+// ---------- 起始 ----------
+pushLog('白帆港的酒館裡，你簽下第一份船契。目標：讓琉璃海記住你的旗。');
+genContracts();
+renderSide();
+loop();
+</script>
+</body>
+</html>

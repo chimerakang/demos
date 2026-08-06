@@ -386,7 +386,7 @@ const GEO = {
   pirate: modelToBuffers(SHIP_MODELS.pirate),
   wreck: modelToBuffers(SHIP_MODELS.wreck),
 };
-const MODEL_YAW = Math.PI;   // 烘焙後船艏朝向修正
+const MODEL_YAW = 0;   // 烘焙後 +X 即船艏（艏端寬 0.74m、艉端寬 4.15m 驗證）
 const ptBuf = gl.createBuffer();
 
 // ============================================================
@@ -736,8 +736,9 @@ function shipUpdate(s, dt) {
   const wf = 0.65 + 0.35 * Math.max(0,
     Math.cos(s.heading) * Math.cos(windAngle) + Math.sin(s.heading) * Math.sin(windAngle));
   const sailF = 0.4 + 0.6 * s.sail / 100;
-  s.x += Math.cos(s.heading) * SHIP_SPEED * wf * sailF * dt;
-  s.z += Math.sin(s.heading) * SHIP_SPEED * wf * sailF * dt;
+  s.spd = SHIP_SPEED * wf * sailF;   // 供表現層船艏水花用
+  s.x += Math.cos(s.heading) * s.spd * dt;
+  s.z += Math.sin(s.heading) * s.spd * dt;
 
   // 舷側炮（霰彈掃人員的懲罰在裝填與威力）
   s.cd -= dt;
@@ -821,12 +822,22 @@ function spawnSmoke(x, y, z, big) {
 }
 function spawnSplash(x, z) {
   const y = gerstnerY(x, z, simT);
-  for (let i = 0; i < 6; i++)
+  // 高噴水柱
+  for (let i = 0; i < 12; i++)
     particles.push({
-      x: x + (Math.random() - 0.5), y, z: z + (Math.random() - 0.5),
-      vx: (Math.random() - 0.5) * 2, vy: 2.6 + Math.random() * 2, vz: (Math.random() - 0.5) * 2,
-      t: 0, dur: 0.8, size0: 0.7, grow: 0.9, col: [0.9, 0.95, 0.98], a0: 0.85, grav: true,
+      x: x + (Math.random() - 0.5) * 1.2, y, z: z + (Math.random() - 0.5) * 1.2,
+      vx: (Math.random() - 0.5) * 2.5, vy: 3.5 + Math.random() * 3.5, vz: (Math.random() - 0.5) * 2.5,
+      t: 0, dur: 1.0, size0: 0.8, grow: 1.0, col: [0.92, 0.96, 0.99], a0: 0.9, grav: true,
     });
+  // 環狀白沫（貼水面擴散）
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.26;
+    particles.push({
+      x, y: y + 0.1, z,
+      vx: Math.cos(a) * 3.2, vy: 0.3, vz: Math.sin(a) * 3.2,
+      t: 0, dur: 0.7, size0: 0.9, grow: 1.6, col: [0.88, 0.94, 0.98], a0: 0.55,
+    });
+  }
 }
 
 function simStep(dt) {
@@ -1098,6 +1109,20 @@ function frame() {
   if (phase === 'battle')
     FLEETS.forEach(f => f.ships.forEach(s => {
       if (s.sunk) return;
+      // 船艏破浪水花：航速越快噴越多
+      const spd = s.spd || 0;
+      if (Math.random() < dt * spd * 2.4) {
+        const bx = s.x + Math.cos(s.heading) * 5.2, bz = s.z + Math.sin(s.heading) * 5.2;
+        const side = Math.random() < 0.5 ? 1 : -1;
+        particles.push({
+          x: bx, y: gerstnerY(bx, bz, simT) + 0.2, z: bz,
+          vx: Math.cos(s.heading) * spd * 0.5 - Math.sin(s.heading) * side * (0.8 + Math.random()),
+          vy: 1.6 + Math.random() * 1.4,
+          vz: Math.sin(s.heading) * spd * 0.5 + Math.cos(s.heading) * side * (0.8 + Math.random()),
+          t: 0, dur: 0.55, size0: 0.45, grow: 0.6,
+          col: [0.9, 0.95, 0.99], a0: 0.75, grav: true,
+        });
+      }
       if (s.hull < 65 && Math.random() < dt * (65 - s.hull) / 22)
         particles.push({
           x: s.x + (Math.random() - 0.5) * 3, y: 2.5, z: s.z + (Math.random() - 0.5) * 3,

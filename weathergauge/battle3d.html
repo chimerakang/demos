@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>怒海列陣 — 3D 自動海戰 demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #10181f; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; font-family: "Songti TC", "Noto Serif TC", "Noto Serif CJK TC", serif; }
+  #frame { position: relative; box-shadow: 0 0 60px rgba(0,0,0,.8); }
+  canvas { display: block; }
+  #overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #ui {
+    position: absolute; right: 14px; top: 12px;
+    background: rgba(10,25,38,.55); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 4px; padding: 8px 12px; color: #e8f0f6; font-size: 13px; line-height: 2.0;
+  }
+  #ui button {
+    font-family: inherit; font-size: 12px; color: #e8f0f6;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.35);
+    border-radius: 3px; cursor: pointer; padding: 1px 10px;
+  }
+  #ui button:hover { background: rgba(255,255,255,.25); }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="gl" width="1024" height="600"></canvas>
+  <canvas id="overlay" width="1024" height="600"></canvas>
+  <div id="ui">
+    風向 <button id="windBtn">轉 45°</button><br>
+    <button id="restartBtn">重新開戰</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ============================================================
+// 波場：TSURIBAKU（wave-racer-proto）的 6 波 Gerstner 參數
+// CPU（船隻起伏）與 GPU（海面網格）共用同一組參數與時鐘
+// ============================================================
+const WAVES = [
+  [0.00, 0.55, 60.0, 0.55],
+  [2.39, 0.35, 31.0, 0.50],
+  [5.50, 0.22, 18.0, 0.45],
+  [1.05, 0.14, 9.5, 0.40],
+  [3.98, 0.08, 5.3, 0.35],
+  [0.50, 0.05, 2.8, 0.30],
+];
+const GRAVITY = 9.8, NW = WAVES.length;
+const wDir = [], wAmp = [], wK = [], wC = [], wQ = [];
+let maxH = 0;
+WAVES.forEach(w => {
+  const k = Math.PI * 2 / w[2];
+  wDir.push([Math.cos(w[0]), Math.sin(w[0])]);
+  wAmp.push(w[1]); wK.push(k);
+  wC.push(Math.sqrt(GRAVITY / k));
+  wQ.push(w[3] / (k * w[1] * NW));
+  maxH += w[1];
+});
+const waveA = new Float32Array(NW * 4), waveB = new Float32Array(NW * 4);
+for (let i = 0; i < NW; i++) {
+  waveA.set([wDir[i][0], wDir[i][1], wAmp[i], wK[i]], i * 4);
+  waveB.set([wC[i], wQ[i], 0, 0], i * 4);
+}
+// CPU 端取樣（船隻縱搖/橫搖用，與 gerstner.gd 的 sample_height 同構）
+function gerstnerY(x, z, t) {
+  let px = x, pz = z;
+  for (let it = 0; it < 2; it++) {
+    let dx = 0, dz = 0;
+    for (let i = 0; i < NW; i++) {
+      const f = wK[i] * (wDir[i][0] * px + wDir[i][1] * pz - wC[i] * t);
+      const qa = wQ[i] * wAmp[i] * Math.cos(f);
+      dx += wDir[i][0] * qa; dz += wDir[i][1] * qa;
+    }
+    px += x - (px + dx); pz += z - (pz + dz);
+  }
+  let y = 0;
+  for (let i = 0; i < NW; i++)
+    y += wAmp[i] * Math.sin(wK[i] * (wDir[i][0] * px + wDir[i][1] * pz - wC[i] * t));
+  return y;
+}
+
+// ============================================================
+// 小型 mat4 工具（column-major）
+// ============================================================
+function m4mul(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++)
+    for (let r = 0; r < 4; r++)
+      o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+  return o;
+}
+function m4perspective(fov, aspect, near, far) {
+  const f = 1 / Math.tan(fov / 2), nf = 1 / (near - far);
+  return new Float32Array([f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) * nf, -1, 0, 0, 2 * far * near * nf, 0]);
+}
+function m4lookAt(eye, c, up) {
+  let zx = eye[0] - c[0], zy = eye[1] - c[1], zz = eye[2] - c[2];
+  let l = Math.hypot(zx, zy, zz); zx /= l; zy /= l; zz /= l;
+  let xx = up[1] * zz - up[2] * zy, xy = up[2] * zx - up[0] * zz, xz = up[0] * zy - up[1] * zx;
+  l = Math.hypot(xx, xy, xz); xx /= l; xy /= l; xz /= l;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  return new Float32Array([
+    xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0,
+    -(xx * eye[0] + xy * eye[1] + xz * eye[2]),
+    -(yx * eye[0] + yy * eye[1] + yz * eye[2]),
+    -(zx * eye[0] + zy * eye[1] + zz * eye[2]), 1]);
+}
+const m4id = () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+function m4translate(x, y, z) { const m = m4id(); m[12] = x; m[13] = y; m[14] = z; return m; }
+function m4rotY(a) { const c = Math.cos(a), s = Math.sin(a); const m = m4id(); m[0] = c; m[2] = -s; m[8] = s; m[10] = c; return m; }
+function m4rotX(a) { const c = Math.cos(a), s = Math.sin(a); const m = m4id(); m[5] = c; m[6] = s; m[9] = -s; m[10] = c; return m; }
+function m4rotZ(a) { const c = Math.cos(a), s = Math.sin(a); const m = m4id(); m[0] = c; m[1] = s; m[4] = -s; m[5] = c; return m; }
+
+// ============================================================
+// WebGL 初始化
+// ============================================================
+const glCanvas = document.getElementById('gl');
+const gl = glCanvas.getContext('webgl', { antialias: true });
+const W = glCanvas.width, H = glCanvas.height;
+
+function program(vs, fs) {
+  const mk = (type, src) => {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  };
+  const p = gl.createProgram();
+  gl.attachShader(p, mk(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+const SUN = [0.42, 0.52, 0.32];
+const SUN_N = (() => { const l = Math.hypot(...SUN); return SUN.map(v => v / l); })();
+const FOG0 = 140.0, FOG1 = 420.0;
+// INK TIDE toon 天空：高飽和藍，海天同一語彙
+const HORIZON = [0.76, 0.89, 0.99], ZENITH = [0.16, 0.44, 0.90];
+
+// ---------- 天空（全螢幕，視線方向漸層 + 太陽光暈） ----------
+const skyProg = program(`
+attribute vec2 a;
+varying vec2 v_ndc;
+void main(){ v_ndc = a; gl_Position = vec4(a, 0.9999, 1.0); }
+`, `
+precision highp float;
+varying vec2 v_ndc;
+uniform vec3 u_camFwd, u_camRight, u_camUp;
+uniform float u_tanFov, u_aspect;
+uniform vec3 u_sun;
+void main(){
+  vec3 ray = normalize(u_camFwd + u_camRight * v_ndc.x * u_tanFov * u_aspect
+                                + u_camUp * v_ndc.y * u_tanFov);
+  float h = clamp(ray.y, 0.0, 1.0);
+  vec3 col = mix(vec3(${HORIZON.join(',')}), vec3(${ZENITH.join(',')}), pow(h, 0.55));
+  float s = clamp(dot(ray, u_sun), 0.0, 1.0);
+  col += vec3(1.0, 0.93, 0.78) * (pow(s, 350.0) * 1.2 + pow(s, 18.0) * 0.22);
+  // 低空薄雲帶
+  float band = smoothstep(0.02, 0.0, abs(ray.y - 0.055)) * 0.10;
+  col += vec3(band);
+  gl_FragColor = vec4(col, 1.0);
+}
+`);
+
+// ---------- 海面 ----------
+const oceanProg = program(`
+attribute vec2 a_pos;
+uniform mat4 u_vp;
+uniform vec4 u_wave_a[${NW}];
+uniform vec4 u_wave_b[${NW}];
+uniform float u_time;
+varying vec3 v_world;
+varying vec3 v_normal;
+varying float v_h;
+void main(){
+  vec2 p = a_pos;
+  vec3 disp = vec3(0.0);
+  vec3 n = vec3(0.0, 1.0, 0.0);
+  for (int i = 0; i < ${NW}; i++) {
+    vec2 d = u_wave_a[i].xy;
+    float amp = u_wave_a[i].z;
+    float k = u_wave_a[i].w;
+    float c = u_wave_b[i].x;
+    float q = u_wave_b[i].y;
+    float f = k * (dot(d, p) - c * u_time);
+    float s = sin(f), cf = cos(f);
+    disp += vec3(d.x * q * amp * cf, amp * s, d.y * q * amp * cf);
+    float wa = k * amp;
+    n.x -= d.x * wa * cf;
+    n.z -= d.y * wa * cf;
+    n.y -= q * wa * s;
+  }
+  vec3 world = vec3(p.x, 0.0, p.y) + disp;
+  v_world = world;
+  v_normal = normalize(n);
+  v_h = disp.y;
+  gl_Position = u_vp * vec4(world, 1.0);
+}
+`, `
+precision highp float;
+varying vec3 v_world;
+varying vec3 v_normal;
+varying float v_h;
+uniform vec3 u_cam;
+uniform vec3 u_sun;
+uniform float u_time;
+uniform float u_maxh;
+
+float hash21(vec2 p){ p = fract(p * vec2(234.34, 435.345)); p += dot(p, p + 34.23); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash21(i), hash21(i + vec2(1, 0)), u.x),
+             mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), u.x), u.y);
+}
+
+void main(){
+  vec3 n = normalize(v_normal);
+  vec3 view = normalize(u_cam - v_world);
+  float hn = clamp(v_h / u_maxh * 0.5 + 0.5, 0.0, 1.0);
+
+  // INK TIDE toon 上色（沿用 TSURIBAKU ocean.gdshader fragment）：
+  // 亮度 = 光照 30% + 浪高 70%，硬切成三個色塊，不留混濁中間調
+  float ndl = clamp(dot(n, u_sun), 0.0, 1.0);
+  float tone = ndl * 0.3 + hn * 0.7;
+
+  vec3 col = vec3(0.07, 0.20, 0.78);                      // 基調群青
+  col = mix(vec3(0.02, 0.09, 0.42), col, step(0.42, tone)); // 浪谷/背光：深海軍藍
+  col = mix(col, vec3(0.18, 0.44, 0.98), step(0.57, tone)); // 受光浪面：亮鈷藍
+
+  // 大塊近白海面斑紋（風之律動的招牌），硬邊、全強度
+  vec2 uv = v_world.xz * 0.07 + vec2(u_time * 0.02, u_time * 0.013);
+  float pattern = vnoise(uv) * 0.6 + vnoise(uv * 2.7 - u_time * 0.01) * 0.4;
+  col = mix(col, vec3(0.72, 0.90, 1.0), step(0.66, pattern));
+
+  // 浪尖泡沫：高度門檻 + 噪聲破碎
+  float crest = step(0.78, hn) * step(0.35, vnoise(v_world.xz * 0.8));
+  col = mix(col, vec3(0.96, 0.99, 1.0), crest);
+
+  // 量化太陽高光
+  vec3 hv = normalize(u_sun + view);
+  float spec = pow(clamp(dot(n, hv), 0.0, 1.0), 80.0);
+  col += vec3(0.96, 0.99, 1.0) * step(0.5, spec) * 0.5;
+
+  // 遠處輕微往飽和天藍偏（量化 fresnel）
+  float fres = pow(1.0 - clamp(dot(n, view), 0.0, 1.0), 4.0);
+  col = mix(col, vec3(0.40, 0.68, 1.0), step(0.55, fres) * 0.25);
+
+  // 距離霧 → 海天交界
+  float fog = smoothstep(${FOG0.toFixed(1)}, ${FOG1.toFixed(1)}, distance(u_cam, v_world));
+  col = mix(col, vec3(${HORIZON.join(',')}), fog);
+  gl_FragColor = vec4(col, 1.0);
+}
+`);
+
+// ---------- 船隻（頂點色 + 簡單 Lambert） ----------
+const shipProg = program(`
+attribute vec3 a_pos;
+attribute vec3 a_nrm;
+attribute vec3 a_col;
+uniform mat4 u_vp, u_model;
+varying vec3 v_col, v_nrm, v_world;
+void main(){
+  vec4 w = u_model * vec4(a_pos, 1.0);
+  v_world = w.xyz;
+  v_nrm = mat3(u_model[0].xyz, u_model[1].xyz, u_model[2].xyz) * a_nrm;
+  v_col = a_col;
+  gl_Position = u_vp * w;
+}
+`, `
+precision highp float;
+varying vec3 v_col, v_nrm, v_world;
+uniform vec3 u_sun, u_cam;
+void main(){
+  vec3 n = normalize(v_nrm);
+  // 三階 toon 打光（帆是薄面，雙面受光）
+  float d = abs(dot(n, u_sun));
+  float l = d > 0.55 ? 1.0 : (d > 0.25 ? 0.72 : 0.5);
+  vec3 col = v_col * l;
+  float fog = smoothstep(${FOG0.toFixed(1)}, ${FOG1.toFixed(1)}, distance(u_cam, v_world));
+  col = mix(col, vec3(${HORIZON.join(',')}), fog);
+  gl_FragColor = vec4(col, 1.0);
+}
+`);
+
+// ---------- 點粒子（炮彈 / 煙 / 水花） ----------
+const ptProg = program(`
+attribute vec3 a_pos;
+attribute vec4 a_col;   // rgb + alpha
+attribute float a_size; // 公尺
+uniform mat4 u_vp;
+uniform vec3 u_cam;
+varying vec4 v_col;
+void main(){
+  v_col = a_col;
+  gl_Position = u_vp * vec4(a_pos, 1.0);
+  float d = distance(u_cam, a_pos);
+  gl_PointSize = clamp(a_size * 700.0 / d, 1.0, 90.0);
+}
+`, `
+precision highp float;
+varying v4 v_col;
+void main(){
+  float d = length(gl_PointCoord - 0.5);
+  float a = v_col.a * smoothstep(0.5, 0.12, d);
+  if (a < 0.02) discard;
+  gl_FragColor = vec4(v_col.rgb, a);
+}
+`.replace(/v4/g, 'vec4'));
+
+// ---------- 幾何建構 ----------
+function buildQuadBuffer() {
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  return b;
+}
+const skyBuf = buildQuadBuffer();
+
+// 海面網格
+const OCEAN_SIZE = 900, OCEAN_DIV = 200;
+const oceanVerts = new Float32Array((OCEAN_DIV + 1) * (OCEAN_DIV + 1) * 2);
+{
+  let i = 0;
+  for (let r = 0; r <= OCEAN_DIV; r++)
+    for (let c = 0; c <= OCEAN_DIV; c++) {
+      oceanVerts[i++] = (c / OCEAN_DIV - 0.5) * OCEAN_SIZE;
+      oceanVerts[i++] = (r / OCEAN_DIV - 0.5) * OCEAN_SIZE;
+    }
+}
+const oceanIdx = new Uint32Array(OCEAN_DIV * OCEAN_DIV * 6);
+{
+  let i = 0;
+  for (let r = 0; r < OCEAN_DIV; r++)
+    for (let c = 0; c < OCEAN_DIV; c++) {
+      const a = r * (OCEAN_DIV + 1) + c, b = a + 1, d = a + OCEAN_DIV + 1, e = d + 1;
+      oceanIdx[i++] = a; oceanIdx[i++] = d; oceanIdx[i++] = b;
+      oceanIdx[i++] = b; oceanIdx[i++] = d; oceanIdx[i++] = e;
+    }
+}
+gl.getExtension('OES_element_index_uint');
+const oceanVBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, oceanVBuf);
+gl.bufferData(gl.ARRAY_BUFFER, oceanVerts, gl.STATIC_DRAW);
+const oceanIBuf = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, oceanIBuf);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, oceanIdx, gl.STATIC_DRAW);
+
+// 船：模型空間 前方 = +X，水線 y = 0
+function buildShip(flagColor) {
+  const P = [], N = [], C = [];
+  function tri(a, b, c, col) {
+    const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+    const vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+    [a, b, c].forEach(p => { P.push(...p); N.push(nx, ny, nz); C.push(...col); });
+  }
+  function quad(a, b, c, d, col) { tri(a, b, c, col); tri(a, c, d, col); }
+
+  const HULL = [0.30, 0.20, 0.12], DECK = [0.55, 0.42, 0.26], MAST = [0.22, 0.15, 0.09];
+  const SAIL = [0.93, 0.91, 0.84];
+  const yTop = 1.15, yBot = -0.75;
+  const stern = -5.0, midX = 2.0, bowX = 6.3, hb = 1.45; // 半船寬
+  // 甲板
+  quad([stern, yTop, -hb], [midX, yTop, -hb], [midX, yTop, hb], [stern, yTop, hb], DECK);
+  tri([midX, yTop, -hb], [bowX, yTop, 0], [midX, yTop, hb], DECK);
+  // 船底
+  quad([stern, yBot, hb], [midX, yBot, hb], [midX, yBot, -hb], [stern, yBot, -hb], HULL);
+  tri([midX, yBot, hb], [bowX, yBot, 0], [midX, yBot, -hb], HULL);
+  // 兩舷
+  quad([stern, yBot, -hb], [midX, yBot, -hb], [midX, yTop, -hb], [stern, yTop, -hb], HULL);
+  quad([midX, yBot, -hb], [bowX, yBot, 0], [bowX, yTop, 0], [midX, yTop, -hb], HULL);
+  quad([stern, yTop, hb], [midX, yTop, hb], [midX, yBot, hb], [stern, yBot, hb], HULL);
+  quad([midX, yTop, hb], [bowX, yTop, 0], [bowX, yBot, 0], [midX, yBot, hb], HULL);
+  // 艉板
+  quad([stern, yBot, -hb], [stern, yTop, -hb], [stern, yTop, hb], [stern, yBot, hb], HULL);
+  // 桅杆 ×2（細長方柱）
+  for (const mx of [2.0, -2.2]) {
+    const s = 0.14, top = mx > 0 ? 9.2 : 8.4;
+    quad([mx - s, yTop, -s], [mx + s, yTop, -s], [mx + s, top, -s], [mx - s, top, -s], MAST);
+    quad([mx + s, yTop, s], [mx - s, yTop, s], [mx - s, top, s], [mx + s, top, s], MAST);
+    quad([mx - s, yTop, s], [mx - s, yTop, -s], [mx - s, top, -s], [mx - s, top, s], MAST);
+    quad([mx + s, yTop, -s], [mx + s, yTop, s], [mx + s, top, s], [mx + s, top, -s], MAST);
+    // 橫帆（微弧面：三段條帶）
+    const sw = 2.4, y0 = mx > 0 ? 4.3 : 3.9, y1 = mx > 0 ? 8.3 : 7.6;
+    for (let seg = 0; seg < 3; seg++) {
+      const za = -sw + (2 * sw / 3) * seg, zb = za + 2 * sw / 3;
+      const bulge = 0.5 * Math.sin(Math.PI * (seg + 0.5) / 3);
+      quad([mx + 0.4 + bulge, y0, za], [mx + 0.4 + bulge, y0, zb],
+           [mx + 0.3 + bulge, y1, zb], [mx + 0.3 + bulge, y1, za], SAIL);
+    }
+  }
+  // 艦隊旗（主桅頂）
+  quad([2.0, 9.15, 0], [0.9, 9.0, 0], [0.9, 8.65, 0], [2.0, 8.8, 0], flagColor);
+  return { pos: P, nrm: N, col: C, count: P.length / 3 };
+}
+function shipToBuffers(g) {
+  const mk = arr => {
+    const b = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+    return b;
+  };
+  return { pos: mk(g.pos), nrm: mk(g.nrm), col: mk(g.col), count: g.count };
+}
+const FLEET_FLAGS = [[0.78, 0.16, 0.12], [0.10, 0.28, 0.55]];
+const shipGeo = [shipToBuffers(buildShip(FLEET_FLAGS[0])), shipToBuffers(buildShip(FLEET_FLAGS[1]))];
+
+const ptBuf = gl.createBuffer();
+
+// ============================================================
+// 戰鬥模擬（與 battle-demo.html 相同的 WEGO 規則）
+// ============================================================
+const ov = document.getElementById('overlay').getContext('2d');
+const TICK_LEN = 10, SHIP_SPEED = 3.2, TURN_RATE = 0.35;
+const GUN_RANGE = 34, GUN_ARC = 0.55, RELOAD = 5.5, FOLLOW_GAP = 11;
+const FLEETS = [
+  { name: '紅隊', css: '#d84a3a', color: FLEET_FLAGS[0], ships: [] },
+  { name: '藍隊', css: '#3a6fb5', color: FLEET_FLAGS[1], ships: [] },
+];
+let windAngle = 0.35;
+let projectiles = [], particles = [], wrecks = [], floats = [], logs = [];
+let tickTimer = 0, battleOver = null, simT = 0;
+
+document.getElementById('windBtn').onclick = () => { windAngle += Math.PI / 4; };
+document.getElementById('restartBtn').onclick = () => reset();
+
+const angNorm = a => Math.atan2(Math.sin(a), Math.cos(a));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+function alive(f) { return FLEETS[f].ships.filter(s => !s.sunk); }
+function centroid(ships) {
+  const c = { x: 0, z: 0 };
+  ships.forEach(s => { c.x += s.x / ships.length; c.z += s.z / ships.length; });
+  return c;
+}
+function pushLog(text) { logs.push({ text, t: simT }); if (logs.length > 5) logs.shift(); }
+
+function reset() {
+  FLEETS[0].ships = []; FLEETS[1].ships = [];
+  for (let i = 0; i < 3; i++) {
+    FLEETS[0].ships.push({ fleet: 0, x: -42 + i * 3, z: -16 - i * FOLLOW_GAP * 0.8,
+      heading: 0.3, order: 0.3, hp: 100, cd: RELOAD * Math.random(), sunk: false, sinkT: 0 });
+    FLEETS[1].ships.push({ fleet: 1, x: 42 - i * 3, z: 16 + i * FOLLOW_GAP * 0.8,
+      heading: Math.PI - 0.3, order: Math.PI - 0.3, hp: 100, cd: RELOAD * Math.random(), sunk: false, sinkT: 0 });
+  }
+  projectiles = []; particles = []; wrecks = []; floats = []; logs = [];
+  tickTimer = 0; battleOver = null;
+  pushLog('兩軍對陣，軍令節拍開始');
+}
+
+function upwindFleet() {
+  const a = alive(0), b = alive(1);
+  if (!a.length || !b.length) return -1;
+  const wx = -Math.cos(windAngle), wz = -Math.sin(windAngle);
+  const ca = centroid(a), cb = centroid(b);
+  return (ca.x - cb.x) * wx + (ca.z - cb.z) * wz > 0 ? 0 : 1;
+}
+
+function fleetOrders(f) {
+  const own = alive(f), foe = alive(1 - f);
+  if (!own.length || !foe.length) return;
+  const lead = own[0], target = centroid(foe);
+  const d = dist(lead, target);
+  const bearing = Math.atan2(target.z - lead.z, target.x - lead.x);
+  if (d > GUN_RANGE + 6) {
+    lead.order = bearing;
+    pushLog(`${FLEETS[f].name}：距離 ${Math.round(d)}m → 接敵搶位`);
+  } else {
+    const c1 = bearing + Math.PI / 2, c2 = bearing - Math.PI / 2;
+    const pick = Math.abs(angNorm(c1 - lead.heading)) < Math.abs(angNorm(c2 - lead.heading)) ? c1 : c2;
+    lead.order = d > GUN_RANGE * 0.7 ? pick + 0.2 * Math.sign(angNorm(bearing - pick)) : pick;
+    pushLog(`${FLEETS[f].name}：距離 ${Math.round(d)}m → 列陣舷側齊射`);
+  }
+}
+
+function spawnSmoke(x, y, z, big) {
+  const n = big ? 7 : 4;
+  for (let i = 0; i < n; i++)
+    particles.push({
+      x: x + (Math.random() - 0.5) * 2, y: y + Math.random() * 1.2, z: z + (Math.random() - 0.5) * 2,
+      vx: Math.cos(windAngle) * 1.2 + (Math.random() - 0.5), vy: 1.1 + Math.random() * 0.8,
+      vz: Math.sin(windAngle) * 1.2 + (Math.random() - 0.5),
+      t: 0, dur: 1.8 + Math.random(), size0: big ? 1.6 : 1.1, grow: big ? 2.6 : 1.6,
+      col: [0.62, 0.60, 0.57], a0: 0.5,
+    });
+}
+function spawnSplash(x, z) {
+  const y = gerstnerY(x, z, simT);
+  for (let i = 0; i < 6; i++)
+    particles.push({
+      x: x + (Math.random() - 0.5), y, z: z + (Math.random() - 0.5),
+      vx: (Math.random() - 0.5) * 2, vy: 2.6 + Math.random() * 2, vz: (Math.random() - 0.5) * 2,
+      t: 0, dur: 0.8, size0: 0.7, grow: 0.9, col: [0.9, 0.95, 0.98], a0: 0.85, grav: true,
+    });
+}
+
+function fireVolley(s, target) {
+  const bonus = upwindFleet() === s.fleet ? 1.15 : 1.0;
+  for (let i = 0; i < 3; i++)
+    projectiles.push({
+      x0: s.x, z0: s.z, x1: target.x + (Math.random() - 0.5) * 7, z1: target.z + (Math.random() - 0.5) * 7,
+      t: -i * 0.13, dur: 0.9, hit: Math.random() < 0.55, target, bonus,
+    });
+  spawnSmoke(s.x, 2.0, s.z, false);
+}
+
+function shipUpdate(s, dt) {
+  if (s.sunk) { s.sinkT += dt; return; }
+  const own = alive(s.fleet);
+  const idx = own.indexOf(s);
+  let desired;
+  if (idx <= 0) desired = s.order;
+  else {
+    const ahead = own[idx - 1];
+    const px = ahead.x - Math.cos(ahead.heading) * FOLLOW_GAP;
+    const pz = ahead.z - Math.sin(ahead.heading) * FOLLOW_GAP;
+    desired = Math.atan2(pz - s.z, px - s.x);
+  }
+  if (Math.abs(s.x) > 48 || Math.abs(s.z) > 24) desired = Math.atan2(-s.z, -s.x);
+  const turn = angNorm(desired - s.heading);
+  s.heading += Math.max(-TURN_RATE * dt, Math.min(TURN_RATE * dt, turn));
+  const wf = 0.65 + 0.35 * Math.max(0,
+    Math.cos(s.heading) * Math.cos(windAngle) + Math.sin(s.heading) * Math.sin(windAngle));
+  s.x += Math.cos(s.heading) * SHIP_SPEED * wf * dt;
+  s.z += Math.sin(s.heading) * SHIP_SPEED * wf * dt;
+
+  s.cd -= dt;
+  if (s.cd <= 0) {
+    const foes = alive(1 - s.fleet);
+    let best = null, bestD = GUN_RANGE;
+    foes.forEach(e => { const d = dist(s, e); if (d < bestD) { bestD = d; best = e; } });
+    if (best) {
+      const b = Math.atan2(best.z - s.z, best.x - s.x);
+      const offL = Math.abs(angNorm(b - (s.heading + Math.PI / 2)));
+      const offR = Math.abs(angNorm(b - (s.heading - Math.PI / 2)));
+      if (Math.min(offL, offR) < GUN_ARC) {
+        fireVolley(s, best);
+        s.cd = RELOAD + Math.random() * 1.5;
+      }
+    }
+  }
+}
+
+function projUpdate(p, dt) {
+  p.t += dt;
+  if (p.t < p.dur) return true;
+  if (p.hit && !p.target.sunk) {
+    const dmg = Math.round((8 + Math.random() * 8) * p.bonus);
+    p.target.hp -= dmg;
+    spawnSmoke(p.target.x, 2.2, p.target.z, true);
+    floats.push({ x: p.target.x, z: p.target.z, text: `-${dmg}`, t: 0, fleet: p.target.fleet });
+    if (p.target.hp <= 0 && !p.target.sunk) {
+      p.target.sunk = true;
+      wrecks.push({ x: p.target.x, z: p.target.z, t: 0 });
+      pushLog(`${FLEETS[p.target.fleet].name}戰船沉沒！`);
+    }
+  } else {
+    spawnSplash(p.x1, p.z1);
+  }
+  return false;
+}
+
+// ============================================================
+// 相機 & 渲染
+// ============================================================
+let camTarget = { x: 0, z: 0 };
+let vpMat = m4id(), camPos = [0, 30, 80];
+
+function project(x, y, z) {
+  const m = vpMat;
+  const cw = m[3] * x + m[7] * y + m[11] * z + m[15];
+  if (cw <= 0.01) return null;
+  const cx = (m[0] * x + m[4] * y + m[8] * z + m[12]) / cw;
+  const cy = (m[1] * x + m[5] * y + m[9] * z + m[13]) / cw;
+  return [(cx * 0.5 + 0.5) * W, (1 - (cy * 0.5 + 0.5)) * H];
+}
+
+function shipModelMatrix(s, t) {
+  const bow = gerstnerY(s.x + Math.cos(s.heading) * 4, s.z + Math.sin(s.heading) * 4, t);
+  const aft = gerstnerY(s.x - Math.cos(s.heading) * 4, s.z - Math.sin(s.heading) * 4, t);
+  const prt = gerstnerY(s.x - Math.sin(s.heading) * 1.4, s.z + Math.cos(s.heading) * 1.4, t);
+  const stb = gerstnerY(s.x + Math.sin(s.heading) * 1.4, s.z - Math.cos(s.heading) * 1.4, t);
+  let y = (bow + aft) * 0.5;
+  let pitch = Math.atan2(bow - aft, 8) * 0.6;
+  let roll = Math.atan2(prt - stb, 2.8) * 0.45;
+  if (s.sunk) {
+    const k = Math.min(1, s.sinkT / 5);
+    y -= k * 5.5;
+    roll += k * 1.1;
+    pitch -= k * 0.5;
+  }
+  let m = m4mul(m4translate(s.x, y, s.z), m4rotY(-s.heading));
+  m = m4mul(m, m4rotZ(pitch));
+  m = m4mul(m, m4rotX(roll));
+  return m;
+}
+
+function drawPoints(data) {
+  if (!data.length) return;
+  gl.useProgram(ptProg);
+  gl.bindBuffer(gl.ARRAY_BUFFER, ptBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+  const stride = 8 * 4;
+  const aPos = gl.getAttribLocation(ptProg, 'a_pos');
+  const aCol = gl.getAttribLocation(ptProg, 'a_col');
+  const aSize = gl.getAttribLocation(ptProg, 'a_size');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, stride, 0);
+  gl.enableVertexAttribArray(aCol);
+  gl.vertexAttribPointer(aCol, 4, gl.FLOAT, false, stride, 12);
+  gl.enableVertexAttribArray(aSize);
+  gl.vertexAttribPointer(aSize, 1, gl.FLOAT, false, stride, 28);
+  gl.uniformMatrix4fv(gl.getUniformLocation(ptProg, 'u_vp'), false, vpMat);
+  gl.uniform3fv(gl.getUniformLocation(ptProg, 'u_cam'), camPos);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  gl.drawArrays(gl.POINTS, 0, data.length / 8);
+  gl.depthMask(true);
+  gl.disable(gl.BLEND);
+  gl.disableVertexAttribArray(aCol);
+  gl.disableVertexAttribArray(aSize);
+}
+
+reset();
+const t0 = performance.now();
+let lastT = 0;
+function frame() {
+  const t = (performance.now() - t0) / 1000;
+  const dt = Math.min(t - lastT, 0.1);
+  lastT = t; simT = t;
+
+  // ---- 模擬 ----
+  if (!battleOver) {
+    tickTimer += dt;
+    if (tickTimer >= TICK_LEN) { tickTimer = 0; fleetOrders(0); fleetOrders(1); }
+    FLEETS.forEach(f => f.ships.forEach(s => shipUpdate(s, dt)));
+    projectiles = projectiles.filter(p => projUpdate(p, dt));
+    if (!alive(0).length) battleOver = FLEETS[1].name;
+    if (!alive(1).length) battleOver = FLEETS[0].name;
+  } else {
+    FLEETS.forEach(f => f.ships.forEach(s => { if (s.sunk) s.sinkT += dt; }));
+  }
+  particles = particles.filter(p => (p.t += dt) < p.dur);
+  particles.forEach(p => {
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    if (p.grav) p.vy -= 9.8 * dt;
+  });
+
+  // ---- 相機：繞戰場慢速環繞，跟著存活船隻質心 ----
+  const all = alive(0).concat(alive(1));
+  const c = all.length ? centroid(all) : { x: 0, z: 0 };
+  camTarget.x += (c.x - camTarget.x) * Math.min(1, dt * 0.6);
+  camTarget.z += (c.z - camTarget.z) * Math.min(1, dt * 0.6);
+  const orbA = t * 0.05, orbR = 78, orbH = 30;
+  camPos = [camTarget.x + Math.cos(orbA) * orbR, orbH, camTarget.z + Math.sin(orbA) * orbR];
+  const look = [camTarget.x, 2.0, camTarget.z];
+  const proj = m4perspective(0.96, W / H, 0.5, 900);
+  const view = m4lookAt(camPos, look, [0, 1, 0]);
+  vpMat = m4mul(proj, view);
+  let fwd = [look[0] - camPos[0], look[1] - camPos[1], look[2] - camPos[2]];
+  let fl = Math.hypot(...fwd); fwd = fwd.map(v => v / fl);
+  let right = [fwd[2] * 1 - 0, 0, -fwd[0]];   // fwd × up(0,1,0) 的簡式
+  let rl = Math.hypot(...right); right = right.map(v => v / rl);
+  const upv = [right[1] * fwd[2] - right[2] * fwd[1], right[2] * fwd[0] - right[0] * fwd[2], right[0] * fwd[1] - right[1] * fwd[0]];
+
+  // ---- 渲染 ----
+  gl.viewport(0, 0, W, H);
+  gl.clearColor(0.7, 0.8, 0.88, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+
+  // 天空
+  gl.useProgram(skyProg);
+  gl.depthMask(false);
+  gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf);
+  const aSky = gl.getAttribLocation(skyProg, 'a');
+  gl.enableVertexAttribArray(aSky);
+  gl.vertexAttribPointer(aSky, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform3fv(gl.getUniformLocation(skyProg, 'u_camFwd'), fwd);
+  gl.uniform3fv(gl.getUniformLocation(skyProg, 'u_camRight'), right);
+  gl.uniform3fv(gl.getUniformLocation(skyProg, 'u_camUp'), upv);
+  gl.uniform1f(gl.getUniformLocation(skyProg, 'u_tanFov'), Math.tan(0.48));
+  gl.uniform1f(gl.getUniformLocation(skyProg, 'u_aspect'), W / H);
+  gl.uniform3fv(gl.getUniformLocation(skyProg, 'u_sun'), SUN_N);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.depthMask(true);
+
+  // 海面
+  gl.useProgram(oceanProg);
+  gl.bindBuffer(gl.ARRAY_BUFFER, oceanVBuf);
+  const aOc = gl.getAttribLocation(oceanProg, 'a_pos');
+  gl.enableVertexAttribArray(aOc);
+  gl.vertexAttribPointer(aOc, 2, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, oceanIBuf);
+  gl.uniformMatrix4fv(gl.getUniformLocation(oceanProg, 'u_vp'), false, vpMat);
+  gl.uniform4fv(gl.getUniformLocation(oceanProg, 'u_wave_a'), waveA);
+  gl.uniform4fv(gl.getUniformLocation(oceanProg, 'u_wave_b'), waveB);
+  gl.uniform1f(gl.getUniformLocation(oceanProg, 'u_time'), t);
+  gl.uniform1f(gl.getUniformLocation(oceanProg, 'u_maxh'), maxH);
+  gl.uniform3fv(gl.getUniformLocation(oceanProg, 'u_cam'), camPos);
+  gl.uniform3fv(gl.getUniformLocation(oceanProg, 'u_sun'), SUN_N);
+  gl.drawElements(gl.TRIANGLES, oceanIdx.length, gl.UNSIGNED_INT, 0);
+
+  // 船
+  gl.useProgram(shipProg);
+  gl.uniformMatrix4fv(gl.getUniformLocation(shipProg, 'u_vp'), false, vpMat);
+  gl.uniform3fv(gl.getUniformLocation(shipProg, 'u_sun'), SUN_N);
+  gl.uniform3fv(gl.getUniformLocation(shipProg, 'u_cam'), camPos);
+  const aP = gl.getAttribLocation(shipProg, 'a_pos');
+  const aN = gl.getAttribLocation(shipProg, 'a_nrm');
+  const aC = gl.getAttribLocation(shipProg, 'a_col');
+  FLEETS.forEach((f, fi) => f.ships.forEach(s => {
+    if (s.sunk && s.sinkT > 6) return;
+    const g = shipGeo[fi];
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.pos);
+    gl.enableVertexAttribArray(aP);
+    gl.vertexAttribPointer(aP, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.nrm);
+    gl.enableVertexAttribArray(aN);
+    gl.vertexAttribPointer(aN, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.col);
+    gl.enableVertexAttribArray(aC);
+    gl.vertexAttribPointer(aC, 3, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(gl.getUniformLocation(shipProg, 'u_model'), false, shipModelMatrix(s, t));
+    gl.drawArrays(gl.TRIANGLES, 0, g.count);
+  }));
+
+  // 粒子：炮彈（拋物線）+ 煙 + 水花
+  const pts = [];
+  projectiles.forEach(p => {
+    if (p.t < 0) return;
+    const k = p.t / p.dur;
+    const x = p.x0 + (p.x1 - p.x0) * k, z = p.z0 + (p.z1 - p.z0) * k;
+    const y = 2.0 + Math.sin(Math.PI * k) * 4.5;
+    pts.push(x, y, z, 0.08, 0.07, 0.06, 1.0, 0.55);
+  });
+  particles.forEach(p => {
+    const k = p.t / p.dur;
+    pts.push(p.x, p.y, p.z, p.col[0], p.col[1], p.col[2], p.a0 * (1 - k), p.size0 + p.grow * k);
+  });
+  drawPoints(pts);
+
+  // ---- HUD ----
+  ov.clearRect(0, 0, W, H);
+  // 血條（投影到船桅頂上方）
+  FLEETS.forEach(f => f.ships.forEach(s => {
+    if (s.sunk) return;
+    const y = gerstnerY(s.x, s.z, t);
+    const scr = project(s.x, y + 11.5, s.z);
+    if (!scr) return;
+    const [sx, sy] = scr;
+    ov.fillStyle = 'rgba(10,20,30,0.55)';
+    ov.fillRect(sx - 16, sy, 32, 4);
+    ov.fillStyle = f.css;
+    ov.fillRect(sx - 15, sy + 0.5, 30 * Math.max(0, s.hp) / 100, 3);
+  }));
+  // 傷害浮字
+  floats = floats.filter(fl2 => (fl2.t += dt) < 1.4);
+  floats.forEach(fl2 => {
+    const y = gerstnerY(fl2.x, fl2.z, t);
+    const scr = project(fl2.x, y + 12 + fl2.t * 5, fl2.z);
+    if (!scr) return;
+    ov.fillStyle = `rgba(255,235,225,${1 - fl2.t / 1.4})`;
+    ov.font = 'bold 14px serif';
+    ov.textAlign = 'center';
+    ov.fillText(fl2.text, scr[0], scr[1]);
+  });
+  // 沉船標記
+  wrecks.forEach(wk => {
+    const scr = project(wk.x, gerstnerY(wk.x, wk.z, t) + 0.5, wk.z);
+    if (!scr) return;
+    ov.strokeStyle = 'rgba(216,74,58,0.8)';
+    ov.lineWidth = 2.5;
+    ov.lineCap = 'round';
+    ov.beginPath();
+    ov.moveTo(scr[0] - 5, scr[1] - 5); ov.lineTo(scr[0] + 5, scr[1] + 5);
+    ov.moveTo(scr[0] + 5, scr[1] - 5); ov.lineTo(scr[0] - 5, scr[1] + 5);
+    ov.stroke();
+  });
+  // 軍令節拍環 + 上風位
+  const cx = W / 2, cy = 34, r = 15;
+  ov.strokeStyle = 'rgba(255,255,255,0.35)';
+  ov.lineWidth = 3;
+  ov.beginPath(); ov.arc(cx, cy, r, 0, 7); ov.stroke();
+  ov.strokeStyle = '#ffd27a';
+  ov.beginPath();
+  ov.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (tickTimer / TICK_LEN) * Math.PI * 2);
+  ov.stroke();
+  ov.fillStyle = 'rgba(240,248,255,0.9)';
+  ov.font = '12px serif';
+  ov.textAlign = 'center';
+  ov.fillText('軍令節拍', cx, cy + r + 14);
+  const uw = upwindFleet();
+  if (uw >= 0) {
+    ov.fillStyle = FLEETS[uw].css;
+    ov.fillText(`上風位：${FLEETS[uw].name}（傷害 +15%）`, cx, cy + r + 30);
+  }
+  // 規則鏈紀錄
+  ov.textAlign = 'left';
+  logs.forEach((l, i) => {
+    const age = simT - l.t;
+    ov.fillStyle = `rgba(240,248,255,${Math.max(0, Math.min(0.85, 3 - age * 0.35))})`;
+    ov.font = '12px serif';
+    ov.fillText(`◦ ${l.text}`, 18, 96 + i * 17);
+  });
+  // 風向箭頭
+  ov.save();
+  ov.translate(70, 54);
+  ov.fillStyle = 'rgba(240,248,255,0.9)';
+  ov.font = '14px serif';
+  ov.textAlign = 'center';
+  ov.fillText('風', 0, -30);
+  ov.rotate(-windAngle);
+  ov.strokeStyle = '#ffd27a';
+  ov.fillStyle = '#ffd27a';
+  ov.lineWidth = 2.5;
+  ov.beginPath(); ov.moveTo(-18, 0); ov.lineTo(14, 0); ov.stroke();
+  ov.beginPath(); ov.moveTo(22, 0); ov.lineTo(8, -6); ov.lineTo(8, 6); ov.closePath(); ov.fill();
+  ov.restore();
+  // 標題 / 勝負
+  ov.fillStyle = 'rgba(10,25,38,0.5)';
+  ov.fillRect(14, H - 66, 300, 50);
+  ov.strokeStyle = 'rgba(255,255,255,0.3)';
+  ov.lineWidth = 1;
+  ov.strokeRect(14, H - 66, 300, 50);
+  ov.fillStyle = 'rgba(240,248,255,0.95)';
+  ov.font = '17px serif';
+  ov.textAlign = 'left';
+  ov.fillText('怒海列陣 · 3D 自動海戰試作', 26, H - 44);
+  ov.font = '11px serif';
+  if (battleOver) {
+    ov.fillStyle = '#ffd27a';
+    ov.fillText(`勝負已分 —— ${battleOver}勝，按「重新開戰」再演一局`, 26, H - 26);
+  } else {
+    ov.fillText('WEGO 節拍下令 · 節拍間自動演算 · 玩家不微操', 26, H - 26);
+  }
+
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

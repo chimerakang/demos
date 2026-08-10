@@ -139,7 +139,7 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
   <div class="t2">星 隕 抽 選 儀 式</div>
 </div>
 <div class="holo" id="hudInfo">在場靈魂 0</div>
-<div class="holo" id="verTag">BUILD v9.3 // OPTIMIZED FX+</div>
+<div class="holo" id="verTag">BUILD v9.4 // OPTIMIZED FX+</div>
 <div class="holo" id="phaseCap"></div>
 <div id="errBox"></div>
 <div class="holo" id="ledger"></div>
@@ -234,13 +234,19 @@ const SPR={
   white:makeGlow('rgba(240,250,255,1)')
 };
 const SPRKEYS=['cyan','pink','violet'];
-const PCOLS=[ // 行星配色 [亮,暗,rgb字串,glow鍵]
+const PCOLS=[ // 行星配色 [亮,暗,rgb字串,glow鍵]（v9.4：6 色擴充為 12 色）
   ['#39e6ff','#0a4d66','0,230,255','cyan'],
   ['#ff6ec7','#6a1248','255,60,180','pink'],
   ['#b98cff','#38176e','160,80,255','violet'],
   ['#ffd97a','#7a5a10','255,220,110','gold'],
   ['#7dffcf','#0e5a44','120,255,200','cyan'],
-  ['#ff9e6e','#7a3212','255,150,90','pink']
+  ['#ff9e6e','#7a3212','255,150,90','pink'],
+  ['#7dd0ff','#123f7a','120,200,255','cyan'],   // 天藍
+  ['#9dff70','#1d5a18','150,255,110','white'],  // 萊姆綠
+  ['#ffb347','#7a3d08','255,170,70','gold'],    // 橙
+  ['#ff5e5e','#6e0f1d','255,90,90','pink'],     // 緋紅
+  ['#e6c8ff','#4b2a80','220,180,255','violet'], // 薰衣草
+  ['#66ffe3','#0b5c4d','100,255,225','cyan']    // 薄荷
 ];
 const FOV=520;
 function proj(x,y,z){const s=FOV/(FOV+z);return {x:CX+x*s,y:CY+y*s,s};}
@@ -462,11 +468,11 @@ function perfSample(ms){
 /* ---- 獎項制度 ---- */
 const TIERS=[
   {key:'t3',label:'三獎',en:'THIRD PRIZE',rc:'三獎得主',jack:'WIN',
-   collide:3400,slots:2300,sparks:150},
+   collide:5400,slots:2300,sparks:150},
   {key:'t2',label:'二獎',en:'SECOND PRIZE',rc:'二獎得主',jack:'BIG WIN',
-   collide:4400,slots:2700,sparks:220},
+   collide:6600,slots:2700,sparks:220},
   {key:'t1',label:'頭獎',en:'GRAND PRIZE',rc:'頭獎降臨',jack:'JACKPOT',
-   collide:5800,slots:3300,sparks:340}
+   collide:8200,slots:3300,sparks:340}
 ];
 let tierIdx=0, tierDrawn=[0,0,0], winnersByTier=[[],[],[]];
 function tierCounts(){
@@ -546,7 +552,8 @@ function spawnPlanets(){
       col:PCOLS[i%PCOLS.length],
       ring:Math.random()<.4,             // 四成有行星環
       ringA:Math.random()*.9+.15,        // 環傾角
-      spin:Math.random()*6.28
+      spin:Math.random()*6.28,
+      orbJ:Math.random()*.5              // v9.4：星軌角速度個體差
     });
   }
 }
@@ -568,7 +575,10 @@ function updatePlanets(dt,intensity,grav){
     // v9.3：限速只在場內生效——場外的行星保持高速衝入，不被減速
     if(spd>maxS&&Math.abs(p.x)<PSPANX&&Math.abs(p.y)<PSPANY){const k=maxS/spd;p.vx*=k;p.vy*=k;p.vz*=k;}
   }
-  // 兩兩碰撞（N≤40，O(n²) 無壓力）
+  resolveCollisions(intensity);
+}
+// 兩兩碰撞（O(n²)，N≤72 仍便宜）——v9.4 抽出供物理／星軌兩種階段共用
+function resolveCollisions(intensity){
   for(let i=0;i<planets.length;i++)for(let j=i+1;j<planets.length;j++){
     const a=planets[i],b=planets[j];
     const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;
@@ -592,6 +602,26 @@ function updatePlanets(dt,intensity,grav){
       }
     }
   }
+}
+/* v9.4：星軌旋轉階段——以角速度驅動（內圈快、外圈慢的類開普勒差速），
+   om 隨時間增大＝「旋轉加速」；shrink 讓星軌緩慢向內螺旋 */
+function orbitPlanets(dt,om,shrink){
+  if(dt<=0)return;
+  for(const p of planets){
+    const u=p.x/PSPANX,v=p.y/PSPANY;
+    let a=Math.atan2(v,u),r=Math.hypot(u,v);
+    const rw=Math.hypot(p.x,p.y);
+    let w=om*(.8+p.orbJ)*(.9/(.35+r));    // 內圈角速度高
+    w=Math.min(w,22/Math.max(rw,100));    // 切線速度上限，交棒物理階段不突兀
+    a+=w*dt;
+    r*=Math.pow(shrink,dt);
+    const nx=Math.cos(a)*r*PSPANX,ny=Math.sin(a)*r*PSPANY;
+    p.vx=(nx-p.x)/dt;p.vy=(ny-p.y)/dt;    // 保留動量供下一階段繼承
+    p.x=nx;p.y=ny;
+    p.z+=((290-p.z)*.02)*dt;
+    p.spin+=.01*dt;
+  }
+  resolveCollisions(.1); // 旋轉中只做重疊分離，不出火花
 }
 function drawPlanet(p,dim){
   const pr=proj(p.x,p.y,p.z);
@@ -1028,14 +1058,16 @@ function playSample(k,g,delay,wet){
   }catch(e){return false;}
 }
 /* ---- 狀態機 ---- */
-const CORE={mode:'idle',t:0,energy:0,winner:null,shake:0};
-const PHASE_CAP={charge:'靈魂收束中',collide:'群星亂舞 · 命運相撞',
+const CORE={mode:'idle',t:0,energy:0,winner:null,shake:0,cstage:-1};
+const PHASE_CAP={charge:'靈魂收束中',collide:'群星匯聚',
   comet:'彗星來了——',boom:'',slots:'',reveal:''};
-function setMode(m){
-  CORE.mode=m;CORE.t=0;
+function setCap(t){
   const pc=document.getElementById('phaseCap');
-  const t=PHASE_CAP[m]||'';
   pc.textContent=t;pc.style.opacity=t?1:0;
+}
+function setMode(m){
+  CORE.mode=m;CORE.t=0;CORE.cstage=-1;
+  setCap(PHASE_CAP[m]||'');
 }
 
 function updateCore(dt,now){
@@ -1049,8 +1081,22 @@ function updateCore(dt,now){
     case 'collide':{
       const D=curTier().collide, p=Math.min(1,CORE.t/D);
       CORE.energy=.4+p*.4;
-      // v9.2：前 70% 引力近零（滿場亂舞），最後 30% 引力急升（向爆心收攏）
-      updatePlanets(dt,.3+p*1.1,p<.7?.05:.05+((p-.7)/.3)*1.35);
+      // v9.4 五段節奏：匯聚(18%) → 旋轉加速(44%) → 相撞(18%) → 收束(20%) → comet
+      let stage;
+      if(p<.18)stage=0;else if(p<.62)stage=1;else if(p<.8)stage=2;else stage=3;
+      if(stage!==CORE.cstage){
+        CORE.cstage=stage;
+        setCap(['群星匯聚','星軌加速旋轉','命運相撞','向虛空收束'][stage]);
+        if(stage===1)tone(70,520,(.62-.18)*D/1000,.07,'sawtooth','dist',.35); // 旋轉加速 riser
+        if(stage===2)blip(240,.25,.07,'square');
+      }
+      if(stage===0)updatePlanets(dt,.45,.12);                       // 畫面外湧入
+      else if(stage===1){                                           // 星軌旋轉，角速度平方加速
+        const q=(p-.18)/.44;
+        orbitPlanets(dt,.012+q*q*.11,.9988);
+      }
+      else if(stage===2)updatePlanets(dt,1.6,.4);                   // 星軌解體，全場互撞
+      else updatePlanets(dt,1.2,.4+((p-.8)/.2)*1.2);                // 向爆心收束
       if(p>.8)CORE.shake=Math.max(CORE.shake,(p-.8)*8);
       if(CORE.t>D){comet.trail.length=0;whoosh();setMode('comet');}
       break;

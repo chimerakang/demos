@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOID://JACKPOT v9 — 星隕拉霸（優化版）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;600;700&family=Share+Tech+Mono&family=Noto+Sans+TC:wght@300;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#020108}
+body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-select:none}
+#world{position:fixed;inset:0;display:block}
+/* v9：掃描線疊層（純靜態 CSS，幾乎零成本的 CRT 質感） */
+#scan{position:fixed;inset:0;z-index:15;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(2,4,14,.16) 0 1px,transparent 1px 3px)}
+
+.holo{position:fixed;z-index:20;pointer-events:none;font-family:'Share Tech Mono',monospace}
+#hudTop{top:22px;left:50%;transform:translateX(-50%);text-align:center}
+#hudTop .t1{font-size:11px;letter-spacing:.8em;text-indent:.8em;color:rgba(120,220,255,.55)}
+#hudTop .t2{margin-top:6px;font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
+  font-size:clamp(18px,3vw,26px);letter-spacing:.5em;text-indent:.5em;
+  color:#eaf6ff;text-shadow:0 0 20px rgba(0,200,255,.6),0 0 60px rgba(160,80,255,.4)}
+#hudInfo{bottom:110px;left:50%;transform:translateX(-50%);
+  font-size:11px;letter-spacing:.35em;color:rgba(150,180,255,.45);text-align:center;white-space:nowrap}
+#verTag{left:26px;bottom:26px;font-size:10px;letter-spacing:.3em;color:rgba(120,160,255,.4)}
+#phaseCap{top:14%;left:50%;transform:translateX(-50%);
+  font-family:'Chakra Petch','Noto Sans TC';font-weight:600;
+  font-size:clamp(14px,2.4vw,20px);letter-spacing:.6em;text-indent:.6em;
+  color:rgba(255,120,210,.9);text-shadow:0 0 14px rgba(255,60,180,.7);
+  opacity:0;transition:opacity .3s}
+#errBox{position:fixed;z-index:99;left:8px;top:8px;max-width:80vw;font:11px monospace;
+  color:#ff8;background:rgba(80,0,0,.7);padding:6px 8px;display:none;white-space:pre-wrap}
+#ledger{position:fixed;z-index:20;left:26px;top:50%;transform:translateY(-50%);
+  pointer-events:none;font-family:'Share Tech Mono',monospace;font-size:11px;
+  letter-spacing:.15em;line-height:2.1;color:rgba(150,190,255,.55);max-width:34vw}
+#ledger .lg-t1{color:#ffe066;text-shadow:0 0 10px rgba(255,220,110,.5)}
+#ledger .lg-t2{color:#ff8fd2;text-shadow:0 0 8px rgba(255,60,180,.4)}
+#ledger .lg-t3{color:#7fe8ff;text-shadow:0 0 8px rgba(0,230,255,.4)}
+#ledger .lg-h{color:rgba(140,230,255,.5);letter-spacing:.4em;margin-bottom:2px}
+
+#sigil{
+  position:fixed;z-index:30;bottom:34px;left:50%;transform:translateX(-50%);
+  width:74px;height:74px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:#dffbff;font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
+  font-size:14px;letter-spacing:.2em;text-indent:.2em;
+  background:radial-gradient(circle at 50% 35%,rgba(0,230,255,.25),rgba(10,5,30,.85) 70%);
+  border:1px solid rgba(0,230,255,.6);
+  box-shadow:0 0 24px rgba(0,230,255,.35),inset 0 0 18px rgba(0,230,255,.2);
+  transition:transform .2s,box-shadow .25s,opacity .3s}
+#sigil::before,#sigil::after{content:"";position:absolute;inset:-9px;border-radius:50%;
+  border:1px dashed rgba(0,230,255,.35);animation:sigilSpin 10s linear infinite}
+#sigil::after{inset:-18px;border-color:rgba(255,60,180,.25);animation-duration:16s;animation-direction:reverse}
+@keyframes sigilSpin{to{transform:rotate(360deg)}}
+#sigil:hover{transform:translateX(-50%) scale(1.08)}
+#sigil.busy{pointer-events:none;opacity:.35}
+
+#gate{position:fixed;z-index:40;right:26px;top:26px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;
+  color:rgba(140,230,255,.7);padding:10px 14px;
+  border:1px solid rgba(0,230,255,.3);border-radius:2px;
+  background:rgba(4,8,24,.6);transition:all .2s}
+#gate:hover{color:#dffbff;border-color:rgba(0,230,255,.8)}
+
+#uplink{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  background:rgba(2,1,10,.55);backdrop-filter:blur(10px);
+  opacity:0;pointer-events:none;transition:opacity .3s}
+#uplink.open{opacity:1;pointer-events:auto}
+.uplinkBox{width:min(560px,90vw);text-align:center}
+.uplinkBox .cap{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.6em;text-indent:.6em;
+  color:rgba(140,230,255,.7);margin-bottom:16px}
+#nameInput{width:100%;min-height:180px;resize:vertical;background:transparent;
+  border:0;border-top:1px solid rgba(0,230,255,.4);border-bottom:1px solid rgba(255,60,180,.4);
+  color:#dffbff;font-family:'Share Tech Mono','Noto Sans TC',monospace;font-size:16px;
+  padding:18px 10px;line-height:2;outline:none;text-align:center;letter-spacing:.1em;
+  text-shadow:0 0 8px rgba(0,230,255,.5)}
+.uplinkRow{margin-top:18px;display:flex;gap:22px;justify-content:center;align-items:center;
+  font-size:12px;color:rgba(170,200,255,.6);letter-spacing:.15em;flex-wrap:wrap}
+.uplinkRow input[type=checkbox]{accent-color:#ff3cb4}
+.tierNum{width:52px;background:rgba(4,8,24,.6);border:1px solid rgba(0,230,255,.35);
+  color:#dffbff;font-family:'Share Tech Mono';font-size:14px;text-align:center;padding:6px 2px;outline:none}
+.holoBtn{cursor:pointer;background:none;border:1px solid rgba(0,230,255,.5);color:#bff4ff;
+  font-family:'Chakra Petch','Noto Sans TC';font-size:13px;letter-spacing:.3em;text-indent:.3em;
+  padding:10px 26px;transition:all .2s}
+.holoBtn:hover{background:rgba(0,230,255,.1)}
+
+#goldFrame{position:fixed;inset:0;z-index:44;pointer-events:none;opacity:0;transition:opacity .5s;
+  box-shadow:inset 0 0 120px rgba(255,190,60,.35),inset 0 0 30px rgba(255,220,110,.3)}
+#goldFrame.on{opacity:1}
+
+#reveal{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;pointer-events:none;opacity:0;transition:opacity .4s}
+#reveal.show{opacity:1;pointer-events:auto}
+#reveal .rl{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.9em;text-indent:.9em;
+  color:#8ff3ff;opacity:0}
+#reveal.show .rl{animation:rIn .6s .2s both}
+#reveal .tierTag{font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
+  font-size:clamp(15px,2.6vw,22px);letter-spacing:.8em;text-indent:.8em;opacity:0;
+  padding:8px 22px;border:1px solid currentColor}
+#reveal.show .tierTag{animation:rIn .5s .1s both}
+#reveal.t3 .tierTag{color:#5be6ff}
+#reveal.t2 .tierTag{color:#ff6ec7}
+#reveal.t1 .tierTag{color:#ffe066;box-shadow:0 0 24px rgba(255,220,110,.35),inset 0 0 14px rgba(255,220,110,.15)}
+#winTxt{font-family:'Chakra Petch','Noto Sans TC';font-weight:900;text-align:center;
+  font-size:clamp(46px,11vw,130px);letter-spacing:.04em;padding:0 4vw;max-width:96vw;word-break:break-all;color:#fff}
+#reveal.t3 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(0,230,255,1),0 0 90px rgba(0,180,255,.8)}
+#reveal.t2 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(255,60,180,1),0 0 90px rgba(200,80,255,.8)}
+#reveal.t1 #winTxt{background:linear-gradient(105deg,#ffe066 0%,#fff8d6 18%,#ffd75e 32%,#fffbe8 50%,#ffe066 66%,#ff9f1c 84%,#ffe066 100%);
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 20px rgba(255,220,110,.95)) drop-shadow(0 0 90px rgba(255,160,0,.6))}
+#reveal.show #winTxt{animation:wIn .8s cubic-bezier(.15,1.6,.3,1) both}
+/* v9：頭獎金字流光 */
+#reveal.t1.show #winTxt{animation:wIn .8s cubic-bezier(.15,1.6,.3,1) both,shimmer 3s linear 1.2s infinite}
+@keyframes shimmer{from{background-position:0 0}to{background-position:200% 0}}
+@keyframes wIn{0%{transform:scale(.1);opacity:0;filter:blur(20px)}
+  55%{transform:scale(1.15);opacity:1;filter:blur(0)}100%{transform:scale(1)}}
+#reveal .rc{font-weight:700;font-size:clamp(16px,3vw,24px);letter-spacing:.7em;text-indent:.7em;
+  color:#ffd9f0;text-shadow:0 0 16px rgba(255,60,180,.8);opacity:0}
+#reveal.show .rc{animation:rIn .6s .5s both}
+#reveal .ra{display:flex;gap:22px;margin-top:14px;opacity:0}
+#reveal.show .ra{animation:rIn .6s .8s both}
+@keyframes rIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+#flash{position:fixed;inset:0;z-index:45;background:#fff;opacity:0;pointer-events:none}
+#flash.go{animation:fl .7s ease-out}
+@keyframes fl{0%{opacity:1}100%{opacity:0}}
+
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<div id="scan"></div>
+
+<div class="holo" id="hudTop">
+  <div class="t1">VOID PROTOCOL // 接入完成</div>
+  <div class="t2">星 隕 抽 選 儀 式</div>
+</div>
+<div class="holo" id="hudInfo">在場靈魂 0</div>
+<div class="holo" id="verTag">BUILD v9.1 // OPTIMIZED FX+</div>
+<div class="holo" id="phaseCap"></div>
+<div id="errBox"></div>
+<div class="holo" id="ledger"></div>
+
+<div id="sigil" title="啟動抽選">啟動</div>
+<div id="gate">⟟ 靈魂名單</div>
+<div id="muteBtn" style="position:fixed;z-index:40;right:26px;top:74px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;
+  color:rgba(140,230,255,.7);padding:10px 14px;border:1px solid rgba(0,230,255,.3);
+  border-radius:2px;background:rgba(4,8,24,.6)">♪ ON</div>
+
+<div id="uplink">
+  <div class="uplinkBox">
+    <div class="cap">SOUL UPLINK // 每行一個名字</div>
+    <textarea id="nameInput" spellcheck="false">V
+Johnny
+Judy
+Panam
+Jackie
+River
+Kerry
+Rogue</textarea>
+    <div class="uplinkRow">
+      <label>三獎 <input class="tierNum" type="number" id="cnt3" value="3" min="0" max="99"></label>
+      <label>二獎 <input class="tierNum" type="number" id="cnt2" value="2" min="0" max="99"></label>
+      <label>頭獎 <input class="tierNum" type="number" id="cnt1" value="1" min="0" max="99"></label>
+    </div>
+    <div class="uplinkRow">
+      <label><input type="checkbox" id="removeWinner" checked>中選者離開此空間</label>
+      <button class="holoBtn" id="resetBtn">重 置 抽 選</button>
+      <button class="holoBtn" id="uplinkClose">回 到 虛 空</button>
+    </div>
+  </div>
+</div>
+
+<div id="goldFrame"></div>
+<div id="flash"></div>
+
+<div id="reveal">
+  <div class="rl" id="revealRl">THE VOID HAS CHOSEN</div>
+  <div class="tierTag" id="tierTag">三 獎</div>
+  <div id="winTxt">—</div>
+  <div class="rc" id="revealRc">虛空選中了你</div>
+  <div class="ra">
+    <button class="holoBtn" id="againBtn">再 次 抽 選</button>
+    <button class="holoBtn" id="backBtn">返 回 虛 空</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+ 演出流程：
+ idle → charge(靈魂收束) → collide(滿場星球互撞)
+      → comet(彗星衝入) → boom(大爆炸+衝擊波)
+      → slots(拉霸轉輪減速鎖定 JACKPOT) → reveal
+ 效能（v9）：
+ - 不透明 context（alpha:false）+ desynchronized 提示
+ - 靜態背景（夜空/星雲/星野/天際線/霧/暗角）一次烘焙成離屏層
+ - 行星球體 / 光束 / 神光射線 / 名字標籤 全部預渲染 sprite
+ - 逐幀零 createGradient、零 measureText、粒子陣列原地壓實（零 GC）
+ - 自適應畫質：依平均幀時間自動升降 dust 數量與 bloom 層數
+========================================================= */
+const cv=document.getElementById('world');
+const ctx=cv.getContext('2d',{alpha:false,desynchronized:true});
+let W=0,H=0,CX=0,CY=0,DPR=1,staticDirty=true;
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=innerWidth;H=innerHeight;CX=W/2;CY=H*.46;
+  cv.width=W*DPR;cv.height=H*DPR;
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  staticDirty=true; // 靜態背景層在下一幀重建
+}
+addEventListener('resize',resize);resize();
+
+function makeGlow(color,size=64){
+  const c=document.createElement('canvas');c.width=c.height=size;
+  const g=c.getContext('2d');
+  const grad=g.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
+  grad.addColorStop(0,color);
+  grad.addColorStop(.35,color.replace(/[\d.]+\)$/,'0.4)'));
+  grad.addColorStop(1,color.replace(/[\d.]+\)$/,'0)'));
+  g.fillStyle=grad;g.fillRect(0,0,size,size);
+  return c;
+}
+const SPR={
+  cyan:makeGlow('rgba(0,230,255,1)'),
+  pink:makeGlow('rgba(255,60,180,1)'),
+  violet:makeGlow('rgba(160,80,255,1)'),
+  gold:makeGlow('rgba(255,220,110,1)'),
+  white:makeGlow('rgba(240,250,255,1)')
+};
+const SPRKEYS=['cyan','pink','violet'];
+const PCOLS=[ // 行星配色 [亮,暗,rgb字串,glow鍵]
+  ['#39e6ff','#0a4d66','0,230,255','cyan'],
+  ['#ff6ec7','#6a1248','255,60,180','pink'],
+  ['#b98cff','#38176e','160,80,255','violet'],
+  ['#ffd97a','#7a5a10','255,220,110','gold'],
+  ['#7dffcf','#0e5a44','120,255,200','cyan'],
+  ['#ff9e6e','#7a3212','255,150,90','pink']
+];
+const FOV=520;
+function proj(x,y,z){const s=FOV/(FOV+z);return {x:CX+x*s,y:CY+y*s,s};}
+
+/* ---- v9 預渲染資產：一次生成，逐幀只做 drawImage ---- */
+// 垂直光束 sprite（取代逐幀 createLinearGradient×36）
+function makeStreak(rgb,size=64){
+  const c=document.createElement('canvas');c.width=8;c.height=size;
+  const g=c.getContext('2d');
+  const grad=g.createLinearGradient(0,0,0,size);
+  grad.addColorStop(0,`rgba(${rgb},1)`);
+  grad.addColorStop(1,`rgba(${rgb},0)`);
+  g.fillStyle=grad;g.fillRect(0,0,8,size);
+  return c;
+}
+const STREAK={cyan:makeStreak('0,230,255'),pink:makeStreak('255,60,180')};
+// 行星球體 sprite：光影漸層 + 緯度紋理帶 + 晨昏線（取代逐幀 createRadialGradient）
+function makePlanetSprite(col){
+  const S=128,R=S/2-2;
+  const c=document.createElement('canvas');c.width=c.height=S;
+  const g=c.getContext('2d');
+  const bg=g.createRadialGradient(S/2-R*.35,S/2-R*.4,R*.1,S/2,S/2,R);
+  bg.addColorStop(0,'#ffffff');bg.addColorStop(.28,col[0]);bg.addColorStop(1,col[1]);
+  g.fillStyle=bg;g.beginPath();g.arc(S/2,S/2,R,0,6.28);g.fill();
+  g.save();g.beginPath();g.arc(S/2,S/2,R,0,6.28);g.clip();
+  g.globalAlpha=.18;g.fillStyle=col[1];
+  for(let i=0;i<3;i++){
+    g.beginPath();g.ellipse(S/2,S*.3+i*S*.2,R*1.05,S*.045+i*2.5,-.15,0,6.28);g.fill();
+  }
+  const sh=g.createRadialGradient(S/2+R*.55,S/2+R*.6,R*.2,S/2,S/2,R*1.4);
+  sh.addColorStop(0,'rgba(2,1,10,.5)');sh.addColorStop(.55,'rgba(2,1,10,0)');
+  g.globalAlpha=1;g.fillStyle=sh;g.fillRect(0,0,S,S);
+  g.restore();
+  return c;
+}
+PCOLS.forEach(col=>col.push(makePlanetSprite(col))); // col[4] = 球體 sprite
+// 神光射線 sprite：20 條漸層光束一次烘焙（取代逐幀 createLinearGradient×20）
+const RAYSPR=(function(){
+  const S=1024,c=document.createElement('canvas');c.width=c.height=S;
+  const g=c.getContext('2d'),L=S/2;
+  g.translate(L,L);g.globalCompositeOperation='lighter';
+  for(let i=0;i<20;i++){
+    const a=i*(6.28/20),lw=5+((i*37)%15);
+    const gr=g.createLinearGradient(0,0,Math.cos(a)*L,Math.sin(a)*L);
+    gr.addColorStop(0,'rgba(255,232,160,.4)');
+    gr.addColorStop(.45,'rgba(255,180,80,.14)');
+    gr.addColorStop(1,'rgba(255,180,80,0)');
+    g.strokeStyle=gr;g.lineWidth=lw;
+    g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(a)*L,Math.sin(a)*L);g.stroke();
+  }
+  return c;
+})();
+/* ---- v9.1 FX+ 追加資產 ---- */
+STREAK.white=makeStreak('240,250,255');
+// 極光帶：三條正弦色帶多次疊描模擬柔焦，一次烘焙
+const AURORA=(function(){
+  const w=1024,h=300,c=document.createElement('canvas');c.width=w;c.height=h;
+  const g=c.getContext('2d');
+  g.globalCompositeOperation='lighter';g.lineCap='round';
+  const cols=['0,230,255','160,80,255','255,60,180'];
+  for(let i=0;i<3;i++){
+    const yc=h*(.28+i*.2),amp=26+i*16;
+    for(let pass=0;pass<5;pass++){
+      g.lineWidth=18+pass*20;g.globalAlpha=.05;
+      g.strokeStyle=`rgb(${cols[i]})`;
+      g.beginPath();
+      for(let x=0;x<=w;x+=16){
+        const y=yc+Math.sin(x*.012+i*2.1)*amp;
+        x===0?g.moveTo(x,y):g.lineTo(x,y);
+      }
+      g.stroke();
+    }
+  }
+  return c;
+})();
+// 追光燈光錐
+const CONE=(function(){
+  const w=256,h=512,c=document.createElement('canvas');c.width=w;c.height=h;
+  const g=c.getContext('2d');
+  const grad=g.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'rgba(255,235,170,.55)');
+  grad.addColorStop(1,'rgba(255,235,170,0)');
+  g.fillStyle=grad;
+  g.beginPath();g.moveTo(w/2,0);g.lineTo(0,h);g.lineTo(w,h);g.closePath();g.fill();
+  return c;
+})();
+// 十字光芒星（閃爍用）
+const STARSPR=(function(){
+  const s=48,c=document.createElement('canvas');c.width=c.height=s;
+  const g=c.getContext('2d');
+  g.drawImage(SPR.white,s*.3,s*.3,s*.4,s*.4);
+  g.globalCompositeOperation='lighter';
+  const hg=g.createLinearGradient(0,0,s,0);
+  hg.addColorStop(0,'rgba(240,250,255,0)');hg.addColorStop(.5,'rgba(240,250,255,.9)');hg.addColorStop(1,'rgba(240,250,255,0)');
+  g.fillStyle=hg;g.fillRect(0,s/2-.8,s,1.6);
+  const vg2=g.createLinearGradient(0,0,0,s);
+  vg2.addColorStop(0,'rgba(240,250,255,0)');vg2.addColorStop(.5,'rgba(240,250,255,.9)');vg2.addColorStop(1,'rgba(240,250,255,0)');
+  g.fillStyle=vg2;g.fillRect(s/2-.8,0,1.6,s);
+  return c;
+})();
+// 閃爍星位置種子（畫面比例座標）
+const TWK=[];
+for(let i=0;i<26;i++)TWK.push({x:Math.random(),y:Math.random()*.58,ph:Math.random()*6.28,sp:.5+Math.random()*1.3,sz:10+Math.random()*18});
+// 名字標籤快取：離屏繪字一次，逐幀縮放 drawImage（省去 measureText / 字型解析 / fillText）
+const LABELS=new Map();
+function getLabel(name,style){ // style: 'planet' | 'soulF'(前) | 'soulB'(後)
+  const key=style+'|'+name;
+  let l=LABELS.get(key);
+  if(l)return l;
+  const px=32,pad=8;
+  const c=document.createElement('canvas');
+  const g=c.getContext('2d');
+  const font=(style==='planet'?'700':'300')+' '+px+"px 'Noto Sans TC','Chakra Petch'";
+  g.font=font;
+  const tw=Math.ceil(g.measureText(name).width);
+  c.width=tw+pad*2;c.height=px+pad*2;
+  g.font=font;g.textAlign='center';g.textBaseline='middle';
+  if(style==='planet'){
+    g.fillStyle='rgba(6,2,16,.85)';g.fillText(name,c.width/2,c.height/2+1.5);
+    g.fillStyle='#fff';g.fillText(name,c.width/2,c.height/2);
+  }else{
+    g.fillStyle=style==='soulF'?'rgba(140,230,255,.95)':'rgba(120,150,220,.7)';
+    g.fillText(name,c.width/2,c.height/2);
+  }
+  if(LABELS.size>400)LABELS.clear(); // 防止名單頻繁更換時無限成長
+  l={c,w:c.width,h:c.height,tw,px};
+  LABELS.set(key,l);
+  return l;
+}
+// 網頁字型載入完成後清掉以 fallback 字型烘的標籤，下一幀自動以正式字型重建
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>LABELS.clear());
+
+/* ---- 背景 ---- */
+const dust=[];
+for(let i=0;i<180;i++){
+  dust.push({r:200+Math.random()*900,a:Math.random()*Math.PI*2,y:(Math.random()-.5)*760,
+    sp:(Math.random()*.0012+.0003)*(Math.random()<.5?1:-1),
+    sz:Math.random()*14+5,k:SPRKEYS[Math.random()*3|0],tw:Math.random()*6.28});
+}
+const streams=[];
+for(let i=0;i<36;i++){
+  streams.push({x:(Math.random()-.5)*1600,z:Math.random()*1400-200,
+    y:400+Math.random()*600,v:1.2+Math.random()*2.4,
+    len:60+Math.random()*140,k:Math.random()<.7?'cyan':'pink'});
+}
+const skyline=[];
+{let x=-1700;while(x<1700){
+  const w=60+Math.random()*140,h=120+Math.random()*420;
+  skyline.push({x,w,h,win:Math.random()});x+=w+10+Math.random()*40;}}
+
+/* ---- v9 靜態背景層：夜空漸層+星雲+星野+天際線+地平霧 一次烘焙 ---- */
+const staticBG=document.createElement('canvas'),sbx=staticBG.getContext('2d');
+const vignette=document.createElement('canvas'),vgx=vignette.getContext('2d');
+const starSeed=[];
+for(let i=0;i<140;i++)starSeed.push([Math.random(),Math.random(),Math.random()]);
+function buildStaticLayers(){
+  staticDirty=false;
+  staticBG.width=W*DPR;staticBG.height=H*DPR;
+  sbx.setTransform(DPR,0,0,DPR,0,0);
+  // 夜空漸層
+  const bgGrad=sbx.createLinearGradient(0,0,0,H);
+  bgGrad.addColorStop(0,'#050213');bgGrad.addColorStop(.55,'#0a0524');bgGrad.addColorStop(1,'#02010a');
+  sbx.fillStyle=bgGrad;sbx.fillRect(0,0,W,H);
+  // 星雲（美術強化：拉開空間深度）
+  sbx.globalCompositeOperation='lighter';
+  sbx.globalAlpha=.13;
+  sbx.drawImage(SPR.violet,W*.1,H*.02,W*.52,W*.52);
+  sbx.drawImage(SPR.cyan,W*.55,H*.26,W*.42,W*.42);
+  sbx.globalAlpha=.09;
+  sbx.drawImage(SPR.pink,W*.3,H*.38,W*.36,W*.36);
+  // 星野
+  for(const s of starSeed){
+    const r=.4+s[2]*1.2;
+    sbx.globalAlpha=.25+s[2]*.6;
+    sbx.fillStyle='#cfe8ff';
+    sbx.fillRect(s[0]*W,s[1]*H*.68,r,r);
+  }
+  sbx.globalAlpha=1;
+  sbx.globalCompositeOperation='source-over';
+  // 天際線
+  const hor=H*.72;
+  for(const b of skyline){
+    const p=proj(b.x,0,900);const bw=b.w*p.s,bh=b.h*p.s;
+    sbx.fillStyle='rgba(8,4,26,.92)';
+    sbx.fillRect(p.x-bw/2,hor-bh,bw,bh);
+    sbx.fillStyle=b.win<.5?'rgba(0,230,255,.14)':'rgba(255,60,180,.12)';
+    for(let wy=hor-bh+8;wy<hor-6;wy+=14){
+      if(((wy*7+b.x)|0)%3===0)sbx.fillRect(p.x-bw/2+4,wy,bw-8,2);
+    }
+  }
+  // 地平霧
+  const fog=sbx.createLinearGradient(0,hor-90,0,hor+50);
+  fog.addColorStop(0,'rgba(160,80,255,0)');fog.addColorStop(.6,'rgba(120,40,220,.16)');fog.addColorStop(1,'rgba(0,230,255,.10)');
+  sbx.fillStyle=fog;sbx.fillRect(0,hor-90,W,140);
+  // 暗角（美術強化：視線聚焦畫面中心，以半解析度烘焙）
+  const vw=Math.max(2,W>>1),vh=Math.max(2,H>>1);
+  vignette.width=vw;vignette.height=vh;
+  const vg=vgx.createRadialGradient(vw/2,vh*.46,Math.min(vw,vh)*.42,vw/2,vh/2,Math.hypot(vw,vh)*.72);
+  vg.addColorStop(0,'rgba(0,0,5,0)');vg.addColorStop(1,'rgba(0,0,5,.55)');
+  vgx.fillStyle=vg;vgx.fillRect(0,0,vw,vh);
+}
+
+/* ---- v9 自適應畫質：以平均幀時間自動升降特效等級 ---- */
+const QLEVELS=[
+  {dust:180,bloom:2},  // L0 全特效
+  {dust:120,bloom:2},  // L1
+  {dust:80, bloom:1},  // L2 單層 bloom
+  {dust:50, bloom:0}   // L3 關 bloom（低階手機保底）
+];
+const PERF={lvl:0,acc:0,n:0,good:0};
+function perfSample(ms){
+  PERF.acc+=ms;PERF.n++;
+  if(PERF.n<90)return;               // 每 ~1.5 秒評估一次
+  const avg=PERF.acc/PERF.n;PERF.acc=0;PERF.n=0;
+  if(avg>26&&PERF.lvl<QLEVELS.length-1){PERF.lvl++;PERF.good=0;}          // 掉幀 → 降級
+  else if(avg<17&&PERF.lvl>0&&++PERF.good>=2){PERF.lvl--;PERF.good=0;}    // 連續兩窗都順 → 升級
+}
+
+/* ---- 獎項制度 ---- */
+const TIERS=[
+  {key:'t3',label:'三獎',en:'THIRD PRIZE',rc:'三獎得主',jack:'WIN',
+   collide:3400,slots:2300,sparks:150},
+  {key:'t2',label:'二獎',en:'SECOND PRIZE',rc:'二獎得主',jack:'BIG WIN',
+   collide:4400,slots:2700,sparks:220},
+  {key:'t1',label:'頭獎',en:'GRAND PRIZE',rc:'頭獎降臨',jack:'JACKPOT',
+   collide:5800,slots:3300,sparks:340}
+];
+let tierIdx=0, tierDrawn=[0,0,0], winnersByTier=[[],[],[]];
+function tierCounts(){
+  return ['cnt3','cnt2','cnt1'].map(id=>Math.max(0,parseInt(document.getElementById(id).value)||0));
+}
+function curTier(){return TIERS[Math.min(tierIdx,2)];}
+function advanceTier(){
+  const c=tierCounts();
+  while(tierIdx<TIERS.length&&tierDrawn[tierIdx]>=c[tierIdx])tierIdx++;
+}
+function allDone(){advanceTier();return tierIdx>=TIERS.length;}
+
+/* ---- 靈魂（idle 環繞名） ---- */
+let souls=[];
+function rebuildSouls(){
+  const pool=getPool();
+  souls=pool.map((name,i)=>({
+    name,a:(i/Math.max(pool.length,1))*Math.PI*2+Math.random()*.3,
+    r:250+(i%3)*55+Math.random()*30,y:(Math.random()-.5)*180,
+    sp:.0035+Math.random()*.002,pull:0
+  }));
+  updateHud(pool.length);
+}
+function updateHud(poolLen){
+  advanceTier();
+  const c=tierCounts();
+  if(!poolLen){hudInfo.textContent='點右上「靈魂名單」輸入名字';sigil.textContent='啟動';return;}
+  if(tierIdx>=TIERS.length){
+    hudInfo.textContent='所有獎項抽選完畢 · 儀式結束';
+    sigil.textContent='完成';return;
+  }
+  const t=curTier();
+  hudInfo.textContent=`在場靈魂 ${poolLen} · 當前獎項【${t.label}】第 ${tierDrawn[tierIdx]+1} / ${c[tierIdx]} 位`;
+  sigil.textContent=t.label;
+}
+function renderLedger(){
+  const rows=[];
+  for(let i=TIERS.length-1;i>=0;i--){
+    if(!winnersByTier[i].length)continue;
+    rows.push(`<div class="lg-h">${TIERS[i].en}</div>`);
+    winnersByTier[i].forEach(w=>rows.push(
+      `<div class="lg-${TIERS[i].key}">◈ ${TIERS[i].label} ─ ${w}</div>`));
+  }
+  document.getElementById('ledger').innerHTML=rows.join('');
+}
+
+/* ---- 行星群（滿場互撞） ---- */
+let planets=[];
+function spawnPlanets(){
+  const pool=getPool();
+  const N=Math.min(40,Math.max(26,pool.length*2));
+  planets=[];
+  for(let i=0;i<N;i++){
+    planets.push({
+      name:pool[i%pool.length],
+      x:(Math.random()-.5)*980,          // 佈滿整個畫面寬
+      y:(Math.random()-.5)*520,
+      z:Math.random()*460+60,
+      vx:(Math.random()-.5)*3.2,vy:(Math.random()-.5)*3.2,vz:(Math.random()-.5)*2.4,
+      r:16+Math.random()*20,             // 大顆行星
+      col:PCOLS[i%PCOLS.length],
+      ring:Math.random()<.4,             // 四成有行星環
+      ringA:Math.random()*.9+.15,        // 環傾角
+      spin:Math.random()*6.28
+    });
+  }
+}
+function updatePlanets(dt,intensity){
+  // 向心引力 + 亂流
+  for(const p of planets){
+    p.vx+=(-p.x*.0012)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
+    p.vy+=(-p.y*.0012)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
+    p.vz+=((290-p.z)*.0012)*intensity*dt+(Math.random()-.5)*.18*intensity*dt;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
+    p.spin+=.01*dt;
+    // 邊界柔性反彈
+    if(Math.abs(p.x)>560){p.vx-=Math.sign(p.x)*.4*dt;}
+    if(Math.abs(p.y)>320){p.vy-=Math.sign(p.y)*.4*dt;}
+    if(p.z<40)p.vz+=.4*dt; if(p.z>560)p.vz-=.4*dt;
+    const spd=Math.hypot(p.vx,p.vy,p.vz),maxS=4.5+intensity*5;
+    if(spd>maxS){const k=maxS/spd;p.vx*=k;p.vy*=k;p.vz*=k;}
+  }
+  // 兩兩碰撞（N≤40，O(n²) 無壓力）
+  for(let i=0;i<planets.length;i++)for(let j=i+1;j<planets.length;j++){
+    const a=planets[i],b=planets[j];
+    const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;
+    const d=Math.hypot(dx,dy,dz),minD=a.r+b.r;
+    if(d<minD&&d>0){
+      const nx=dx/d,ny=dy/d,nz=dz/d;
+      const overlap=(minD-d)/2;
+      a.x-=nx*overlap;a.y-=ny*overlap;a.z-=nz*overlap;
+      b.x+=nx*overlap;b.y+=ny*overlap;b.z+=nz*overlap;
+      const rel=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny+(b.vz-a.vz)*nz;
+      if(rel<0){
+        const imp=-rel*.9;
+        a.vx-=nx*imp;a.vy-=ny*imp;a.vz-=nz*imp;
+        b.vx+=nx*imp;b.vy+=ny*imp;b.vz+=nz*imp;
+        // 撞擊火花
+        if(intensity>.15&&Math.abs(rel)>1.2){
+          const mp=proj((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);
+          if(mp.s>0)impactSpark(mp.x,mp.y,Math.min(8,2+Math.abs(rel)));
+          rattle();
+        }
+      }
+    }
+  }
+}
+function drawPlanet(p,dim){
+  const pr=proj(p.x,p.y,p.z);
+  if(pr.s<=0)return;
+  const rad=Math.max(4,p.r*pr.s);
+  // v9.1：運動殘影（沿速度反方向補一枚淡 glow，高速時產生拖尾感）
+  if(FXON&&(p.vx*p.vx+p.vy*p.vy)>2.2){
+    ctx.globalAlpha=.22*dim;
+    const tsz=rad*2.6;
+    ctx.drawImage(SPR[p.col[3]],pr.x-p.vx*2.2*pr.s-tsz/2,pr.y-p.vy*2.2*pr.s-tsz/2,tsz,tsz);
+  }
+  ctx.globalAlpha=.55*dim;
+  const gsz=rad*3.4;
+  ctx.drawImage(SPR[p.col[3]],pr.x-gsz/2,pr.y-gsz/2,gsz,gsz);
+  // 行星環（後半）
+  if(p.ring){
+    ctx.globalAlpha=.5*dim;
+    ctx.strokeStyle=`rgba(${p.col[2]},.7)`;
+    ctx.lineWidth=Math.max(1,rad*.1);
+    ctx.beginPath();
+    ctx.ellipse(pr.x,pr.y,rad*1.9,rad*1.9*p.ringA*.3,p.spin*.2,Math.PI,Math.PI*2);
+    ctx.stroke();
+  }
+  // 球體（v9：預渲染 sprite，含紋理帶與晨昏線）
+  ctx.globalAlpha=dim;
+  ctx.drawImage(p.col[4],pr.x-rad,pr.y-rad,rad*2,rad*2);
+  // 行星環（前半）
+  if(p.ring){
+    ctx.globalAlpha=.7*dim;
+    ctx.strokeStyle=`rgba(${p.col[2]},.85)`;
+    ctx.lineWidth=Math.max(1,rad*.12);
+    ctx.beginPath();
+    ctx.ellipse(pr.x,pr.y,rad*1.9,rad*1.9*p.ringA*.3,p.spin*.2,0,Math.PI);
+    ctx.stroke();
+  }
+  // 名字（v9：預渲染標籤快取）
+  const fs=rad*.55;
+  if(fs>=8){
+    const l=getLabel(p.name,'planet');
+    let sc=fs/l.px;
+    if(l.tw*sc>rad*1.7)sc=rad*1.7/l.tw;
+    ctx.drawImage(l.c,pr.x-l.w*sc/2,pr.y-l.h*sc/2,l.w*sc,l.h*sc);
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ---- 彗星 ---- */
+const comet={trail:[]};
+function cometPos(p){ // p 0→1
+  // 從右上外太空俯衝入場中心
+  const x0=760,y0=-560,z0=880, x1=0,y1=-10,z1=290;
+  const e=p*p; // 加速衝入
+  return {x:x0+(x1-x0)*e,y:y0+(y1-y0)*e,z:z0+(z1-z0)*e};
+}
+
+/* ---- 爆炸粒子 / 衝擊波 / 火花 ---- */
+let sparks=[],rings=[],confetti=[],meteors=[],embers=[],influx=[],boomLight=0,rayAng=0;
+let FXON=true; // v9.1：追加特效總開關（由自適應畫質控制）
+function impactSpark(x,y,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*6.28,sp=Math.random()*5+2;
+    sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      life:1,decay:.03+Math.random()*.03,sz:Math.random()*8+4,k:'white'});
+  }
+}
+function burst(n,gold,ox,oy){
+  const bx=(ox===undefined?CX:ox),by=(oy===undefined?CY:oy);
+  for(let i=0;i<n;i++){
+    const a=Math.random()*6.28,sp=Math.random()*18+5,up=Math.random()*8;
+    sparks.push({x:bx,y:by,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-up,
+      life:1,decay:.005+Math.random()*.009,sz:Math.random()*22+8,
+      k:gold?(Math.random()<.6?'gold':'white'):SPRKEYS[Math.random()*3|0]});
+  }
+}
+function shockwave(){
+  for(let i=0;i<3;i++)rings.push({r:20+i*30,v:14-i*3,life:1,decay:.016,gold:i===0});
+}
+/* v9：頭獎彩帶（旋轉矩形紙片，翻面用 sin 縮放模擬） */
+function spawnConfetti(n){
+  const cols=['#ffe066','#fff8d6','#ff6ec7','#5be6ff'];
+  for(let i=0;i<n;i++){
+    confetti.push({x:CX+(Math.random()-.5)*W*.6,y:-30-Math.random()*H*.35,
+      vx:(Math.random()-.5)*2.2,vy:2+Math.random()*3,
+      rot:Math.random()*6.28,vr:(Math.random()-.5)*.3,
+      w:6+Math.random()*7,h:4+Math.random()*5,
+      col:cols[Math.random()*cols.length|0],
+      life:1,decay:.0025+Math.random()*.002,ph:Math.random()*6.28});
+  }
+}
+/* v9.1：流星（idle 偶發；comet 階段轉為高速速度線） */
+function spawnMeteor(){
+  const fromL=Math.random()<.5;
+  meteors.push({x:Math.random()*W*.8+(fromL?0:W*.2),y:-40,
+    vx:(fromL?1:-1)*(2.5+Math.random()*3),vy:4+Math.random()*4,
+    len:80+Math.random()*90,life:1,decay:.006+Math.random()*.004});
+}
+/* v9.1：餘燼／螢火（爆炸後緩升飄散、開獎時於名字後方上飄） */
+function spawnEmbers(n,x,y,spread){
+  for(let i=0;i<n;i++){
+    embers.push({x:x+(Math.random()-.5)*spread,y:y+(Math.random()-.5)*spread*.5,
+      vx:(Math.random()-.5)*.6,vy:-(.4+Math.random()*.9),
+      sz:4+Math.random()*8,life:1,decay:.0016+Math.random()*.002,
+      ph:Math.random()*6.28,k:Math.random()<.7?'gold':'pink'});
+  }
+}
+/* v9.1：充能吸入粒子（charge 階段自畫面外緣螺旋墜入核心） */
+function spawnInflux(){
+  const r0=Math.max(W,H)*.55;
+  influx.push({a:Math.random()*6.28,r:r0,r0,
+    k:SPRKEYS[Math.random()*3|0],sz:6+Math.random()*10});
+}
+
+/* ---- 拉霸機 ---- */
+const REEL={items:[],targetIdx:0,dist:0,pos:0,itemH:64,slammed:false,slamT:0,tickIdx:0};
+let payGrad=null,payKey=''; // v9：中獎線漸層快取
+function setupReel(){
+  const pool=getPool();
+  // 轉輪內容：名單洗牌重複填滿
+  let items=[];
+  while(items.length<28)items=items.concat([...pool].sort(()=>Math.random()-.5));
+  items=items.slice(0,28);
+  // 目標：最後一格放中獎者
+  const target=22+ (Math.random()*4|0);
+  items[target%items.length]=CORE.winner;
+  REEL.items=items;
+  REEL.targetIdx=target;
+  REEL.dist=target;          // 總滾動距離（格）
+  REEL.pos=0;REEL.slammed=false;REEL.slamT=0;REEL.tickIdx=0;
+}
+const easeOutQuart=t=>1-Math.pow(1-t,4);
+function drawSlots(T,now){
+  const D=curTier().slots;
+  const p=Math.min(1,CORE.t/D);
+  // 滾動位置
+  if(!REEL.slammed){
+    REEL.pos=REEL.dist*easeOutQuart(p);
+    if(p>=1){REEL.slammed=true;REEL.slamT=now;slamFx();}
+  }
+  // 轉輪 tick 音
+  const idx=Math.floor(REEL.pos);
+  if(idx!==REEL.tickIdx&&!REEL.slammed){
+    REEL.tickIdx=idx;
+    tickSfx(1700+(1-p)*1700);
+  }
+
+  const fw=Math.min(540,W*.88), fh=REEL.itemH*3+34;
+  const fx=CX-fw/2, fy=CY-fh/2;
+
+  // 追光燈（v9.1：機台後方左右擺動的光錐）
+  if(FXON){
+    ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<2;i++){
+      const swing=Math.sin(T*1.3+i*Math.PI)*.5;
+      ctx.save();
+      ctx.translate(CX+(i?fw*.38:-fw*.38),fy-46);
+      ctx.rotate(swing);
+      ctx.globalAlpha=.2;
+      ctx.drawImage(CONE,-90,0,180,H*.55);
+      ctx.restore();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // 機框
+  ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle='rgba(8,4,26,.9)';
+  ctx.strokeStyle='rgba(255,220,110,.8)';
+  ctx.lineWidth=2.5;
+  roundRect(fx,fy,fw,fh,14);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(0,230,255,.4)';
+  ctx.lineWidth=1;
+  roundRect(fx+5,fy+5,fw-10,fh-10,10);ctx.stroke();
+
+  // 跑馬燈泡（沿框緣追逐閃爍）
+  ctx.globalCompositeOperation='lighter';
+  const bulbN=26,perim=2*(fw+fh);
+  for(let i=0;i<bulbN;i++){
+    let d=(i/bulbN)*perim+(T*260)%perim;d%=perim;
+    let bx,by;
+    if(d<fw){bx=fx+d;by=fy;}
+    else if(d<fw+fh){bx=fx+fw;by=fy+(d-fw);}
+    else if(d<fw*2+fh){bx=fx+fw-(d-fw-fh);by=fy+fh;}
+    else{bx=fx;by=fy+fh-(d-fw*2-fh);}
+    const on=REEL.slammed? (Math.sin(T*24+i)>0):(i%2===Math.floor(T*10)%2);
+    ctx.globalAlpha=on?.95:.15;
+    ctx.drawImage(SPR.gold,bx-9,by-9,18,18);
+  }
+  ctx.globalAlpha=1;
+
+  // JACKPOT 招牌
+  const jt=curTier().jack;
+  ctx.font=`900 ${Math.min(46,W*.08)}px 'Chakra Petch'`;
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  const strobe=REEL.slammed? (Math.sin(T*22)*.5+.5):.35+Math.sin(T*6)*.15;
+  ctx.globalAlpha=strobe;
+  ctx.fillStyle='#ffe066';
+  ctx.fillText(jt,CX,fy-14);
+  ctx.globalAlpha=strobe*.6;
+  ctx.fillStyle='#fff';
+  ctx.fillText(jt,CX,fy-14);
+  ctx.globalAlpha=1;
+
+  // 轉輪內容（裁切窗）
+  ctx.globalCompositeOperation='source-over';
+  ctx.save();
+  roundRect(fx+16,fy+17,fw-32,fh-34,8);ctx.clip();
+  const ih=REEL.itemH;
+  const centerY=fy+fh/2;
+  const blur=REEL.slammed?0:(1-p)*1; // 高速時畫殘影
+  for(let k=-2;k<=2;k++){
+    const idxK=Math.floor(REEL.pos)+k;
+    const frac=REEL.pos-Math.floor(REEL.pos);
+    const yy=centerY+(k-frac)*ih;
+    const name=REEL.items[((idxK%REEL.items.length)+REEL.items.length)%REEL.items.length];
+    const isPay=Math.abs(yy-centerY)<ih*.5;
+    ctx.font=`${isPay?'900':'300'} ${isPay?34:26}px 'Noto Sans TC','Chakra Petch'`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    if(blur>0.3){ // 殘影
+      ctx.globalAlpha=.25;
+      ctx.fillStyle='#7fd8ff';
+      ctx.fillText(name,CX,yy-8);ctx.fillText(name,CX,yy+8);
+    }
+    ctx.globalAlpha=isPay?1:.35;
+    ctx.fillStyle=isPay?(REEL.slammed?'#ffe066':'#eaf6ff'):'#8aa4d9';
+    ctx.fillText(name,CX,yy);
+  }
+  // 玻璃反光（v9 美術強化）
+  ctx.globalAlpha=.05;
+  ctx.fillStyle='#fff';
+  ctx.fillRect(fx+16,fy+17,fw-32,(fh-34)*.42);
+  ctx.restore();
+  ctx.globalAlpha=1;
+
+  // 中獎線（v9：漸層依框位置與狀態快取，不再逐幀重建）
+  ctx.globalCompositeOperation='lighter';
+  const pk=fx+'|'+fw+'|'+(REEL.slammed?1:0);
+  if(pk!==payKey){
+    payKey=pk;
+    payGrad=ctx.createLinearGradient(fx,0,fx+fw,0);
+    payGrad.addColorStop(0,'rgba(255,220,110,0)');
+    payGrad.addColorStop(.5,`rgba(255,220,110,${REEL.slammed?.9:.35})`);
+    payGrad.addColorStop(1,'rgba(255,220,110,0)');
+  }
+  ctx.strokeStyle=payGrad;ctx.lineWidth=REEL.slammed?3:1.5;
+  ctx.beginPath();ctx.moveTo(fx+10,centerY-ih/2);ctx.lineTo(fx+fw-10,centerY-ih/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(fx+10,centerY+ih/2);ctx.lineTo(fx+fw-10,centerY+ih/2);ctx.stroke();
+
+  // slam 後：金幣噴泉 + 停留後揭曉
+  if(REEL.slammed){
+    if(Math.random()<.4){
+      sparks.push({x:fx+Math.random()*fw,y:fy+fh,
+        vx:(Math.random()-.5)*4,vy:-(6+Math.random()*7),
+        life:1,decay:.012,sz:Math.random()*14+8,k:'gold'});
+    }
+    if(now-REEL.slamT>850){doReveal();}
+  }
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+function slamFx(){
+  CORE.shake=18;
+  boomLight=Math.max(boomLight,.55);rayAng=Math.random()*6.28;
+  flash.classList.remove('go');void flash.offsetWidth;flash.classList.add('go');
+  clunkSfx();                              // 停輪扣鎖
+  setTimeout(hammerSfx,110);               // 一錘定音（重錘 + 鑼鳴）
+  burst(140,true,CX,CY);
+}
+
+/* ---- 音效引擎 v2：失真飽和 + 卷積殘響 + 中頻重心（手機喇叭最佳化） ---- */
+let actx=null,master=null,revBus=null,distBus=null,noiseBuf=null,muted=false;
+function A(){
+  if(!actx){
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    // 母線：limiter 式壓縮
+    const comp=actx.createDynamicsCompressor();
+    comp.threshold.value=-10;comp.knee.value=8;comp.ratio.value=12;
+    comp.attack.value=.002;comp.release.value=.2;
+    master=actx.createGain();master.gain.value=1.25;
+    master.connect(comp);comp.connect(actx.destination);
+    // 白噪音源
+    noiseBuf=actx.createBuffer(1,actx.sampleRate*2,actx.sampleRate);
+    const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    // 卷積殘響：合成 1.8s 指數衰減脈衝
+    const rl=actx.sampleRate*1.8;
+    const ir=actx.createBuffer(2,rl,actx.sampleRate);
+    for(let ch=0;ch<2;ch++){
+      const cd=ir.getChannelData(ch);
+      for(let i=0;i<rl;i++)cd[i]=(Math.random()*2-1)*Math.pow(1-i/rl,2.2);
+    }
+    const conv=actx.createConvolver();conv.buffer=ir;
+    revBus=actx.createGain();revBus.gain.value=.4;
+    revBus.connect(conv);conv.connect(master);
+    // 失真飽和器：tanh 曲線產生諧波，讓手機喇叭「聽得到」低頻
+    const shaper=actx.createWaveShaper();
+    const N=1024,curve=new Float32Array(N);
+    for(let i=0;i<N;i++){const x=i/(N-1)*2-1;curve[i]=Math.tanh(x*3.2);}
+    shaper.curve=curve;shaper.oversample='2x';
+    distBus=actx.createGain();distBus.gain.value=.7;
+    distBus.connect(shaper);shaper.connect(master);
+    const distRev=actx.createGain();distRev.gain.value=.5;
+    shaper.connect(distRev);distRev.connect(revBus);
+  }
+  return actx;
+}
+/* dest：'dry' 直出 / 'dist' 過失真 / wet 送殘響量 0~1 */
+function playNoise(dur,g,fType,f0,f1,q,dest,wet){
+  if(muted)return;
+  try{const a=A(),src=a.createBufferSource();src.buffer=noiseBuf;src.loop=true;
+    const flt=a.createBiquadFilter();flt.type=fType;flt.Q.value=q||1;
+    flt.frequency.setValueAtTime(Math.max(f0,20),a.currentTime);
+    if(f1)flt.frequency.exponentialRampToValueAtTime(Math.max(f1,20),a.currentTime+dur*.9);
+    const gn=a.createGain();
+    gn.gain.setValueAtTime(g,a.currentTime);
+    gn.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);
+    src.connect(flt);flt.connect(gn);
+    gn.connect(dest==='dist'?distBus:master);
+    if(wet){const w=a.createGain();w.gain.value=wet;gn.connect(w);w.connect(revBus);}
+    src.start();src.stop(a.currentTime+dur+.05);}catch(e){}
+}
+function tone(f0,f1,dur,g,type,dest,wet){
+  if(muted)return;
+  try{const a=A(),o=a.createOscillator(),gn=a.createGain();
+    o.type=type||'sine';
+    o.frequency.setValueAtTime(Math.max(f0,10),a.currentTime);
+    if(f1&&f1!==f0)o.frequency.exponentialRampToValueAtTime(Math.max(f1,10),a.currentTime+dur*.92);
+    gn.gain.setValueAtTime(g,a.currentTime);
+    gn.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);
+    o.connect(gn);gn.connect(dest==='dist'?distBus:master);
+    if(wet){const w=a.createGain();w.gain.value=wet;gn.connect(w);w.connect(revBus);}
+    o.start();o.stop(a.currentTime+dur+.05);}catch(e){}
+}
+function blip(f,d,g,type){tone(f,f,d||.05,g||.04,type||'square');}
+/* 行星互撞：岩石悶擊（過失真+殘響，厚度up） */
+let lastRattle=0;
+function rattle(){
+  const now=performance.now();
+  if(now-lastRattle<80)return;
+  lastRattle=now;
+  playNoise(.11,.22,'lowpass',700+Math.random()*400,150,1,'dist',.3);
+  tone(140+Math.random()*80,60,.14,.14,'sine','dist',.2);
+}
+/* 彗星俯衝 */
+function whoosh(){
+  playNoise(1.05,.55,'bandpass',180,3600,2.2,'dry',.5);
+  playNoise(1.0,.3,'highpass',400,5000,1,'dry',.4);
+  tone(70,760,.95,.16,'sawtooth','dist',.3);
+}
+/* 大爆炸：能量搬到 150~800Hz + 失真諧波 + 空間殘響 + 碎屑劈啪 */
+function boomSfx(){
+  playNoise(1.8,1.0,'lowpass',3000,120,.7,'dist',.7);   // 主爆浪（過失真）
+  playNoise(.6,.7,'bandpass',300,140,1.2,'dist',.5);    // 中頻胸腔感
+  playNoise(.2,.8,'highpass',1800,null,1,'dry',.6);     // 碎裂脆響
+  tone(180,32,1.6,.6,'sine','dist',.4);                 // 沉降（帶諧波）
+  tone(320,90,.8,.3,'triangle','dist',.3);
+  // 碎屑劈啪：600ms 內隨機劈裂聲
+  for(let i=0;i<7;i++){
+    setTimeout(function(){
+      playNoise(.05,.3,'bandpass',1200+Math.random()*2400,null,5,'dry',.5);
+    },80+Math.random()*560);
+  }
+  setTimeout(function(){playNoise(1.4,.4,'lowpass',900,60,1,'dist',.8);},140);
+}
+/* 轉輪 tick */
+function tickSfx(f){playNoise(.03,.2,'bandpass',f||2400,null,7,'dry',.15);}
+/* 停輪扣鎖 */
+function clunkSfx(){
+  playNoise(.15,.7,'lowpass',520,120,1,'dist',.3);
+  tone(150,52,.26,.5,'sine','dist',.25);
+  tone(1500,1250,.07,.16,'square','dry',.3);
+}
+/* 一錘定音：鐵砧重錘 + 鑼鳴長殘響 */
+function hammerSfx(){
+  playNoise(.5,1.0,'lowpass',1100,90,1,'dist',.6);      // 錘體
+  playNoise(.12,.6,'bandpass',900,null,3,'dry',.5);     // 鐵砧鏗
+  tone(96,30,1.4,.7,'sine','dist',.4);                  // 震膛
+  tone(210,70,.7,.35,'triangle','dist',.35);
+  [196,311,466,702].forEach(function(f,i){              // 鑼鳴泛音
+    tone(f,f*.985,3.0-i*.4,.14-.02*i,'triangle','dry',.85);
+  });
+  playNoise(2.2,.15,'highpass',5200,2600,1,'dry',.9);   // 金屬光澤
+}
+function fanfare(){
+  if(muted)return;
+  try{const a=A();[392,523.25,659.25,783.99,1046.5,1318.5].forEach(function(f,i){
+    const o=a.createOscillator(),g=a.createGain(),t0=a.currentTime+i*.1;
+    o.type='sawtooth';o.frequency.value=f;
+    g.gain.setValueAtTime(.0001,t0);
+    g.gain.exponentialRampToValueAtTime(.13,t0+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,t0+.85);
+    o.connect(g);g.connect(master);
+    const w=a.createGain();w.gain.value=.4;g.connect(w);w.connect(revBus);
+    o.start(t0);o.stop(t0+.9);});}catch(e){}
+}
+/* ---- 狀態機 ---- */
+const CORE={mode:'idle',t:0,energy:0,winner:null,shake:0};
+const PHASE_CAP={charge:'靈魂收束中',collide:'群星亂舞 · 命運相撞',
+  comet:'彗星來了——',boom:'',slots:'',reveal:''};
+function setMode(m){
+  CORE.mode=m;CORE.t=0;
+  const pc=document.getElementById('phaseCap');
+  const t=PHASE_CAP[m]||'';
+  pc.textContent=t;pc.style.opacity=t?1:0;
+}
+
+function updateCore(dt,now){
+  CORE.t+=dt*16.67;
+  switch(CORE.mode){
+    case 'idle':CORE.energy=Math.max(0,CORE.energy-.01*dt);break;
+    case 'charge':
+      CORE.energy=Math.min(.4,CORE.energy+.012*dt);
+      if(CORE.t>1000){spawnPlanets();blip(300,.3,.06,'sine');setMode('collide');}
+      break;
+    case 'collide':{
+      const D=curTier().collide, p=Math.min(1,CORE.t/D);
+      CORE.energy=.4+p*.4;
+      updatePlanets(dt,.3+p*1.1);
+      if(p>.8)CORE.shake=Math.max(CORE.shake,(p-.8)*8);
+      if(CORE.t>D){comet.trail.length=0;whoosh();setMode('comet');}
+      break;
+    }
+    case 'comet':{
+      CORE.energy=.9;
+      updatePlanets(dt,.5);
+      if(CORE.t>920){
+        // 撞擊！
+        boomSfx();
+        boomLight=1;rayAng=Math.random()*6.28;
+        flash.classList.remove('go');void flash.offsetWidth;flash.classList.add('go');
+        CORE.shake=34;
+        shockwave();
+        // 所有行星化為爆炸碎片
+        for(const pl of planets){
+          const pp=proj(pl.x,pl.y,pl.z);
+          if(pp.s>0)for(let i=0;i<5;i++){
+            const a=Math.random()*6.28,sp=Math.random()*14+4;
+            sparks.push({x:pp.x,y:pp.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+              life:1,decay:.008+Math.random()*.01,sz:Math.random()*18+6,
+              k:pl.col[3]});
+          }
+        }
+        burst(260,true,CX,CY);
+        if(FXON)spawnEmbers(56,CX,CY,340); // v9.1：爆後餘燼緩升
+        planets=[];
+        setMode('boom');
+      }
+      break;
+    }
+    case 'boom':
+      CORE.energy=1;
+      if(CORE.t>620){setupReel();setMode('slots');}
+      break;
+    case 'slots':
+      CORE.energy=.85;
+      break; // 轉輪邏輯在 drawSlots
+    case 'reveal':
+      CORE.energy=Math.max(.2,CORE.energy-.008*dt);
+      break;
+  }
+}
+
+/* ---- 主渲染 ---- */
+let last=performance.now();
+function frame(now){
+  try{frameInner(now);}catch(e){
+    const eb=document.getElementById('errBox');
+    eb.style.display='block';
+    eb.textContent='RENDER ERROR ('+CORE.mode+'): '+e.message;
+    requestAnimationFrame(frame);return;
+  }
+}
+function frameInner(now){
+  const rawMs=now-last;
+  const dt=Math.min(rawMs,50)/16.67; last=now;
+  perfSample(rawMs);
+  if(staticDirty)buildStaticLayers();
+  const Q=QLEVELS[PERF.lvl];
+  FXON=PERF.lvl<2; // 低畫質等級自動關閉 v9.1 追加特效
+  const T=now*.001;
+  let sx=0,sy=0;
+  if(CORE.shake>0){
+    sx=(Math.random()-.5)*CORE.shake;sy=(Math.random()-.5)*CORE.shake;
+    CORE.shake*=.94;
+  }
+
+  ctx.globalCompositeOperation='source-over';
+  // v9：夜空+星雲+星野+天際線+霧 → 一次 drawImage（原本逐幀 2 個漸層 + 整條天際線重繪）
+  ctx.drawImage(staticBG,0,0,W,H);
+
+  if(FXON){
+    // v9.1：極光緩慢漂移 + 星光閃爍（皆為預渲染 sprite）
+    ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=.14+.07*Math.sin(T*.17);
+    ctx.drawImage(AURORA,Math.sin(T*.05)*W*.05-W*.05,H*.01,W*1.1,H*.34);
+    for(const s of TWK){
+      ctx.globalAlpha=.2+.55*(0.5+0.5*Math.sin(T*s.sp+s.ph));
+      ctx.drawImage(STARSPR,s.x*W-s.sz/2,s.y*H-s.sz/2,s.sz,s.sz);
+    }
+    ctx.globalAlpha=1;
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  // v9.1：鏡頭微晃（拉霸/開獎時收斂，維持可讀性；背景層不動形成視差）
+  const swM=(CORE.mode==='slots'||CORE.mode==='reveal')?.3:1;
+  ctx.save();ctx.translate(sx+Math.sin(T*.31)*7*swM,sy+Math.cos(T*.23)*5*swM);
+
+  ctx.strokeStyle='rgba(0,230,255,.12)';ctx.lineWidth=1;
+  const flow=(T*40)%80;
+  for(let i=0;i<16;i++){
+    const z=i*80-flow+40;
+    const p1=proj(-1600,260,z),p2=proj(1600,260,z);
+    ctx.globalAlpha=Math.max(0,.16-(z/1400)*.16);
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+  }
+  for(let i=-10;i<=10;i++){
+    const pA=proj(i*170,260,-60),pB=proj(i*170,260,1300);
+    ctx.globalAlpha=.06;
+    ctx.beginPath();ctx.moveTo(pA.x,pA.y);ctx.lineTo(pB.x,pB.y);ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+
+  ctx.globalCompositeOperation='lighter';
+  // v9：上升光束改用預渲染 sprite（同深度下投影 x 相同，直向貼圖即可）
+  for(const s of streams){
+    s.y-=s.v*dt*2;
+    if(s.y<-600){s.y=500+Math.random()*300;s.x=(Math.random()-.5)*1600;}
+    const p1=proj(s.x,s.y,s.z);
+    const lenPx=s.len*p1.s,lw=Math.max(1,2.2*p1.s);
+    ctx.globalAlpha=.5*Math.min(1,p1.s);
+    ctx.drawImage(STREAK[s.k],p1.x-lw/2,p1.y,lw,lenPx);
+  }
+  ctx.globalAlpha=1;
+  for(let di=0;di<Q.dust;di++){
+    const d=dust[di];
+    d.a+=d.sp*dt;d.tw+=.03*dt;
+    const x=Math.cos(d.a)*d.r,z=Math.sin(d.a)*d.r+300;
+    const p=proj(x,d.y,z);
+    if(p.s<=0||p.s>3)continue;
+    ctx.globalAlpha=(.35+Math.sin(d.tw)*.25)*Math.min(p.s,1);
+    const sz=d.sz*p.s;
+    ctx.drawImage(SPR[d.k],p.x-sz/2,p.y-sz/2,sz,sz);
+  }
+  ctx.globalAlpha=1;
+
+  updateCore(dt,now);
+  const E=CORE.energy;
+  const mode=CORE.mode;
+
+  /* v9.1：流星／速度線（沿速度方向貼直向光束 sprite） */
+  if(FXON&&(mode==='idle'||mode==='charge')&&Math.random()<.008*dt)spawnMeteor();
+  if(meteors.length){
+    let mn=0;
+    for(const m of meteors){
+      m.x+=m.vx*dt;m.y+=m.vy*dt;m.life-=m.decay*dt;
+      if(m.life<=0||m.y>H*.85)continue;
+      meteors[mn++]=m;
+      const ang=Math.atan2(m.vy,m.vx);
+      ctx.save();ctx.translate(m.x,m.y);ctx.rotate(ang+Math.PI/2);
+      ctx.globalAlpha=m.life*.8;
+      ctx.drawImage(STREAK.white,-1.5,0,3,m.len);
+      ctx.restore();
+    }
+    meteors.length=mn;
+    ctx.globalAlpha=1;
+  }
+
+  /* v9.1：充能吸入粒子（螺旋墜入核心，強化 charge 的「收束感」） */
+  if(FXON&&mode==='charge'){spawnInflux();spawnInflux();}
+  if(influx.length){
+    let fn=0;
+    for(const f of influx){
+      f.a+=.05*dt;f.r*=Math.pow(.97,dt);
+      if(f.r<26)continue;
+      influx[fn++]=f;
+      const ix=CX+Math.cos(f.a)*f.r,iy=CY+Math.sin(f.a)*f.r*.55;
+      ctx.globalAlpha=.15+.5*(1-f.r/f.r0);
+      ctx.drawImage(SPR[f.k],ix-f.sz/2,iy-f.sz/2,f.sz,f.sz);
+    }
+    influx.length=fn;
+    ctx.globalAlpha=1;
+  }
+
+  /* 核心（僅 idle/charge/reveal 顯示） */
+  if(mode==='idle'||mode==='charge'||mode==='reveal'){
+    const pulse=.9+Math.sin(T*3.2)*.08+E*.35;
+    const coreR=54*pulse+E*26;
+    for(let ring=0;ring<3;ring++){
+      const rr=coreR+34+ring*26+E*20;
+      const rot=T*(ring%2?-.7:.9)+ring*2.1;
+      ctx.strokeStyle=ring===1?`rgba(255,60,180,${.35+E*.5})`:`rgba(0,230,255,${.3+E*.5})`;
+      ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(CX,CY,rr,rot,rot+Math.PI*(0.6+E*.8));ctx.stroke();
+    }
+    const cs=coreR*4.4;
+    ctx.globalAlpha=.9;ctx.drawImage(SPR.violet,CX-cs/2,CY-cs/2,cs,cs);
+    ctx.globalAlpha=.8;ctx.drawImage(SPR.cyan,CX-cs*.34,CY-cs*.34,cs*.68,cs*.68);
+    ctx.globalAlpha=.95;ctx.drawImage(SPR.white,CX-cs*.16,CY-cs*.16,cs*.32,cs*.32);
+    ctx.globalAlpha=1;
+  }
+
+  /* 靈魂（idle/charge） */
+  if(mode==='idle'||mode==='charge'){
+    souls.sort((a,b)=>Math.sin(b.a)-Math.sin(a.a)); // v9：原地排序，零複製
+    for(const s of souls){
+      s.a+=s.sp*dt*(1+E*9);
+      if(mode==='charge'){s.pull=Math.min(1,s.pull+.022*dt*(1+E));}
+      else{s.pull=Math.max(0,s.pull-.03*dt);}
+      const r=s.r*(1-s.pull*.96),yy=s.y*(1-s.pull);
+      const x=Math.cos(s.a)*r,z=Math.sin(s.a)*r+300*(1-s.pull);
+      const p=proj(x,yy,z);
+      if(p.s<=0)continue;
+      const alpha=(1-s.pull*.9)*Math.min(1,p.s*1.1);
+      if(alpha<.03)continue;
+      const fs=Math.max(9,15*p.s);
+      ctx.globalAlpha=alpha;
+      // v9：預渲染名字標籤取代逐幀 font 設定 + fillText
+      const l=getLabel(s.name,Math.sin(s.a)>0?'soulF':'soulB');
+      const sc=fs/l.px;
+      ctx.drawImage(l.c,p.x-l.w*sc/2,p.y-l.h*sc/2,l.w*sc,l.h*sc);
+      const gsz=fs*1.4;
+      ctx.globalAlpha=alpha*.5;
+      ctx.drawImage(SPR.cyan,p.x-gsz/2,p.y-gsz/2,gsz,gsz);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  /* 行星群（collide/comet） */
+  if(mode==='collide'||mode==='comet'){
+    planets.sort((a,b)=>b.z-a.z); // v9：原地排序，零複製
+    for(const p of planets)drawPlanet(p,1);
+  }
+
+  /* 彗星 */
+  if(mode==='comet'){
+    const p=Math.min(1,CORE.t/920);
+    const c=cometPos(p);
+    comet.trail.push({x:c.x,y:c.y,z:c.z});
+    if(comet.trail.length>16)comet.trail.shift();
+    // 尾焰
+    for(let i=0;i<comet.trail.length;i++){
+      const t2=comet.trail[i];
+      const pr=proj(t2.x,t2.y,t2.z);
+      if(pr.s<=0)continue;
+      const k=i/comet.trail.length;
+      const sz=(10+k*70)*pr.s;
+      ctx.globalAlpha=k*.7;
+      ctx.drawImage(k>.7?SPR.white:SPR.gold,pr.x-sz/2,pr.y-sz/2,sz,sz);
+    }
+    // 彗核 + 鏡頭光斑
+    const pr=proj(c.x,c.y,c.z);
+    if(pr.s>0){
+      const sz=90*pr.s;
+      ctx.globalAlpha=1;
+      ctx.drawImage(SPR.white,pr.x-sz/2,pr.y-sz/2,sz,sz);
+      ctx.drawImage(SPR.gold,pr.x-sz*.8,pr.y-sz*.8,sz*1.6,sz*1.6);
+      // 各向異性光斑（橫向拉伸）
+      ctx.save();
+      ctx.translate(pr.x,pr.y);ctx.scale(7,.5);
+      ctx.globalAlpha=.55;
+      ctx.drawImage(SPR.white,-sz/2,-sz/2,sz,sz);
+      ctx.restore();
+      // 鬼影往畫面中心排列
+      for(let gi=1;gi<=2;gi++){
+        const gx=pr.x+(CX-pr.x)*gi*.45, gy=pr.y+(CY-pr.y)*gi*.45;
+        const gs=sz*(0.35-gi*.1);
+        ctx.globalAlpha=.3/gi;
+        ctx.drawImage(SPR.gold,gx-gs/2,gy-gs/2,gs,gs);
+      }
+      ctx.globalAlpha=1;
+    }
+    ctx.globalAlpha=1;
+    CORE.shake=Math.max(CORE.shake,p*6);
+    // v9.1：與彗星同向的高速速度線，強化俯衝呼嘯感
+    if(FXON&&Math.random()<.5*dt){
+      meteors.push({x:W*.55+Math.random()*W*.55,y:-20+Math.random()*H*.35,
+        vx:-10-Math.random()*5,vy:7+Math.random()*3,
+        len:120+Math.random()*120,life:1,decay:.02});
+    }
+  }
+
+  /* 衝擊波（v9：原地壓實，零 filter 配置） */
+  if(rings.length){
+    let rn=0;
+    for(const r of rings){
+      r.r+=r.v*dt;r.life-=r.decay*dt;
+      if(r.life<=0)continue;
+      rings[rn++]=r;
+      ctx.globalAlpha=r.life*.8;
+      ctx.strokeStyle=r.gold?'rgba(255,220,110,1)':'rgba(200,240,255,1)';
+      ctx.lineWidth=r.gold?5:2.5;
+      ctx.beginPath();ctx.arc(CX,CY,r.r,0,6.28);ctx.stroke();
+    }
+    rings.length=rn;
+    ctx.globalAlpha=1;
+  }
+
+  /* 神光射線 + 爆心光球（v9：射線改為預渲染 sprite 旋轉繪製，原本每幀 20 個漸層） */
+  if(boomLight>.01){
+    const k=boomLight;
+    const L=Math.hypot(W,H);
+    ctx.save();
+    ctx.translate(CX,CY);ctx.rotate(rayAng+(1-k)*.18);
+    ctx.globalAlpha=k;
+    ctx.drawImage(RAYSPR,-L,-L,L*2,L*2);
+    ctx.restore();
+    const ls=(360+(1-k)*700)*k+120;
+    ctx.globalAlpha=k*.85;
+    ctx.drawImage(SPR.gold,CX-ls/2,CY-ls/2,ls,ls);
+    ctx.globalAlpha=k*.6;
+    ctx.drawImage(SPR.white,CX-ls*.3,CY-ls*.3,ls*.6,ls*.6);
+    ctx.globalAlpha=1;
+    boomLight*=Math.pow(.965,dt);
+  }
+
+  /* 拉霸機 */
+  if(mode==='slots')drawSlots(T,now);
+
+  /* 爆炸粒子（v9：原地壓實，零 filter 配置 → 零 GC 突刺） */
+  if(sparks.length){
+    let sn=0;
+    for(const p of sparks){
+      p.vy+=.16*dt;p.vx*=.985;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=p.decay*dt;
+      if(p.life<=0)continue;
+      sparks[sn++]=p;
+      ctx.globalAlpha=p.life;
+      ctx.drawImage(SPR[p.k],p.x-p.sz/2,p.y-p.sz/2,p.sz,p.sz);
+    }
+    sparks.length=sn;
+    ctx.globalAlpha=1;
+  }
+
+  /* v9.1：餘燼／螢火（爆後緩升殘留；開獎時持續自底部上飄） */
+  if(FXON&&mode==='reveal'&&Math.random()<.2*dt)
+    spawnEmbers(1,CX+(Math.random()-.5)*W*.6,H*.8+Math.random()*H*.15,30);
+  if(embers.length){
+    let en=0;
+    for(const e of embers){
+      e.ph+=.1*dt;
+      e.x+=e.vx*dt+Math.sin(e.ph)*.3*dt;e.y+=e.vy*dt;e.life-=e.decay*dt;
+      if(e.life<=0||e.y<-30)continue;
+      embers[en++]=e;
+      ctx.globalAlpha=e.life*(.45+.35*Math.sin(e.ph*1.7)); // 忽明忽暗
+      ctx.drawImage(SPR[e.k],e.x-e.sz/2,e.y-e.sz/2,e.sz,e.sz);
+    }
+    embers.length=en;
+    ctx.globalAlpha=1;
+  }
+
+  /* 彩帶（v9 頭獎美術強化） */
+  if(confetti.length){
+    ctx.globalCompositeOperation='source-over';
+    let cn=0;
+    for(const f of confetti){
+      f.vy+=.03*dt;f.ph+=.08*dt;
+      f.x+=f.vx*dt+Math.sin(f.ph)*1.2*dt;f.y+=f.vy*dt;
+      f.rot+=f.vr*dt;f.life-=f.decay*dt;
+      if(f.life<=0||f.y>H+30)continue;
+      confetti[cn++]=f;
+      ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.rot);
+      ctx.scale(1,.35+Math.abs(Math.sin(f.ph))*.65); // 翻面
+      ctx.globalAlpha=Math.min(1,f.life*3);
+      ctx.fillStyle=f.col;
+      ctx.fillRect(-f.w/2,-f.h/2,f.w,f.h);
+      ctx.restore();
+    }
+    confetti.length=cn;
+    ctx.globalAlpha=1;
+  }
+
+  ctx.restore();
+
+  /* 暗角（v9：預渲染，聚焦視線） */
+  ctx.globalCompositeOperation='source-over';
+  ctx.drawImage(vignette,0,0,W,H);
+
+  /* Bloom 後處理：降採樣柔化 + 加法疊回（層數隨畫質等級調整） */
+  if(Q.bloom>0)applyBloom(.30+CORE.energy*.5+boomLight*.7,Q.bloom);
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+const bloomA=document.createElement('canvas'),bA=bloomA.getContext('2d');
+const bloomB=document.createElement('canvas'),bB=bloomB.getContext('2d');
+function applyBloom(strength,layers){
+  if(strength<=0)return;
+  const bw=Math.max(2,(W/4)|0),bh=Math.max(2,(H/4)|0);
+  if(bloomA.width!==bw||bloomA.height!==bh){
+    bloomA.width=bw;bloomA.height=bh;
+    bloomB.width=Math.max(2,bw>>1);bloomB.height=Math.max(2,bh>>1);
+  }
+  bA.globalCompositeOperation='copy';
+  bA.drawImage(cv,0,0,bw,bh);
+  if(layers>1){
+    bB.globalCompositeOperation='copy';
+    bB.drawImage(bloomA,0,0,bloomB.width,bloomB.height);
+  }
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalCompositeOperation='lighter';
+  ctx.globalAlpha=Math.min(.8,strength*.5);
+  ctx.drawImage(bloomA,0,0,cv.width,cv.height);
+  if(layers>1){
+    ctx.globalAlpha=Math.min(.8,strength*.62);
+    ctx.drawImage(bloomB,0,0,cv.width,cv.height);
+  }
+  ctx.restore();
+}
+
+/* ---- 流程控制 ---- */
+const $=id=>document.getElementById(id);
+const sigil=$('sigil'),gate=$('gate'),uplink=$('uplink'),uplinkClose=$('uplinkClose'),
+      nameInput=$('nameInput'),removeWinner=$('removeWinner'),
+      hudInfo=$('hudInfo'),reveal=$('reveal'),winTxt=$('winTxt'),
+      againBtn=$('againBtn'),backBtn=$('backBtn'),flash=$('flash');
+
+let winners=[];
+function getPool(){
+  const won=new Set(removeWinner.checked?winners:[]);
+  return [...new Set(nameInput.value.split('\n').map(s=>s.trim()).filter(Boolean))]
+    .filter(n=>!won.has(n));
+}
+function secureRand(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
+
+function startDraw(){
+  const pool=getPool();
+  if(!pool.length){
+    hudInfo.textContent='名單是空的（可能被頁面重載清空）· 請重新輸入';
+    uplink.classList.add('open');return;
+  }
+  if(CORE.mode!=='idle')return;
+  advanceTier();
+  if(tierIdx>=TIERS.length){
+    hudInfo.textContent='所有獎項抽選完畢 · 可在名單層重置';return;
+  }
+  CORE.winner=pool[secureRand(pool.length)];
+  sigil.classList.add('busy');
+  hudInfo.textContent='虛空正在凝視……';
+  blip(220,.4,.06,'sine');
+  setMode('charge');
+}
+
+function doReveal(){
+  const t=curTier(),grand=(t.key==='t1');
+  setMode('reveal');
+  CORE.shake=grand?26:16;
+  burst(t.sparks,grand,CX,CY-H*.06);
+  fanfare();
+  if(grand){
+    setTimeout(function(){burst(200,true,CX,CY-H*.06);fanfare();},450);
+    document.getElementById('goldFrame').classList.add('on');
+    spawnConfetti(130); // v9：頭獎彩帶雨
+  }
+  winners.push(CORE.winner);
+  winnersByTier[tierIdx].push(CORE.winner);
+  tierDrawn[tierIdx]++;
+  winTxt.textContent=CORE.winner;
+  reveal.classList.remove('t1','t2','t3');
+  reveal.classList.add(t.key);
+  $('tierTag').textContent=t.label.split('').join(' ');
+  $('revealRl').textContent=t.en+' // THE VOID HAS CHOSEN';
+  $('revealRc').textContent=grand?'虛空加冕於你':'恭喜 · '+t.rc;
+  renderLedger();
+  setTimeout(function(){
+    reveal.classList.add('show');
+    burst(grand?180:100,grand,CX,CY-H*.06);
+  },250);
+}
+
+function backToVoid(){
+  reveal.classList.remove('show');
+  $('goldFrame').classList.remove('on');
+  $('phaseCap').style.opacity=0;
+  setMode('idle');
+  sigil.classList.remove('busy');
+  rebuildSouls();
+}
+
+/* ---- 持久化 ---- */
+function saveState(){try{localStorage.setItem('vj_names',nameInput.value);
+  localStorage.setItem('vj_cnt',JSON.stringify(tierCounts()));}catch(e){}}
+function loadState(){try{
+  const n=localStorage.getItem('vj_names');if(n)nameInput.value=n;
+  const c=JSON.parse(localStorage.getItem('vj_cnt')||'null');
+  if(c){$('cnt3').value=c[0];$('cnt2').value=c[1];$('cnt1').value=c[2];}
+}catch(e){}}
+loadState();
+
+sigil.addEventListener('click',startDraw);
+againBtn.addEventListener('click',function(){backToVoid();setTimeout(startDraw,350);});
+backBtn.addEventListener('click',backToVoid);
+gate.addEventListener('click',function(){uplink.classList.add('open');});
+uplinkClose.addEventListener('click',function(){uplink.classList.remove('open');rebuildSouls();});
+$('resetBtn').addEventListener('click',function(){
+  winners=[];winnersByTier=[[],[],[]];tierDrawn=[0,0,0];tierIdx=0;
+  renderLedger();rebuildSouls();
+});
+nameInput.addEventListener('input',function(){saveState();if(CORE.mode==='idle')rebuildSouls();});
+removeWinner.addEventListener('change',rebuildSouls);
+['cnt3','cnt2','cnt1'].forEach(function(id){$(id)
+  .addEventListener('input',function(){saveState();if(CORE.mode==='idle')rebuildSouls();});});
+document.getElementById('muteBtn').addEventListener('click',function(){
+  muted=!muted;
+  this.textContent=muted?'♪ OFF':'♪ ON';
+  this.style.color=muted?'rgba(120,120,150,.5)':'rgba(140,230,255,.7)';
+});
+// v9：分頁切回時重置幀計時，避免 dt 突刺與效能取樣被污染
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden){last=performance.now();PERF.acc=0;PERF.n=0;}
+});
+rebuildSouls();
+</script>
+</body>
+</html>

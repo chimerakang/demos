@@ -139,7 +139,7 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
   <div class="t2">星 隕 抽 選 儀 式</div>
 </div>
 <div class="holo" id="hudInfo">在場靈魂 0</div>
-<div class="holo" id="verTag">BUILD v9.1 // OPTIMIZED FX+</div>
+<div class="holo" id="verTag">BUILD v9.2 // OPTIMIZED FX+</div>
 <div class="holo" id="phaseCap"></div>
 <div id="errBox"></div>
 <div class="holo" id="ledger"></div>
@@ -515,15 +515,22 @@ function renderLedger(){
 
 /* ---- 行星群（滿場互撞） ---- */
 let planets=[];
+let PSPANX=560,PSPANY=320; // v9.2：依畫面尺寸反推的行星活動半徑（世界座標）
 function spawnPlanets(){
   const pool=getPool();
-  const N=Math.min(40,Math.max(26,pool.length*2));
+  // v9.2：以中心深度 z=290 的投影比例反推世界座標範圍，行星真正佈滿整個畫面；
+  // 數量隨畫面面積調整（上限依自適應畫質等級遞減，O(n²) 碰撞最多 72 顆仍便宜）
+  const sMid=FOV/(FOV+290);
+  PSPANX=(W*.5)/sMid*1.12;
+  PSPANY=(H*.52)/sMid*1.05;
+  const cap=[72,60,48,36][PERF.lvl];
+  const N=Math.min(cap,Math.max(30,Math.round(W*H/16000)));
   planets=[];
   for(let i=0;i<N;i++){
     planets.push({
       name:pool[i%pool.length],
-      x:(Math.random()-.5)*980,          // 佈滿整個畫面寬
-      y:(Math.random()-.5)*520,
+      x:(Math.random()-.5)*2*PSPANX,
+      y:(Math.random()-.5)*2*PSPANY,
       z:Math.random()*460+60,
       vx:(Math.random()-.5)*3.2,vy:(Math.random()-.5)*3.2,vz:(Math.random()-.5)*2.4,
       r:16+Math.random()*20,             // 大顆行星
@@ -534,17 +541,19 @@ function spawnPlanets(){
     });
   }
 }
-function updatePlanets(dt,intensity){
-  // 向心引力 + 亂流
+function updatePlanets(dt,intensity,grav){
+  // 向心引力 + 亂流（v9.2：引力以活動半徑正規化並由 grav 權重控制——
+  // collide 前中段 grav≈0 行星維持滿場亂舞，尾段權重拉高才向爆心收攏）
+  const g=grav===undefined?1:grav;
   for(const p of planets){
-    p.vx+=(-p.x*.0012)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
-    p.vy+=(-p.y*.0012)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
+    p.vx+=(-p.x/PSPANX*.6*g)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
+    p.vy+=(-p.y/PSPANY*.38*g)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
     p.vz+=((290-p.z)*.0012)*intensity*dt+(Math.random()-.5)*.18*intensity*dt;
     p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
     p.spin+=.01*dt;
-    // 邊界柔性反彈
-    if(Math.abs(p.x)>560){p.vx-=Math.sign(p.x)*.4*dt;}
-    if(Math.abs(p.y)>320){p.vy-=Math.sign(p.y)*.4*dt;}
+    // 邊界柔性反彈（跟著畫面範圍走）
+    if(Math.abs(p.x)>PSPANX){p.vx-=Math.sign(p.x)*.4*dt;}
+    if(Math.abs(p.y)>PSPANY){p.vy-=Math.sign(p.y)*.4*dt;}
     if(p.z<40)p.vz+=.4*dt; if(p.z>560)p.vz-=.4*dt;
     const spd=Math.hypot(p.vx,p.vy,p.vz),maxS=4.5+intensity*5;
     if(spd>maxS){const k=maxS/spd;p.vx*=k;p.vy*=k;p.vz*=k;}
@@ -622,8 +631,10 @@ function drawPlanet(p,dim){
 /* ---- 彗星 ---- */
 const comet={trail:[]};
 function cometPos(p){ // p 0→1
-  // 從右上外太空俯衝入場中心
-  const x0=760,y0=-560,z0=880, x1=0,y1=-10,z1=290;
+  // v9.2：起點依畫面尺寸反推——投影後保證在畫面外（右緣外 260px、上緣外 220px），
+  // 彗星真正「從畫面外」俯衝入場中心
+  const z0=880,s0=FOV/(FOV+z0);
+  const x0=(W*.5+260)/s0, y0=-(CY+220)/s0, x1=0,y1=-10,z1=290;
   const e=p*p; // 加速衝入
   return {x:x0+(x1-x0)*e,y:y0+(y1-y0)*e,z:z0+(z1-z0)*e};
 }
@@ -992,14 +1003,15 @@ function updateCore(dt,now){
     case 'collide':{
       const D=curTier().collide, p=Math.min(1,CORE.t/D);
       CORE.energy=.4+p*.4;
-      updatePlanets(dt,.3+p*1.1);
+      // v9.2：前 70% 引力近零（滿場亂舞），最後 30% 引力急升（向爆心收攏）
+      updatePlanets(dt,.3+p*1.1,p<.7?.05:.05+((p-.7)/.3)*1.35);
       if(p>.8)CORE.shake=Math.max(CORE.shake,(p-.8)*8);
       if(CORE.t>D){comet.trail.length=0;whoosh();setMode('comet');}
       break;
     }
     case 'comet':{
       CORE.energy=.9;
-      updatePlanets(dt,.5);
+      updatePlanets(dt,.5,1.5); // v9.2：彗星逼近時持續向爆心收攏
       if(CORE.t>920){
         // 撞擊！
         boomSfx();

@@ -139,7 +139,7 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
   <div class="t2">星 隕 抽 選 儀 式</div>
 </div>
 <div class="holo" id="hudInfo">在場靈魂 0</div>
-<div class="holo" id="verTag">BUILD v9.4 // OPTIMIZED FX+</div>
+<div class="holo" id="verTag">BUILD v9.5 // OPTIMIZED FX+</div>
 <div class="holo" id="phaseCap"></div>
 <div id="errBox"></div>
 <div class="holo" id="ledger"></div>
@@ -522,6 +522,7 @@ function renderLedger(){
 /* ---- 行星群（滿場互撞） ---- */
 let planets=[];
 let PSPANX=560,PSPANY=320; // v9.2：依畫面尺寸反推的行星活動半徑（世界座標）
+let lastImpactFx=0;        // v9.5：強撞特效節流
 function spawnPlanets(){
   const pool=getPool();
   // v9.2：以中心深度 z=290 的投影比例反推世界座標範圍，行星真正佈滿整個畫面；
@@ -564,6 +565,11 @@ function updatePlanets(dt,intensity,grav){
   for(const p of planets){
     p.vx+=(-p.x/PSPANX*.6*g)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
     p.vy+=(-p.y/PSPANY*.38*g)*intensity*dt+(Math.random()-.5)*.22*intensity*dt;
+    if(g>1){ // v9.5：收束漩渦——切向加速讓吸入呈螺旋
+      const rr=Math.hypot(p.x,p.y)+60;
+      p.vx+=(-p.y/rr)*(g-1)*1.3*dt;
+      p.vy+=(p.x/rr)*(g-1)*1.3*dt;
+    }
     p.vz+=((290-p.z)*.0012)*intensity*dt+(Math.random()-.5)*.18*intensity*dt;
     p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
     p.spin+=.01*dt;
@@ -571,7 +577,8 @@ function updatePlanets(dt,intensity,grav){
     if(Math.abs(p.x)>PSPANX){p.vx-=Math.sign(p.x)*.4*dt;}
     if(Math.abs(p.y)>PSPANY){p.vy-=Math.sign(p.y)*.4*dt;}
     if(p.z<40)p.vz+=.4*dt; if(p.z>560)p.vz-=.4*dt;
-    const spd=Math.hypot(p.vx,p.vy,p.vz),maxS=4.5+intensity*5;
+    // v9.5：速度上限隨引力權重放大——收束時越吸越快，產生加速感
+    const spd=Math.hypot(p.vx,p.vy,p.vz),maxS=(4.5+intensity*5)*Math.max(1,g);
     // v9.3：限速只在場內生效——場外的行星保持高速衝入，不被減速
     if(spd>maxS&&Math.abs(p.x)<PSPANX&&Math.abs(p.y)<PSPANY){const k=maxS/spd;p.vx*=k;p.vy*=k;p.vz*=k;}
   }
@@ -593,10 +600,18 @@ function resolveCollisions(intensity){
         const imp=-rel*.9;
         a.vx-=nx*imp;a.vy-=ny*imp;a.vz-=nz*imp;
         b.vx+=nx*imp;b.vy+=ny*imp;b.vz+=nz*imp;
-        // 撞擊火花
+        // 撞擊效果（v9.5 強化：彩色火花 + 強撞出衝擊環與微震動）
         if(intensity>.15&&Math.abs(rel)>1.2){
           const mp=proj((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);
-          if(mp.s>0)impactSpark(mp.x,mp.y,Math.min(8,2+Math.abs(rel)));
+          if(mp.s>0){
+            impactSpark(mp.x,mp.y,Math.min(11,3+Math.abs(rel)),a.col[3],b.col[3]);
+            const nw=performance.now();
+            if(Math.abs(rel)>1.6&&nw-lastImpactFx>70){
+              lastImpactFx=nw;
+              rings.push({x:mp.x,y:mp.y,r:6,v:5+Math.abs(rel),life:.8,decay:.05,mini:true});
+              CORE.shake=Math.max(CORE.shake,Math.min(7,Math.abs(rel)*1.2));
+            }
+          }
           rattle();
         }
       }
@@ -605,7 +620,7 @@ function resolveCollisions(intensity){
 }
 /* v9.4：星軌旋轉階段——以角速度驅動（內圈快、外圈慢的類開普勒差速），
    om 隨時間增大＝「旋轉加速」；shrink 讓星軌緩慢向內螺旋 */
-function orbitPlanets(dt,om,shrink){
+function orbitPlanets(dt,om,shrink,ci){
   if(dt<=0)return;
   for(const p of planets){
     const u=p.x/PSPANX,v=p.y/PSPANY;
@@ -621,17 +636,23 @@ function orbitPlanets(dt,om,shrink){
     p.z+=((290-p.z)*.02)*dt;
     p.spin+=.01*dt;
   }
-  resolveCollisions(.1); // 旋轉中只做重疊分離，不出火花
+  // 旋轉中預設只做重疊分離；收束吞噬時帶火花強度（v9.5）
+  resolveCollisions(ci===undefined?.1:ci);
 }
 function drawPlanet(p,dim){
   const pr=proj(p.x,p.y,p.z);
   if(pr.s<=0)return;
   const rad=Math.max(4,p.r*pr.s);
-  // v9.1：運動殘影（沿速度反方向補一枚淡 glow，高速時產生拖尾感）
-  if(FXON&&(p.vx*p.vx+p.vy*p.vy)>2.2){
+  // v9.1：運動殘影（沿速度反方向補淡 glow，高速時產生拖尾感）
+  const v2=p.vx*p.vx+p.vy*p.vy;
+  if(FXON&&v2>2.2){
     ctx.globalAlpha=.22*dim;
     const tsz=rad*2.6;
     ctx.drawImage(SPR[p.col[3]],pr.x-p.vx*2.2*pr.s-tsz/2,pr.y-p.vy*2.2*pr.s-tsz/2,tsz,tsz);
+    if(v2>64){ // v9.5：收束高速時二段長拖尾，強化加速感
+      ctx.globalAlpha=.11*dim;
+      ctx.drawImage(SPR[p.col[3]],pr.x-p.vx*4.4*pr.s-tsz/2,pr.y-p.vy*4.4*pr.s-tsz/2,tsz,tsz);
+    }
   }
   ctx.globalAlpha=.55*dim;
   const gsz=rad*3.4;
@@ -682,11 +703,15 @@ function cometPos(p){ // p 0→1
 /* ---- 爆炸粒子 / 衝擊波 / 火花 ---- */
 let sparks=[],rings=[],confetti=[],meteors=[],embers=[],influx=[],boomLight=0,rayAng=0;
 let FXON=true; // v9.1：追加特效總開關（由自適應畫質控制）
-function impactSpark(x,y,n){
+function impactSpark(x,y,n,k1,k2){
+  if(sparks.length>850)return; // v9.5：總量保險絲（收束高峰恰在其下，低階裝置不過載）
+  // v9.5：中心熱閃光 + 帶著兩顆行星顏色的火花四散
+  sparks.push({x,y,vx:0,vy:0,life:.9,decay:.09,sz:26+Math.random()*14,k:'white'});
   for(let i=0;i<n;i++){
-    const a=Math.random()*6.28,sp=Math.random()*5+2;
+    const a=Math.random()*6.28,sp=Math.random()*6+2;
     sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-      life:1,decay:.03+Math.random()*.03,sz:Math.random()*8+4,k:'white'});
+      life:1,decay:.028+Math.random()*.03,sz:Math.random()*9+4,
+      k:i%3===0?'white':(i%2?(k1||'white'):(k2||'white'))});
   }
 }
 function burst(n,gold,ox,oy){
@@ -1089,21 +1114,28 @@ function updateCore(dt,now){
         setCap(['群星匯聚','星軌加速旋轉','命運相撞','向虛空收束'][stage]);
         if(stage===1)tone(70,520,(.62-.18)*D/1000,.07,'sawtooth','dist',.35); // 旋轉加速 riser
         if(stage===2)blip(240,.25,.07,'square');
+        if(stage===3){ // v9.5：收束吸入 riser（音高與噪音同步上掃）
+          tone(90,750,.2*D/1000,.09,'sawtooth','dist',.4);
+          playNoise(.2*D/1000,.25,'bandpass',300,2200,2,'dry',.4);
+        }
       }
       if(stage===0)updatePlanets(dt,.45,.12);                       // 畫面外湧入
       else if(stage===1){                                           // 星軌旋轉，角速度平方加速
         const q=(p-.18)/.44;
-        orbitPlanets(dt,.012+q*q*.11,.9988);
+        orbitPlanets(dt,.012+q*q*.11,.9995);                        // v9.5：幾乎不縮半徑，保留收束距離
       }
-      else if(stage===2)updatePlanets(dt,1.6,.4);                   // 星軌解體，全場互撞
-      else updatePlanets(dt,1.2,.4+((p-.8)/.2)*1.2);                // 向爆心收束
+      else if(stage===2)updatePlanets(dt,1.6,.18);                  // v9.5：低引力＝散開狀態互撞
+      else{                                                         // v9.5：收束＝運動學漩渦吞噬——
+        const q=(p-.8)/.2;                                          // 半徑收縮率與自轉皆隨時間平方加速，
+        orbitPlanets(dt,.05+q*q*.13,.998-q*q*.036,1.5);             // 帶火花的碰撞解算
+      }
       if(p>.8)CORE.shake=Math.max(CORE.shake,(p-.8)*8);
       if(CORE.t>D){comet.trail.length=0;whoosh();setMode('comet');}
       break;
     }
     case 'comet':{
       CORE.energy=.9;
-      updatePlanets(dt,.5,1.5); // v9.2：彗星逼近時持續向爆心收攏
+      updatePlanets(dt,.8,2.2); // v9.5：彗星逼近時加速吸入爆心
       if(CORE.t>920){
         // 撞擊！
         boomSfx();
@@ -1368,9 +1400,10 @@ function frameInner(now){
       if(r.life<=0)continue;
       rings[rn++]=r;
       ctx.globalAlpha=r.life*.8;
-      ctx.strokeStyle=r.gold?'rgba(255,220,110,1)':'rgba(200,240,255,1)';
-      ctx.lineWidth=r.gold?5:2.5;
-      ctx.beginPath();ctx.arc(CX,CY,r.r,0,6.28);ctx.stroke();
+      ctx.strokeStyle=r.mini?'rgba(190,240,255,1)':(r.gold?'rgba(255,220,110,1)':'rgba(200,240,255,1)');
+      ctx.lineWidth=r.mini?1.5:(r.gold?5:2.5);
+      // v9.5：mini 衝擊環帶座標（撞擊點），大衝擊波維持爆心
+      ctx.beginPath();ctx.arc(r.x===undefined?CX:r.x,r.y===undefined?CY:r.y,r.r,0,6.28);ctx.stroke();
     }
     rings.length=rn;
     ctx.globalAlpha=1;

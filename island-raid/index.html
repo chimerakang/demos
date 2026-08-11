@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>奪島遠征 Island Raid — Roguelike 戰略小隊</title>
+<style>
+:root{
+  --bg:#141b2b; --panel:#1d2740; --panel2:#243052; --ink:#e8eefc; --dim:#8fa0c4;
+  --blue:#5b9bff; --teal:#4ecfae; --violet:#9b8cf0; --red:#ef7a6d; --gold:#f2c56b;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  overflow:hidden; user-select:none}
+#app{height:100%;display:flex;align-items:center;justify-content:center}
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;height:100%;padding:12px}
+.screen.on{display:flex}
+h1{font-size:clamp(28px,6vmin,44px);margin:0 0 4px;letter-spacing:.12em}
+h1 .en{display:block;font-size:.38em;color:var(--dim);letter-spacing:.4em;font-weight:400}
+.sub{color:var(--dim);margin:6px 0 22px;text-align:center;line-height:1.7;font-size:14px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;color:var(--ink)}
+.btn{background:var(--panel2);padding:12px 26px;font-size:16px;letter-spacing:.15em;
+  border:1px solid #3a4a78;transition:.15s}
+.btn:hover{background:#2d3c66;transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,#3b6fd4,#2d55a8);border-color:#5b8ae0}
+.btn.primary:hover{background:linear-gradient(135deg,#4a7ee2,#3562b8)}
+.row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.seedbox{margin-top:18px;color:var(--dim);font-size:12px}
+.seedbox input{background:var(--panel);border:1px solid #33406a;color:var(--ink);
+  border-radius:8px;padding:6px 10px;width:110px;font:inherit;font-size:12px;text-align:center}
+
+/* ------- battle ------- */
+#scr-battle{padding:0;justify-content:flex-start}
+#battle-wrap{position:relative;width:min(96vmin,100vw,760px);margin:auto}
+#cv{display:block;width:100%;border-radius:12px;background:#233a63;
+  box-shadow:0 10px 40px rgba(0,0,0,.45)}
+#hud-top{position:absolute;top:8px;left:8px;right:8px;display:flex;
+  justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px}
+#squad-bar{display:flex;gap:6px;flex-wrap:wrap;pointer-events:auto}
+.chip{background:rgba(16,22,40,.82);border:1px solid #3a4a78;border-radius:9px;
+  padding:5px 9px;font-size:12px;line-height:1.25;min-width:72px;cursor:pointer;text-align:left}
+.chip .nm{font-weight:700}
+.chip .st{color:var(--dim);font-size:11px}
+.chip.sel{border-color:#8ab4ff;box-shadow:0 0 0 1px #8ab4ff inset}
+.chip.dead{opacity:.35;filter:grayscale(1);cursor:default}
+.chip .sk{color:var(--gold)}
+#objective{background:rgba(16,22,40,.82);border:1px solid #3a4a78;border-radius:9px;
+  padding:6px 10px;font-size:12px;color:var(--dim);text-align:right;line-height:1.6}
+#objective b{color:var(--ink)}
+#hud-bottom{position:absolute;left:0;right:0;bottom:10px;display:flex;
+  justify-content:center;gap:10px;pointer-events:none}
+#skill-btn{pointer-events:auto;display:none;background:rgba(20,28,52,.9);
+  border:1px solid var(--gold);color:var(--gold);padding:10px 20px;border-radius:24px;
+  font-size:14px;letter-spacing:.1em}
+#skill-btn.cd{border-color:#4a5578;color:#4a5578}
+#skill-btn.arm{background:var(--gold);color:#20263c;font-weight:700}
+#msg{position:absolute;top:42%;left:0;right:0;text-align:center;pointer-events:none;
+  font-size:clamp(16px,3.4vmin,24px);font-weight:700;letter-spacing:.2em;
+  text-shadow:0 2px 10px rgba(0,0,0,.7);opacity:0;transition:opacity .3s}
+#msg.on{opacity:1}
+
+/* ------- campaign ------- */
+#camp-map{display:flex;gap:clamp(8px,2.5vmin,22px);align-items:center;margin:18px 0 26px;
+  overflow-x:auto;max-width:100%;padding:10px}
+.layer{display:flex;flex-direction:column;gap:14px}
+.node{width:clamp(64px,10vmin,84px);height:clamp(64px,10vmin,84px);border-radius:50%;
+  background:var(--panel);border:2px solid #33406a;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:11px;color:var(--dim);gap:2px;
+  position:relative;flex:none}
+.node .ico{font-size:20px}
+.node.avail{border-color:var(--blue);color:var(--ink);cursor:pointer;
+  box-shadow:0 0 14px rgba(91,155,255,.35);animation:pulse 1.6s infinite}
+.node.done{border-color:var(--teal);color:var(--teal)}
+.node.fort{border-radius:18px}
+@keyframes pulse{50%{box-shadow:0 0 22px rgba(91,155,255,.6)}}
+.arrow{color:#33406a;font-size:20px;flex:none}
+#camp-roster{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:640px}
+.rchip{background:var(--panel);border:1px solid #33406a;border-radius:10px;
+  padding:8px 12px;font-size:12px;line-height:1.5;min-width:120px;text-align:left}
+.rchip .nm{font-weight:700}.rchip .dt{color:var(--dim);font-size:11px}
+.rchip .sk{color:var(--gold);font-size:11px}
+
+/* ------- reward / modal ------- */
+.cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:20px 0}
+.card{width:170px;min-height:190px;background:linear-gradient(180deg,#26335a,#1c2745);
+  border:1px solid #3d4d80;border-radius:14px;padding:16px 14px;cursor:pointer;
+  display:flex;flex-direction:column;gap:8px;text-align:left;transition:.15s}
+.card:hover{transform:translateY(-4px);border-color:var(--gold);
+  box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.card .ico{font-size:30px}
+.card .ttl{font-weight:700;font-size:15px;letter-spacing:.06em}
+.card .dsc{color:var(--dim);font-size:12px;line-height:1.65;flex:1}
+.card .tag{color:var(--gold);font-size:11px}
+#modal{position:fixed;inset:0;background:rgba(8,12,24,.78);display:none;
+  align-items:center;justify-content:center;z-index:50;flex-direction:column;gap:16px;padding:16px}
+#modal.on{display:flex}
+#modal .box{background:var(--panel);border:1px solid #3d4d80;border-radius:14px;
+  padding:22px;max-width:560px;text-align:center}
+.stat{color:var(--dim);font-size:13px;line-height:2}
+.stat b{color:var(--ink)}
+.footer{position:fixed;bottom:8px;left:0;right:0;text-align:center;
+  color:#4a5578;font-size:11px;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="screen on" id="scr-title">
+    <h1>奪島遠征<span class="en">ISLAND RAID</span></h1>
+    <p class="sub">逆轉《Bad North》——這次換<b>你</b>登陸奪島。<br>
+      指揮小隊搶灘、攻佔據點、肅清守軍；<br>
+      每座島之後獲得新技能與援軍，一路打到最終要塞。<br>
+      小隊全滅即永久損失（roguelike）。</p>
+    <div class="row">
+      <button class="btn primary" id="bt-start">出 征</button>
+      <button class="btn" id="bt-how">玩 法</button>
+    </div>
+    <div class="seedbox">種子 <input id="seed-in" placeholder="隨機"> <span id="best"></span></div>
+  </div>
+
+  <div class="screen" id="scr-campaign">
+    <h1 style="font-size:24px">遠征航線</h1>
+    <p class="sub" id="camp-sub"></p>
+    <div id="camp-map"></div>
+    <div id="camp-roster"></div>
+  </div>
+
+  <div class="screen" id="scr-battle">
+    <div id="battle-wrap">
+      <canvas id="cv" width="660" height="660"></canvas>
+      <div id="hud-top">
+        <div id="squad-bar"></div>
+        <div id="objective"></div>
+      </div>
+      <div id="hud-bottom"><button id="skill-btn"></button></div>
+      <div id="msg"></div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-reward">
+    <h1 style="font-size:26px">🏴 島嶼佔領</h1>
+    <p class="sub" id="reward-sub">選擇一項戰利品</p>
+    <div class="cards" id="reward-cards"></div>
+  </div>
+
+  <div class="screen" id="scr-end">
+    <h1 id="end-title" style="font-size:30px"></h1>
+    <p class="sub" id="end-sub"></p>
+    <div class="row">
+      <button class="btn primary" id="bt-again">再次出征</button>
+      <button class="btn" id="bt-same">同種子重來</button>
+    </div>
+  </div>
+
+</div>
+<div id="modal"></div>
+<div class="footer">奪島遠征 v0.1 原型 · 靈感來自 Bad North · 純 HTML5 Canvas</div>
+<script src="game.js"></script>
+</body>
+</html>

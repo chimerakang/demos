@@ -139,7 +139,7 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
   <div class="t2">天 空 拉 霸 儀 式</div>
 </div>
 <div class="holo" id="hudInfo">在場靈魂 0</div>
-<div class="holo" id="verTag">SLOT v0.3 // DRONE 3D</div>
+<div class="holo" id="verTag">SLOT v0.6 // PIXEL REELS + LEVER</div>
 <div class="holo" id="phaseCap"></div>
 <div id="errBox"></div>
 <div class="holo" id="ledger"></div>
@@ -528,38 +528,104 @@ let planets=[];
 let PSPANX=560,PSPANY=320; // v9.2：依畫面尺寸反推的行星活動半徑（世界座標）
 let lastImpactFx=0;        // v9.5：強撞特效節流
 
-/* ==== SLOT v0.3：3D 無人機燈光秀老虎機 ====
-   機隊自大樓頂起飛 → 夜空自由巡航（murmuration）→ 突然編隊成
-   「斜放在半空中」的三輪三線老虎機（每次抽選隨機角度）→
-   三輪變陣滾名逐輪鎖定（末輪 near-miss）→ 煙火爆發 → 重組巨型中獎名。
-   3D 全靠既有 proj() 投影，零外部依賴。 */
+/* ==== SLOT v0.5：像素無人機老虎機・真滾輪版 ====
+   四旋翼機隊（嗡鳴）→ 編隊成斜放半空的像素老虎機 →
+   三條「真的在捲動」的圖騰條帶：無人機逐幀追蹤滾動格點，
+   高速自然拖成動態模糊、減速落格變清晰；末輪 near-miss 停櫻桃
+   再滾一格落在 7 → 7-7-7 → 煙火 → 巨型像素中獎名。 */
 const SWARM={list:[],nReel:0,winRects:null,
-  yaw:0,roll:0,pitch:0,cx:0,cy:0,cz:260,mw:0,mh:0,
-  locked:[false,false,false],flipNext:[0,0,0],nearMiss:false,missAt:0,
+  yaw:0,roll:0,pitch:0,cx:0,cy:0,cz:300,mw:0,mh:0,
   megaFired:false,regrouped:false,payGlow:.25};
+const R3={inited:false,strip:null,pos:[0,0,0],stop:[0,0,0],
+  done:[false,false,false],prevIdx:[0,0,0],missT:0};
 const FCV=document.createElement('canvas');
 const FCTX=FCV.getContext('2d',{willReadFrequently:true});
-/* 形狀取樣：低解析離屏畫白色圖形 → 均勻抽為正規化點位（0..1） */
-function samplePts(budget,draw){
-  const w=260,hh=150;
-  FCV.width=w;FCV.height=hh;
-  FCTX.clearRect(0,0,w,hh);
-  FCTX.fillStyle='#fff';FCTX.strokeStyle='#fff';
-  draw(FCTX,w,hh);
-  const d=FCTX.getImageData(0,0,w,hh).data;
-  const raw=[];
-  for(let y=0;y<hh;y++)for(let x=0;x<w;x++)
-    if(d[(y*w+x)*4+3]>110)raw.push([x/w,y/hh]);
-  const out=[];
-  if(!raw.length){for(let i=0;i<budget;i++)out.push([.5,.5]);return out;}
-  const stride=Math.max(1,raw.length/budget);
-  for(let i=0;i<budget;i++){
-    const p=raw[Math.min(raw.length-1,(i*stride)|0)];
-    out.push([p[0],p[1]]);
-  }
-  return out;
+const COLHEX={gold:'#ffd97a',cyan:'#39e6ff',pink:'#ff6ec7',white:'#f0faff',red:'#ff5e5e',violet:'#b98cff'};
+function SPRK(k){return SPR[k]||SPR.pink;}
+/* 四旋翼 sprite ×2 幀 */
+function makeQuad(phase){
+  const s=48,c=document.createElement('canvas');c.width=c.height=s;
+  const g=c.getContext('2d');
+  g.strokeStyle='#3a4a66';g.lineWidth=3;
+  g.beginPath();g.moveTo(10,10);g.lineTo(s-10,s-10);g.moveTo(s-10,10);g.lineTo(10,s-10);g.stroke();
+  g.fillStyle='#141d30';g.strokeStyle='#55688c';g.lineWidth=1.5;
+  g.fillRect(s/2-6,s/2-6,12,12);g.strokeRect(s/2-6,s/2-6,12,12);
+  g.fillStyle='rgba(190,220,255,.16)';
+  [[10,10],[s-10,10],[10,s-10],[s-10,s-10]].forEach(function(p,i){
+    g.beginPath();g.arc(p[0],p[1],8,0,6.28);g.fill();
+    g.strokeStyle='rgba(210,235,255,.5)';g.lineWidth=1.6;
+    g.beginPath();g.arc(p[0],p[1],8,phase*1.05+i,phase*1.05+i+1.9);g.stroke();
+  });
+  g.fillStyle='#ff4444';g.fillRect(12,12,3,3);
+  g.fillStyle='#44ff66';g.fillRect(s-15,12,3,3);
+  return c;
 }
-/* 機面座標(u,v∈0..1) → 世界座標：roll → yaw → pitch 三軸旋轉後平移 */
+const QUADA=makeQuad(0),QUADB=makeQuad(2);
+/* 旋翼群嗡鳴 */
+let hum=null;
+function humStart(){
+  if(muted||hum)return;
+  try{
+    const a=A();
+    const g=a.createGain();g.gain.value=0;
+    const flt=a.createBiquadFilter();flt.type='lowpass';flt.frequency.value=640;flt.Q.value=1.1;
+    flt.connect(g);g.connect(master);
+    const nodes=[];
+    [82,109,164,219].forEach(function(f,i){
+      const o=a.createOscillator();o.type=i<2?'sawtooth':'triangle';
+      o.frequency.value=f*(1+(Math.random()-.5)*.02);
+      const og=a.createGain();og.gain.value=i<2?.5:.2;
+      o.connect(og);og.connect(flt);o.start();nodes.push(o);
+      const lfo=a.createOscillator(),lg=a.createGain();
+      lfo.frequency.value=.35+Math.random()*.8;lg.gain.value=f*.007;
+      lfo.connect(lg);lg.connect(o.frequency);lfo.start();nodes.push(lfo);
+    });
+    const src=a.createBufferSource();src.buffer=noiseBuf;src.loop=true;
+    const nf=a.createBiquadFilter();nf.type='bandpass';nf.frequency.value=300;nf.Q.value=2;
+    const ng=a.createGain();ng.gain.value=.22;
+    src.connect(nf);nf.connect(ng);ng.connect(flt);src.start();nodes.push(src);
+    g.gain.linearRampToValueAtTime(.15,a.currentTime+1.4);
+    hum={g,nodes,a};
+  }catch(e){}
+}
+function humStop(fade){
+  if(!hum)return;
+  const hh=hum;hum=null;
+  try{
+    hh.g.gain.cancelScheduledValues(hh.a.currentTime);
+    hh.g.gain.setValueAtTime(hh.g.gain.value,hh.a.currentTime);
+    hh.g.gain.linearRampToValueAtTime(.0001,hh.a.currentTime+(fade||1));
+    setTimeout(function(){try{hh.nodes.forEach(function(n){n.stop();});}catch(e){}},(fade||1)*1000+120);
+  }catch(e){}
+}
+/* 像素圖騰 */
+const SYMBOLS={
+  seven:{col:'gold',rows:['########','#.....##','.....##.','....##..','...##...','..##....','..##....','..##....']},
+  diamond:{col:'cyan',rows:['...##...','..####..','.######.','########','.######.','..####..','...##...','........']},
+  bell:{col:'gold',rows:['...##...','..####..','..####..','.######.','.######.','########','...##...','........']},
+  star:{col:'pink',rows:['...##...','...##...','########','.######.','..####..','.##..##.','##....##','........']},
+  bar:{col:'white',rows:['########','########','........','########','########','........','########','########']},
+  cherry:{col:'red',rows:['.....##.','....##..','...#....','..#.....','###..###','###..###','.#....#.','........']}
+};
+const SYMKEYS=['seven','diamond','bell','star','bar','cherry'];
+const SYMCELLS={};
+for(const k of SYMKEYS){
+  const rows=SYMBOLS[k].rows,out=[];
+  for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++)
+    if(rows[y][x]==='#')out.push([(x+.5)/rows[y].length,(y+.5)/rows.length]);
+  SYMCELLS[k]=out;
+}
+function samplePx(gw,gh,draw){
+  FCV.width=gw;FCV.height=gh;
+  FCTX.clearRect(0,0,gw,gh);
+  FCTX.fillStyle='#fff';FCTX.strokeStyle='#fff';
+  draw(FCTX,gw,gh);
+  const d=FCTX.getImageData(0,0,gw,gh).data;
+  const cells=[];
+  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)
+    if(d[(y*gw+x)*4+3]>110)cells.push([(x+.5)/gw,(y+.5)/gh]);
+  return cells;
+}
 function machPt(u,v){
   const lx=(u-.5)*SWARM.mw, ly=(v-.5)*SWARM.mh;
   const cR=Math.cos(SWARM.roll),sR=Math.sin(SWARM.roll);
@@ -570,29 +636,48 @@ function machPt(u,v){
   const y3=y1*cP-z2*sP, z3=y1*sP+z2*cP;
   return {x:x2+SWARM.cx,y:y3+SWARM.cy,z:z3+SWARM.cz};
 }
-function setTargetMach(d,u,v){const p=machPt(u,v);d.tx=p.x;d.ty=p.y;d.tz=p.z;}
+const MPT={x:0,y:0,z:0}; // 熱路徑共用暫存（零配置）
+function machPtT(u,v){
+  const lx=(u-.5)*SWARM.mw, ly=(v-.5)*SWARM.mh;
+  const cR=Math.cos(SWARM.roll),sR=Math.sin(SWARM.roll);
+  const x1=lx*cR-ly*sR, y1=lx*sR+ly*cR;
+  const cY=Math.cos(SWARM.yaw),sY=Math.sin(SWARM.yaw);
+  const x2=x1*cY, z2=-x1*sY;
+  const cP=Math.cos(SWARM.pitch),sP=Math.sin(SWARM.pitch);
+  MPT.x=x2+SWARM.cx;MPT.y=(y1*cP-z2*sP)+SWARM.cy;MPT.z=(y1*sP+z2*cP)+SWARM.cz;
+  return MPT;
+}
+function assignCells(s,e,cells,rect,col,dim,pxWorld,chase){
+  const n=e-s;
+  if(!cells.length||n<=0)return;
+  const nw=performance.now();
+  for(let i=0;i<n;i++){
+    const c=cells[n>=cells.length? i%cells.length : ((i*cells.length/n)|0)];
+    const d=SWARM.list[s+i];
+    const p=machPt(rect.u0+c[0]*rect.uw,rect.v0+c[1]*rect.vh);
+    d.tx=p.x+(Math.random()-.5)*1.2;d.ty=p.y+(Math.random()-.5)*1.2;d.tz=p.z;
+    d.dst0=nw;d.dstag=Math.random()*130;
+    d.k=col;d.dim=dim;d.wp=null;d.px=1;d.pxsz=pxWorld;d.ci=chase?i:-1;
+  }
+}
 function droneCount(){return [1300,950,650,420][PERF.lvl];}
-function randName(){const p=getPool();return p[(Math.random()*p.length)|0];}
-function wrongName(){const p=getPool().filter(n=>n!==CORE.winner);
-  return p.length?p[(Math.random()*p.length)|0]:CORE.winner;}
 function roamWp(){return {x:(Math.random()-.5)*1500,y:-430+Math.random()*480,z:60+Math.random()*640};}
 function setupSwarm(){
   const n=droneCount();
   SWARM.list=[];
   const hor=H*.72,s9=FOV/(FOV+900);
-  for(let i=0;i<n;i++){ // 大樓頂起飛（世界座標）
+  for(let i=0;i<n;i++){
     const b=skyline[(Math.random()*skyline.length)|0];
     const sy=hor-b.h*s9*Math.random()-4;
     SWARM.list.push({
       x:b.x+(Math.random()-.5)*b.w,
       y:(sy-CY)/s9,z:900,
-      vx:0,vy:0,vz:0,tx:0,ty:0,tz:260,wp:null,
+      vx:0,vy:0,vz:0,tx:0,ty:0,tz:300,wp:null,
       delay:Math.random()*1400,kicked:false,
-      dst0:0,dstag:0,ball:0,dim:1,
+      dst0:0,dstag:0,ball:0,dim:1,px:0,pxsz:6,ci:-1,
       ph:Math.random()*6.28,k:'gold',sz:4.5+Math.random()*3.5});
   }
   SWARM.nReel=Math.floor(n*.18);
-  // 機台姿態：每次抽選隨機（保底斜角——「斜放在半空中」）
   const sgn=Math.random()<.5?-1:1;
   SWARM.yaw=sgn*(.2+Math.random()*.24);
   SWARM.roll=(Math.random()-.5)*.16;
@@ -605,97 +690,141 @@ function setupSwarm(){
   SWARM.mh=(H*.4)/s;
   const ww=.27,gap=(1-ww*3)/4;
   SWARM.winRects=[0,1,2].map(i=>({u0:gap+(ww+gap)*i,v0:.34,uw:ww,vh:.56}));
-  SWARM.locked=[false,false,false];
-  SWARM.flipNext=[0,0,0];
-  SWARM.nearMiss=false;SWARM.missAt=0;
   SWARM.megaFired=false;SWARM.regrouped=false;SWARM.payGlow=.25;
+  R3.inited=false;
+}
+function initR3(){
+  const L=8;
+  R3.strip=[[],[],[]];
+  R3.pos=[0,0,0];R3.done=[false,false,false];R3.prevIdx=[0,0,0];R3.missT=0;
+  for(let i=0;i<3;i++){
+    for(let k=0;k<L;k++)R3.strip[i].push(SYMKEYS[1+(Math.random()*(SYMKEYS.length-1))|0]);
+    R3.stop[i]=14+i*5+((Math.random()*3)|0);
+    R3.strip[i][R3.stop[i]%L]='seven';           // 停格＝7
+  }
+  // 末輪：7 的前一格放櫻桃（near-miss 先停這裡）
+  R3.strip[2][(R3.stop[2]-1)%L]='cherry';
+  R3.inited=true;
+}
+/* 拉桿（機台右側）：spin 開始拉下 → 到底 → 彈回；滾輪等拉桿到底才啟動 */
+const LEV={n:30,pivotU:1.055,pivotV:.56,len:.52};
+function updateLever(tSpin){
+  const n=SWARM.list.length,fs=n-LEV.n;
+  let th;
+  if(tSpin<380){const k=tSpin/380;th=-.12+2.55*k*k;}                     // 拉下（加速）
+  else if(tSpin<560)th=2.43;                                             // 停在底
+  else{const k=Math.min(1,(tSpin-560)/650);th=2.43-2.55*(k*k*(3-2*k));}  // 平滑彈回
+  const asp=SWARM.mh/SWARM.mw;
+  const pxW=SWARM.mw/76*.5;
+  for(let i=fs;i<n;i++){
+    const d=SWARM.list[i],j=i-fs;
+    let u,v;
+    if(j<18){                       // 桿身
+      const s=(j+1)/18;
+      u=LEV.pivotU+Math.sin(th)*LEV.len*s*asp;
+      v=LEV.pivotV-Math.cos(th)*LEV.len*s;
+      d.k='white';d.dim=.85;
+    }else{                          // 紅色球頭
+      const a=(j-18)/12*6.28;
+      u=LEV.pivotU+Math.sin(th)*LEV.len*asp+Math.cos(a)*.05*asp;
+      v=LEV.pivotV-Math.cos(th)*LEV.len+Math.sin(a)*.05;
+      d.k='red';d.dim=1;
+    }
+    const p=machPtT(u,v);
+    d.tx=p.x;d.ty=p.y;d.tz=p.z;
+    d.px=1;d.pxsz=pxW;d.dst0=0;d.dstag=0;d.wp=null;d.ci=-1;
+  }
+}
+function leverSfx(){
+  playNoise(.09,.3,'bandpass',900,500,3,'dry',.2);   // 棘輪咔
+  tone(220,90,.16,.22,'square','dist',.2);
+  setTimeout(function(){clunkSfx();},380);           // 拉到底扣鎖
 }
 function buildMachineFormation(){
-  const n=SWARM.list.length,frameBudget=n-SWARM.nReel*3;
-  const pts=samplePts(frameBudget,(g,w,hh)=>{
-    g.lineWidth=6;
-    g.strokeRect(w*.015,hh*.03,w*.97,hh*.94);           // 機殼
-    g.lineWidth=4;
-    for(const r of SWARM.winRects)                       // 三個轉輪窗
+  const n=SWARM.list.length;
+  const gw=76,gh=44;
+  const cells=samplePx(gw,gh,(g,w,hh)=>{
+    g.lineWidth=2;
+    g.strokeRect(1,1,w-2,hh-2);
+    for(const r of SWARM.winRects)
       g.strokeRect(r.u0*w,r.v0*hh,r.uw*w,r.vh*hh);
-    g.font='900 '+Math.round(hh*.17)+"px 'Chakra Petch'";
-    g.textAlign='center';g.textBaseline='middle';
-    g.fillText('VOID JACKPOT',w/2,hh*.18);               // 招牌
   });
-  const nw=performance.now();
-  for(let i=SWARM.nReel*3,j=0;i<n;i++,j++){
-    const d=SWARM.list[i],p=pts[j];
-    setTargetMach(d,p[0],p[1]);
-    d.k='gold';d.dim=1;d.dst0=nw;d.dstag=Math.random()*420;d.wp=null;
-  }
-  for(let i=0;i<3;i++)flipReel(i,randName(),false);
+  const pxW=SWARM.mw/gw*.5;
+  assignCells(SWARM.nReel*3,n,cells,{u0:0,v0:0,uw:1,vh:1},'gold',1,pxW,true);
+  initR3();
 }
-/* 三線轉輪：上/下為幽靈行（暗），中行是 payline */
-function flipReel(i,name,goldLock){
+/* 真滾輪：逐幀把滾動中的圖騰格點寫進無人機目標（零配置熱路徑） */
+function updateReelTargets(i){
   const r=SWARM.winRects[i];
-  const s0=i*SWARM.nReel,n=SWARM.nReel;
-  const nMid=Math.floor(n*.56),nSide=Math.floor((n-nMid)/2);
-  const nw=performance.now();
-  function put(cnt,off,v0,vh,nm,dim,col){
-    if(cnt<=0)return;
-    const pts=samplePts(cnt,(g,w,hh)=>{
-      let fs=hh*.62;
-      g.font='900 '+Math.round(fs)+"px 'Noto Sans TC','Chakra Petch'";
-      const tw=g.measureText(nm).width;
-      if(tw>w*.92){fs*=w*.92/tw;g.font='900 '+Math.round(fs)+"px 'Noto Sans TC','Chakra Petch'";}
-      g.textAlign='center';g.textBaseline='middle';
-      g.fillText(nm,w/2,hh/2);
-    });
-    for(let j=0;j<cnt;j++){
-      const d=SWARM.list[s0+off+j],p=pts[j];
-      setTargetMach(d,r.u0+r.uw*(.05+p[0]*.9),r.v0+r.vh*(v0+p[1]*vh));
-      d.dst0=nw;d.dstag=Math.random()*130;d.dim=dim;d.k=col;d.wp=null;
+  const strip=R3.strip[i],L=strip.length;
+  const pos=R3.pos[i];
+  const slotVh=r.vh/3;                     // 三線：窗內同時三個圖騰
+  const s0=i*SWARM.nReel,n=SWARM.nReel,nSub=(n/4)|0;
+  const pxW=SWARM.mw*r.uw*.76/8*.42;
+  const first=Math.ceil(pos)-2;
+  for(let s=0;s<4;s++){
+    const sIdx=first+s;
+    const q=((sIdx%4)+4)%4;                // 穩定子群：捲出底部的無人機飛回頂部接新圖騰
+    const key=strip[((sIdx%L)+L)%L];
+    const cells=SYMCELLS[key];
+    const isLock=R3.done[i]&&sIdx===R3.stop[i];
+    const col=isLock?'gold':SYMBOLS[key].col;
+    const vC=(pos-sIdx)+1.5;               // 圖騰中心（slot 單位，1.5=中線）
+    const dim=(isLock?1:.9)*Math.max(.14,1-Math.abs(vC-1.5)/1.7);
+    const gs=s0+q*nSub,ge=(q===3)?(s0+n):(gs+nSub);
+    const cn=ge-gs;
+    for(let di=gs,ci2=0;di<ge;di++,ci2++){
+      const d=SWARM.list[di];
+      const c=cells[cn>=cells.length? ci2%cells.length : ((ci2*cells.length/cn)|0)];
+      let v=r.v0+(vC-1.5+c[1]*.92+.04+1)*slotVh;
+      let dm=dim;
+      const lo=r.v0+.01,hi=r.v0+r.vh-.01;
+      if(v<lo){v=lo;dm*=.15;}              // 捲出窗外→貼窗緣待命（遮罩感）
+      else if(v>hi){v=hi;dm*=.15;}
+      const p=machPtT(r.u0+r.uw*(.12+c[0]*.76),v);
+      d.tx=p.x;d.ty=p.y;d.tz=p.z;
+      d.k=col;d.dim=dm;d.px=1;d.pxsz=pxW;
+      d.dst0=0;d.dstag=0;d.wp=null;d.ci=-1;
     }
-  }
-  const midCol=goldLock?'gold':(SWARM.nearMiss&&i===2?'pink':'cyan');
-  put(nSide,0,.02,.26,randName(),.32,'cyan');
-  put(nMid,nSide,.36,.28,name,1,midCol);
-  put(nSide,nSide+nMid,.72,.26,randName(),.32,'cyan');
-  for(let j=nSide*2+nMid;j<n;j++){
-    const d=SWARM.list[s0+j];
-    setTargetMach(d,r.u0+r.uw*.5,r.v0+r.vh*.5);
-    d.dst0=nw;d.dstag=Math.random()*130;d.dim=.5;d.k=midCol;d.wp=null;
   }
 }
 function giantName(){
-  // 攤平角度 + 放大機面 → 橫貫天空的巨型中獎名
   SWARM.yaw*=.15;SWARM.roll*=.25;SWARM.pitch*=.4;
   const s=FOV/(FOV+SWARM.cz);
   SWARM.cx=0;SWARM.cy=(H*.32-CY)/s;
   SWARM.mw=(W*.84)/s;SWARM.mh=(H*.46)/s;
   const name=CORE.winner;
-  const pts=samplePts(SWARM.list.length,(g,w,hh)=>{
-    let fs=hh*.52;
+  const gw=110,gh=36;
+  const cells=samplePx(gw,gh,(g,w,hh)=>{
+    let fs=hh*.72;
     g.font='900 '+Math.round(fs)+"px 'Noto Sans TC','Chakra Petch'";
     const tw=g.measureText(name).width;
     if(tw>w*.96){fs*=w*.96/tw;g.font='900 '+Math.round(fs)+"px 'Noto Sans TC','Chakra Petch'";}
     g.textAlign='center';g.textBaseline='middle';
     g.fillText(name,w/2,hh/2);
   });
+  const pxW=SWARM.mw/gw*.5;
+  for(const d of SWARM.list)d.ball=0;
+  assignCells(0,SWARM.list.length,cells,{u0:0,v0:0,uw:1,vh:1},'gold',1,pxW,false);
   const nw=performance.now();
-  for(let i=0;i<SWARM.list.length;i++){
-    const d=SWARM.list[i],p=pts[i];
-    d.ball=0;
-    setTargetMach(d,p[0],p[1]);
-    d.dst0=nw;d.dstag=Math.random()*550;d.dim=1;
-    d.k=Math.random()<.72?'gold':'white';
+  for(const d of SWARM.list){
+    d.dstag=Math.random()*550;d.dst0=nw;
+    if(Math.random()<.28)d.k='white';
   }
 }
 function spinTick(){
   const D2=curTier().collide*.8;
-  const t=CORE.t;
-  const LK=[D2*.42,D2*.68,D2];
+  const t=Math.max(0,CORE.t-520); // 等拉桿拉到底才開始轉
+  const LK=[D2*.5,D2*.75,D2];
   for(let i=0;i<3;i++){
-    if(SWARM.locked[i])continue;
-    if(i===2&&SWARM.nearMiss){
-      if(t>=SWARM.missAt){                 // near-miss 後真鎖定
-        SWARM.locked[2]=true;
-        flipReel(2,CORE.winner,true);
+    if(R3.done[i])continue;
+    if(i===2&&R3.missT>0){
+      const nt=t-R3.missT;
+      if(nt<700)continue;                  // 停在櫻桃上醞釀
+      const k=Math.min(1,(nt-700)/460);    // nudge：再滾一格落在 7
+      R3.pos[2]=R3.stop[2]-1+easeOutQuart(k);
+      if(k>=1){
+        R3.done[2]=true;
         SWARM.payGlow=.9;
         slamFx();
         setCap('');
@@ -703,93 +832,114 @@ function spinTick(){
       }
       continue;
     }
-    if(t>=LK[i]){
+    const prog=Math.min(1,t/LK[i]);
+    const target=(i===2)?R3.stop[2]-1:R3.stop[i];
+    R3.pos[i]=target*easeOutQuart(prog);
+    const fi=Math.floor(R3.pos[i]);
+    if(fi!==R3.prevIdx[i]){R3.prevIdx[i]=fi;tickSfx(2400-prog*1500);}
+    if(prog>=1){
       if(i<2){
-        SWARM.locked[i]=true;
-        flipReel(i,CORE.winner,true);
+        R3.done[i]=true;
         SWARM.payGlow=Math.min(.75,SWARM.payGlow+.2);
         clunkSfx();
         const r=SWARM.winRects[i],c=machPt(r.u0+r.uw/2,r.v0+r.vh*.5);
         const pp=proj(c.x,c.y,c.z);
         burst(46,true,pp.x,pp.y);
         if(i===1)setCap('最後一輪——');
-      }else{                               // 末輪先鎖「差一點」
-        SWARM.nearMiss=true;
-        SWARM.missAt=t+720;
-        flipReel(2,wrongName(),false);
+      }else{
+        R3.missT=t;                        // 差一點！停在櫻桃
         clunkSfx();
       }
-    }else if(t>=SWARM.flipNext[i]){        // 滾動變陣
-      const prog=t/LK[i];
-      flipReel(i,randName(),false);
-      tickSfx(2400-prog*1400);
-      SWARM.flipNext[i]=t+170+prog*prog*430;
     }
   }
 }
 function megaTick(){
-  if(!SWARM.megaFired){                    // 全體炸開成 3D 煙火
+  if(!SWARM.megaFired){
     SWARM.megaFired=true;
     boomSfx();
     boomLight=1;rayAng=Math.random()*6.28;
     flash.classList.remove('go');void flash.offsetWidth;flash.classList.add('go');
     CORE.shake=30;shockwave();
     for(const d of SWARM.list){
-      d.ball=600+Math.random()*750;
+      d.ball=600+Math.random()*750;d.px=0;
       d.vx=(Math.random()-.5)*20;d.vy=-(3+Math.random()*12);d.vz=(Math.random()-.5)*16;
       d.k=Math.random()<.5?'gold':(Math.random()<.5?'white':'pink');
     }
     burst(220,true,CX,H*.32);
   }
-  if(CORE.t>1500&&!SWARM.regrouped){       // 重組巨型中獎名
+  if(CORE.t>1500&&!SWARM.regrouped){
     SWARM.regrouped=true;
     giantName();
     doReveal();
   }
 }
 function updateDrone(d,dt,now){
-  if(d.ball>0){                            // 煙火彈道
+  if(d.ball>0){
     d.vy+=.12*dt;
     d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;
     d.ball-=dt*16.67;
     return;
   }
   if(CORE.mode==='launch'){
-    if(CORE.t<d.delay)return;              // 還沒起飛
+    if(CORE.t<d.delay)return;
     if(!d.kicked){d.kicked=true;d.vy-=4+Math.random()*6;}
     if(!d.wp||Math.abs(d.x-d.wp.x)+Math.abs(d.y-d.wp.y)+Math.abs(d.z-d.wp.z)<100)d.wp=roamWp();
     d.vx=(d.vx+(d.wp.x-d.x)*.004*dt)*Math.pow(.97,dt);
     d.vy=(d.vy+(d.wp.y-d.y)*.004*dt)*Math.pow(.97,dt);
     d.vz=(d.vz+(d.wp.z-d.z)*.004*dt)*Math.pow(.97,dt);
-  }else if(now<d.dst0+d.dstag){            // 變陣錯峰：滑行等待
+  }else if(now<d.dst0+d.dstag){
     d.vx*=Math.pow(.985,dt);d.vy*=Math.pow(.985,dt);d.vz*=Math.pow(.985,dt);
-  }else{                                   // 飛向編隊目標
-    d.vx=(d.vx+(d.tx-d.x)*.02*dt)*Math.pow(.88,dt);
-    d.vy=(d.vy+(d.ty-d.y)*.02*dt)*Math.pow(.88,dt);
-    d.vz=(d.vz+(d.tz-d.z)*.02*dt)*Math.pow(.88,dt);
+  }else{
+    d.vx=(d.vx+(d.tx-d.x)*.024*dt)*Math.pow(.87,dt);
+    d.vy=(d.vy+(d.ty-d.y)*.024*dt)*Math.pow(.87,dt);
+    d.vz=(d.vz+(d.tz-d.z)*.024*dt)*Math.pow(.87,dt);
   }
   d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;
 }
 function drawDrones(dt,T,now){
+  if(R3.inited&&(CORE.mode==='form'||CORE.mode==='spin')){
+    for(let i=0;i<3;i++)updateReelTargets(i);   // 滾輪逐幀更新目標（圖騰由上往下捲）
+    updateLever(CORE.mode==='spin'?CORE.t:99999); // 拉桿（非 spin 時停在復位角度）
+  }
   ctx.globalCompositeOperation='lighter';
+  const qf=((T*26)|0)%2?QUADA:QUADB;
   for(const d of SWARM.list){
     updateDrone(d,dt,now);
-    const p=proj(d.x+Math.sin(T*2.1+d.ph)*2,d.y+Math.cos(T*1.7+d.ph)*2,d.z);
+    const p=proj(d.x+Math.sin(T*2.1+d.ph)*1.6,d.y+Math.cos(T*1.7+d.ph)*1.6,d.z);
     if(p.s<=0)continue;
-    const r=Math.max(1.4,d.sz*p.s);
     const v2=d.vx*d.vx+d.vy*d.vy+d.vz*d.vz;
-    if(FXON&&v2>9){                        // 移動拖尾
-      const pt=proj(d.x-d.vx*2.6,d.y-d.vy*2.6,d.z-d.vz*2.6);
-      if(pt.s>0){
-        ctx.globalAlpha=.18*d.dim;
-        ctx.drawImage(SPR[d.k],pt.x-r,pt.y-r,r*2,r*2);
+    if(d.px&&v2<5){
+      let al=.95*d.dim;
+      if(d.ci>=0)al*=.45+.55*(0.5+0.5*Math.sin(T*6-d.ci*.55)); // 機殼燈泡鏈
+      const r=Math.max(1.6,d.pxsz*p.s);
+      ctx.globalAlpha=al;
+      ctx.fillStyle=COLHEX[d.k]||'#fff';
+      ctx.fillRect(p.x-r,p.y-r,r*2,r*2);
+      ctx.globalAlpha=al*.5;
+      ctx.drawImage(SPRK(d.k),p.x-r*2.6,p.y-r*2.6,r*5.2,r*5.2);
+    }else{
+      const r=Math.max(1.4,d.sz*p.s);
+      if(FXON&&v2>9){
+        const pt=proj(d.x-d.vx*2.6,d.y-d.vy*2.6,d.z-d.vz*2.6);
+        if(pt.s>0){
+          ctx.globalAlpha=.16*d.dim;
+          ctx.drawImage(SPRK(d.k),pt.x-r,pt.y-r,r*2,r*2);
+        }
       }
+      if(r>3.2){
+        ctx.globalAlpha=Math.min(1,p.s)*.9;
+        const qs=r*4.6;
+        ctx.drawImage(qf,p.x-qs/2,p.y-qs/2,qs,qs);
+        if(((T*2+d.ph)%3)<.07){
+          ctx.globalAlpha=.9;
+          ctx.drawImage(SPR.white,p.x-r*2,p.y-r*2,r*4,r*4);
+        }
+      }
+      ctx.globalAlpha=.9*d.dim*Math.min(1,p.s*1.25);
+      ctx.drawImage(SPRK(d.k),p.x-r,p.y-r,r*2,r*2);
     }
-    ctx.globalAlpha=.92*d.dim*Math.min(1,p.s*1.25);
-    ctx.drawImage(SPR[d.k],p.x-r,p.y-r,r*2,r*2);
   }
   ctx.globalAlpha=1;
-  // 中獎線（斜面上的透視折線）
   if(CORE.mode==='spin'&&SWARM.winRects){
     ctx.strokeStyle='rgba(255,220,110,'+SWARM.payGlow.toFixed(2)+')';
     ctx.lineWidth=2.5;
@@ -801,8 +951,7 @@ function drawDrones(dt,T,now){
     }
     ctx.stroke();
   }
-  // 末輪 anticipation：兩側紅光脈動
-  if(CORE.mode==='spin'&&SWARM.locked[1]&&!SWARM.locked[2]){
+  if(CORE.mode==='spin'&&R3.done[1]&&!R3.done[2]){
     ctx.globalAlpha=.1+.07*Math.sin(T*7);
     ctx.drawImage(SPR.pink,-W*.28,-H*.3,W*.55,H*1.6);
     ctx.drawImage(SPR.pink,W*.73,-H*.3,W*.55,H*1.6);
@@ -1390,7 +1539,7 @@ function updateCore(dt,now){
       if(CORE.t>3300){buildMachineFormation();setMode('form');}
       break;
     case 'form':CORE.energy=.7;
-      if(CORE.t>1500)setMode('spin');
+      if(CORE.t>1500){humStop(1.4);leverSfx();setMode('spin');}
       break;
     case 'spin':CORE.energy=.85;spinTick();break;
     case 'mega':CORE.energy=1;megaTick();break;
@@ -1851,6 +2000,7 @@ function startDraw(){
   hudInfo.textContent='虛空正在凝視……';
   blip(220,.4,.06,'sine');
   loadSfx(); // v9.3：利用整段演出時間預載開獎取樣
+  humStart(); // v0.4：旋翼嗡鳴
   setupSwarm();setMode('launch');
 }
 
@@ -1920,6 +2070,7 @@ removeWinner.addEventListener('change',rebuildSouls);
   .addEventListener('input',function(){saveState();if(CORE.mode==='idle')rebuildSouls();});});
 document.getElementById('muteBtn').addEventListener('click',function(){
   muted=!muted;
+  if(muted&&typeof humStop==='function')humStop(.2);
   this.textContent=muted?'♪ OFF':'♪ ON';
   this.style.color=muted?'rgba(120,120,150,.5)':'rgba(140,230,255,.7)';
 });

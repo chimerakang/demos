@@ -4,11 +4,11 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<meta name="theme-color" content="#1a1210">
-	<meta name="description" content="爆米花合成原型：生玉米不能合成，火是唯一的入口。火太小產出跟不上，火太大整鍋燒焦。">
+	<meta name="description" content="同一組爆米花物理語彙（蓄熱→預告→爆開→膨脹占位→燒焦代價）接到五種既有玩法上，用來比較哪個方向才對。">
 	<meta name="mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<title>Popcorn Burst — 火力是唯一的決策</title>
+	<title>Popcorn Lab — 五個方向，同一個物理核心</title>
 	<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
@@ -41,6 +41,12 @@
 		.keys span { border: 1px solid #453027; border-radius: 7px; padding: 5px 10px; background: #221713; }
 		.keys b { color: #f2ddc4; font-weight: 700; }
 
+		.protos { display: flex; flex-direction: column; gap: 7px; font-size: 13.5px;
+			max-width: 33em; text-align: left; }
+		.protos div { color: #b39880; border-left: 2px solid #4a3327; padding-left: 12px; }
+		.protos b { color: #ffc98a; }
+		.protos i { color: #d08a72; font-style: normal; }
+
 		#play { display: none; padding: 15px 44px; border: 0; border-radius: 12px; cursor: pointer;
 			background: linear-gradient(180deg, #e2712c, #b8451b); color: #fff;
 			font: 700 17px/1 inherit; letter-spacing: .1em;
@@ -62,25 +68,30 @@
 
 	<div id="boot">
 		<div class="kicker">POPCORN LAB · RESEARCH PROTOTYPE</div>
-		<h1>火力是唯一的決策</h1>
+		<h1>五個方向，同一個物理核心</h1>
 		<p class="sub">
-			生玉米彼此不能合成，火是唯一把它變成分數的入口。<br>
-			火太小，產出跟不上投放；火太大，整鍋燒焦，<br>
-			把你辛苦疊好的爆米花變成清不掉的死角。
+			同一組爆米花語彙 —— <b>蓄熱 → 預告 → 爆開 → 膨脹占位 → 燒焦代價</b> ——
+			接到五種不同的既有玩法上。<br>
+			進去之後是選單，五個原型可以連著玩來比較。每一個只回答一個問題：
 		</p>
+		<div class="protos">
+			<div><b>1 彈珠卡位</b>　爆開會改變地形，你還算得到嗎？</div>
+			<div><b>2 合成消除</b>　<i>已做完、已試玩：不好玩。留著當對照組。</i></div>
+			<div><b>3 管道推擠</b>　膨脹讀起來是「力」，還是只是一團雜訊？</div>
+			<div><b>4 繪線引流</b>　看得見的斷裂門檻，救得回公平感嗎？</div>
+			<div><b>5 爆裂倖存</b>　純連鎖清場的 ASMR，單靠它撐得住嗎？</div>
+		</div>
 
 		<div class="barwrap">
 			<div class="bar"><i id="fill"></i></div>
 			<div class="meta"><span id="phase">正在載入引擎…</span><span id="size"></span></div>
 		</div>
 
-		<button id="play" type="button">開火</button>
+		<button id="play" type="button">進實驗室</button>
 
 		<div class="keys">
-			<span><b>滑鼠</b> / <b>A D</b> 瞄準</span>
-			<span><b>點擊</b> / <b>空白鍵</b> 投放</span>
-			<span><b>按住下方火力條</b> / <b>S</b> 給火</span>
-			<span><b>R</b> 重來</span>
+			<span>操作說明在每個原型的畫面上方</span>
+			<span><b>ESC</b> 或右上角 <b>&lt; LAB</b> 回選單</span>
 		</div>
 
 		<div id="err"></div>
@@ -88,7 +99,7 @@
 
 	<script src="index.js"></script>
 	<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":45340,"index.wasm":39509339},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":82736,"index.wasm":39509339},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 

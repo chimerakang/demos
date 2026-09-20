@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<meta name="theme-color" content="#1a1210">
+	<meta name="description" content="爆米花合成原型：生玉米不能合成，火是唯一的入口。火太小產出跟不上，火太大整鍋燒焦。">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<title>Popcorn Burst — 火力是唯一的決策</title>
+	<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1210; color: #fbf1e2;
+			font-family: system-ui, -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+			touch-action: none; -webkit-text-size-adjust: 100%;
+			-webkit-user-select: none; user-select: none; }
+		#canvas { display: block; width: 100%; height: 100%; outline: none; }
+
+		#boot { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
+			align-items: center; justify-content: center; gap: 22px; padding: 28px;
+			background: radial-gradient(ellipse at 50% 36%, #33211a 0%, #150e0c 74%);
+			transition: opacity .5s ease; text-align: center; }
+		#boot.done { opacity: 0; pointer-events: none; }
+		.kicker { font-size: 12px; letter-spacing: .42em; color: #ffae4d; font-weight: 700; }
+		h1 { font-size: clamp(23px, 5vw, 40px); font-weight: 800; letter-spacing: .01em; line-height: 1.3; }
+		.sub { font-size: clamp(13px, 2.2vw, 15px); color: #c0a68c; line-height: 1.9; max-width: 31em; }
+
+		.barwrap { width: min(420px, 82vw); }
+		.bar { height: 7px; border-radius: 4px; background: #2d201b; overflow: hidden; }
+		.bar > i { display: block; height: 100%; width: 0%; border-radius: 4px;
+			background: linear-gradient(90deg, #d8622a, #ffc247); transition: width .25s ease; }
+		.meta { display: flex; justify-content: space-between; margin-top: 9px;
+			font-size: 12px; color: #97806c; font-variant-numeric: tabular-nums; }
+
+		.keys { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+			font-size: 12.5px; color: #ab9280; }
+		.keys span { border: 1px solid #453027; border-radius: 7px; padding: 5px 10px; background: #221713; }
+		.keys b { color: #f2ddc4; font-weight: 700; }
+
+		#play { display: none; padding: 15px 44px; border: 0; border-radius: 12px; cursor: pointer;
+			background: linear-gradient(180deg, #e2712c, #b8451b); color: #fff;
+			font: 700 17px/1 inherit; letter-spacing: .1em;
+			box-shadow: 0 12px 34px rgba(226, 113, 44, .34); }
+		#play:hover { filter: brightness(1.1); }
+		#boot.ready #play { display: block; }
+		#boot.ready .barwrap { display: none; }
+
+		#err { display: none; max-width: 34em; padding: 16px 18px; border-radius: 12px;
+			border: 1px solid #5a2f24; background: #1d100c; color: #ffbba4;
+			font-size: 13.5px; line-height: 1.8; white-space: pre-wrap; text-align: left; }
+		#boot.failed #err { display: block; }
+		#boot.failed .barwrap, #boot.failed .keys, #boot.failed #play { display: none; }
+	</style>
+</head>
+<body>
+	<canvas id="canvas" tabindex="0">
+	</canvas>
+
+	<div id="boot">
+		<div class="kicker">POPCORN LAB · RESEARCH PROTOTYPE</div>
+		<h1>火力是唯一的決策</h1>
+		<p class="sub">
+			生玉米彼此不能合成，火是唯一把它變成分數的入口。<br>
+			火太小，產出跟不上投放；火太大，整鍋燒焦，<br>
+			把你辛苦疊好的爆米花變成清不掉的死角。
+		</p>
+
+		<div class="barwrap">
+			<div class="bar"><i id="fill"></i></div>
+			<div class="meta"><span id="phase">正在載入引擎…</span><span id="size"></span></div>
+		</div>
+
+		<button id="play" type="button">開火</button>
+
+		<div class="keys">
+			<span><b>滑鼠</b> / <b>A D</b> 瞄準</span>
+			<span><b>點擊</b> / <b>空白鍵</b> 投放</span>
+			<span><b>按住下方火力條</b> / <b>S</b> 給火</span>
+			<span><b>R</b> 重來</span>
+		</div>
+
+		<div id="err"></div>
+	</div>
+
+	<script src="index.js"></script>
+	<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":45340,"index.wasm":39509339},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const boot = document.getElementById('boot');
+	const fill = document.getElementById('fill');
+	const phase = document.getElementById('phase');
+	const sizeEl = document.getElementById('size');
+	const playBtn = document.getElementById('play');
+	const errEl = document.getElementById('err');
+
+	const MB = (n) => (n / 1048576).toFixed(1) + ' MB';
+	const total = Object.values(GODOT_CONFIG.fileSizes || {}).reduce((a, b) => a + b, 0);
+	if (total > 0) {
+		sizeEl.textContent = '首次載入約 ' + MB(total) + '，之後會走瀏覽器快取';
+	}
+
+	function fail(err) {
+		console.error(err);
+		let msg = '無法啟動。';
+		if (err instanceof Error) msg = err.message;
+		else if (typeof err === 'string') msg = err;
+		errEl.textContent = msg + '\n\n這個原型需要支援 WebGL2 與 WebAssembly 的瀏覽器。'
+			+ '如果是在很舊的裝置或開啟了嚴格的隱私模式，可能會失敗。';
+		boot.classList.add('failed');
+	}
+
+	const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+	if (missing.length !== 0) {
+		fail('這個瀏覽器缺少執行所需的功能：\n' + missing.join('\n'));
+		return;
+	}
+
+	phase.textContent = '下載中…';
+	engine.startGame({
+		onProgress: function (current, cur_total) {
+			if (current > 0 && cur_total > 0) {
+				const pct = Math.min(100, (current / cur_total) * 100);
+				fill.style.width = pct.toFixed(1) + '%';
+				phase.textContent = '下載中… ' + pct.toFixed(0) + '%';
+			} else {
+				fill.style.width = '60%';
+				phase.textContent = '下載中…';
+			}
+		},
+	}).then(function () {
+		fill.style.width = '100%';
+		phase.textContent = '準備好了';
+		// 等一個真實的點擊再進場：瀏覽器的音訊政策需要使用者手勢，
+		// 這個原型的嘶嘶聲與啪聲就是靠這一下才發得出來。
+		boot.classList.add('ready');
+		playBtn.focus();
+	}, fail);
+
+	playBtn.addEventListener('click', function () {
+		boot.classList.add('done');
+		setTimeout(function () { boot.remove(); }, 520);
+		const cv = document.getElementById('canvas');
+		if (cv) cv.focus();
+	});
+}());
+	</script>
+</body>
+</html>
+

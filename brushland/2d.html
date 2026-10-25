@@ -95,7 +95,7 @@ const getT = (x, y) => inb(x, y) ? terrain[idx(x, y)] : T.EMPTY;
 const N8 = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
 
 // 規則表是資料，不是程式（設計文件第 3 層）。閾值為推測值。
-const PARAMS = { springMinRock: 6, cliffDiff: 2, snowHeight: 12 };
+const PARAMS = { springMinRock: 6, springMinPeak: 8, cliffDiff: 2, snowHeight: 12 };   // 與 Godot 版 TerrainPass 相同
 const RULES = [
   { b: 'CASTLE',    label: '城堡', when: { clusterMin: 12 },             note: '村子夠大' },
   { b: 'CHURCH',    label: '教堂', when: { houseMax: 0, roadMin: 6 },    note: '孤立房被路圍' },
@@ -170,7 +170,7 @@ function derive() {
         if (terrain[j] === T.ROCK && !rockSeen[j]) { rockSeen[j] = 1; stack.push(j); }
       }
     }
-    if (size < PARAMS.springMinRock) continue;
+    if (size < PARAMS.springMinRock || hs[spring] < PARAMS.springMinPeak * 16) continue;   // 小岩堆不冒水
     for (let i = spring, steps = 0; i >= 0 && steps < n; steps++) {
       if (terrain[i] === T.WATER || terrain[i] === T.HOUSE) break;
       river[i] = 1;

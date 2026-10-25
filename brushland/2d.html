@@ -216,6 +216,27 @@ function derive() {
     building[i] = RULES.find(r => matchRule(r.when, cnt, cs)).b;
   }
   D = { hs, dir, river, fall, cliff, snow, clusterId, clusterSize, building };
+  D.bridge = deriveBridges();
+}
+
+// 橋（與 Godot 版 GeometryPass.bridge_of 同一套規則）：路格上有河 → 木橋；路格相對兩側都是水 → 石橋。
+// 方向沿著路：東西有路 → 東西向；南北有路 → 南北向；孤立路格 → 垂直水流。0 無、1 木橋、2 石橋；along_x 另存。
+function deriveBridges() {
+  const kind = new Uint8Array(W * H), alongX = new Uint8Array(W * H);
+  const wet = (x, y) => inb(x, y) && (terrain[idx(x, y)] === T.WATER || D.river[idx(x, y)] === 1);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y);
+    if (terrain[i] !== T.ROAD) continue;
+    const roadEW = getT(x - 1, y) === T.ROAD || getT(x + 1, y) === T.ROAD;
+    const roadNS = getT(x, y - 1) === T.ROAD || getT(x, y + 1) === T.ROAD;
+    const waterEW = wet(x - 1, y) && wet(x + 1, y), waterNS = wet(x, y - 1) && wet(x, y + 1);
+    if (D.river[i]) {
+      kind[i] = 1;
+      if (roadEW !== roadNS) alongX[i] = roadEW ? 1 : 0;
+      else { const j = D.dir[i]; alongX[i] = j >= 0 ? (Math.abs(j % W - x) >= Math.abs((j / W | 0) - y) ? 0 : 1) : 1; }
+    } else if (waterEW !== waterNS) { kind[i] = 2; alongX[i] = waterNS ? 1 : 0; }
+  }
+  return { kind, alongX };
 }
 
 // ---- 第 4–5 層：dual-grid 幾何 + 渲染 ----
@@ -230,7 +251,7 @@ let look = 0;
 const FAMILIES = [
   { key: 'field', member: i => terrain[i] === T.FIELD },
   { key: 'road',  member: i => terrain[i] === T.ROAD },
-  { key: 'water', member: i => terrain[i] === T.WATER || D.river[i] === 1 },
+  { key: 'water', member: i => terrain[i] === T.WATER || D.river[i] === 1 || D.bridge.kind[i] === 2 },
   { key: 'dock',  member: i => terrain[i] === T.DOCK },
   { key: 'forest',member: i => terrain[i] === T.FOREST },
   { key: 'rock',  member: i => terrain[i] === T.ROCK },
@@ -281,7 +302,7 @@ function shade(rgb, hs) {
   return `rgb(${rgb.map(v => Math.min(255, Math.round(v * k))).join(',')})`;
 }
 
-let towerCount = 0;
+let towerCount = 0, bridgeCount = 0;
 function render() {
   const L = LOOKS[look];
   ctx.clearRect(0, 0, cv.width, cv.height);
@@ -294,6 +315,19 @@ function render() {
   for (const fam of FAMILIES) {
     for (let cy = 0; cy <= H; cy++) for (let cx = 0; cx <= W; cx++)
       drawCornerTile(cx, cy, cornerMask(cx, cy, fam), L[fam.key]);
+  }
+  // 橋：蓋在水面上，沿跨度方向畫橋面 + 兩側欄杆
+  bridgeCount = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y), k = D.bridge.kind[i];
+    if (!k) continue;
+    bridgeCount++;
+    const ax = D.bridge.alongX[i], X = x * C, Y = y * C, m = 3;
+    ctx.fillStyle = k === 1 ? '#b07a4a' : '#b9b3a6';
+    ax ? ctx.fillRect(X - 1, Y + m, C + 2, C - 2 * m) : ctx.fillRect(X + m, Y - 1, C - 2 * m, C + 2);
+    ctx.fillStyle = k === 1 ? '#6e4527' : '#7d776b';
+    if (ax) { ctx.fillRect(X - 1, Y + m - 1, C + 2, 2); ctx.fillRect(X - 1, Y + C - m - 1, C + 2, 2); }
+    else { ctx.fillRect(X + m - 1, Y - 1, 2, C + 2); ctx.fillRect(X + C - m - 1, Y - 1, 2, C + 2); }
   }
   // 懸崖、瀑布、積雪
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -341,7 +375,7 @@ function refresh() {
   const t2 = performance.now();
   const rivers = D.river.reduce((s, v) => s + v, 0), falls = D.fall.reduce((s, v) => s + v, 0);
   document.getElementById('stat').textContent =
-    `推導 ${(t1 - t0).toFixed(1)} ms · 渲染 ${(t2 - t1).toFixed(1)} ms · ${W}×${H} · 河道 ${rivers} 格 · 瀑布 ${falls} · 城堡塔 ${towerCount} · 配色「${LOOKS[look].name}」 · seed ${seed}`;
+    `推導 ${(t1 - t0).toFixed(1)} ms · 渲染 ${(t2 - t1).toFixed(1)} ms · ${W}×${H} · 河道 ${rivers} 格 · 瀑布 ${falls} · 城堡塔 ${towerCount} · 橋 ${bridgeCount} · 配色「${LOOKS[look].name}」 · seed ${seed}`;
   const tally = {};
   D.building.forEach(b => { if (b) tally[b] = (tally[b] || 0) + 1; });
   document.getElementById('counts').innerHTML = '<tr><th>類型</th><th>格數</th></tr>' +

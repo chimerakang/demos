@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brushland 推導原型</title>
+<style>
+:root {
+  --bg: #f6f4ee; --panel: #ffffff; --ink: #24221d; --muted: #6b675d; --line: #dcd7ca;
+  --accent: #3d6b4f; --void: #e9e5da;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1a17; --panel: #25231f; --ink: #ebe7dc; --muted: #a39e90; --line: #3a372f;
+    --accent: #8fc3a1; --void: #2c2a25;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1a17; --panel: #25231f; --ink: #ebe7dc; --muted: #a39e90; --line: #3a372f;
+  --accent: #8fc3a1; --void: #2c2a25;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, "Noto Sans TC", sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 320px; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+h1 { font-size: 18px; margin: 0 0 4px; }
+p.lead { margin: 0 0 12px; color: var(--muted); }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 6px; background: var(--void); touch-action: none; cursor: crosshair; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+aside section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+aside h2 { font-size: 14px; margin: 0 0 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+td, th { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; }
+textarea { width: 100%; font: 11px/1.4 ui-monospace, monospace; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px; resize: vertical; }
+.stat { color: var(--muted); font-size: 12px; margin-top: 8px; }
+label { margin-right: 10px; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>Brushland 式鄰居推導原型</h1>
+    <p class="lead">只存一張地形格子圖（第 0 層），河流、懸崖、建築類型、城堡塔樓全部即時推導。左鍵塗、右鍵擦、Ctrl+Z 復原。</p>
+    <div class="stage">
+      <div class="tools" id="brushes"></div>
+      <div class="tools">
+        <button id="demo">示範村莊</button>
+        <button id="glade">生成空地</button>
+        <button id="look">切換配色</button>
+        <label><input type="checkbox" id="showGrid"> 角點網格</label>
+        <label><input type="checkbox" id="showCliff" checked> 懸崖</label>
+        <label>筆刷 <select id="size"><option value="0">1 格</option><option value="1" selected>3 格</option><option value="2">5 格</option></select></label>
+      </div>
+      <canvas id="cv" width="672" height="672"></canvas>
+      <div class="stat" id="stat"></div>
+    </div>
+  </div>
+  <aside>
+    <section>
+      <h2>建築規則表（第 3 層，由上往下第一條命中）</h2>
+      <table id="rules"></table>
+    </section>
+    <section>
+      <h2>本圖建築統計</h2>
+      <table id="counts"></table>
+    </section>
+    <section>
+      <h2>分享碼（第 0 層壓縮）</h2>
+      <textarea id="code" rows="4" spellcheck="false"></textarea>
+      <div class="tools" style="margin-top:6px">
+        <button id="export">產生</button>
+        <button id="import">載入</button>
+      </div>
+      <div class="stat" id="codeStat"></div>
+    </section>
+  </aside>
+</main>
+<script>
+// ---- 第 0 層：資料 ----
+const W = 48, H = 48, C = 14, HALF = C / 2;
+const T = { EMPTY: 0, GRASS: 1, FOREST: 2, ROCK: 3, WATER: 4, ROAD: 5, HOUSE: 6, FIELD: 7, MINE: 8, DOCK: 9 };
+const T_NAME = ['空', '草', '森林', '岩', '水', '路', '房', '田', '礦', '碼頭'];
+let terrain = new Uint8Array(W * H);
+let height = new Uint8Array(W * H);
+let seed = 1;
+
+const idx = (x, y) => y * W + x;
+const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+const getT = (x, y) => inb(x, y) ? terrain[idx(x, y)] : T.EMPTY;
+const N8 = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+
+// 規則表是資料，不是程式（設計文件第 3 層）。閾值為推測值。
+const PARAMS = { springMinRock: 6, cliffDiff: 2, snowHeight: 12 };
+const RULES = [
+  { b: 'CASTLE',    label: '城堡', when: { clusterMin: 12 },             note: '村子夠大' },
+  { b: 'CHURCH',    label: '教堂', when: { houseMax: 0, roadMin: 6 },    note: '孤立房被路圍' },
+  { b: 'WINDMILL',  label: '風車', when: { houseMax: 0, fieldMin: 5 },   note: '孤立房被田圍' },
+  { b: 'FISHERY',   label: '漁屋', when: { waterMin: 3, has: T.DOCK },   note: '水邊且鄰碼頭' },
+  { b: 'MINER_HUT', label: '礦工屋', when: { has: T.MINE },              note: '鄰礦' },
+  { b: 'ROWHOUSE',  label: '連棟', when: { clusterMin: 4 },              note: '相連 ≥ 4' },
+  { b: 'COTTAGE',   label: '農舍', when: {},                             note: '預設' },
+];
+const B_GLYPH = { CASTLE: '堡', CHURCH: '教', WINDMILL: '風', FISHERY: '漁', MINER_HUT: '礦', ROWHOUSE: '連', COTTAGE: '舍' };
+
+function matchRule(w, n, cluster) {
+  if (w.clusterMin !== undefined && cluster < w.clusterMin) return false;
+  if (w.houseMax !== undefined && (n[T.HOUSE] || 0) > w.houseMax) return false;
+  if (w.roadMin !== undefined && (n[T.ROAD] || 0) < w.roadMin) return false;
+  if (w.fieldMin !== undefined && (n[T.FIELD] || 0) < w.fieldMin) return false;
+  if (w.waterMin !== undefined && (n[T.WATER] || 0) < w.waterMin) return false;
+  if (w.has !== undefined && !n[w.has]) return false;
+  return true;
+}
+
+// ---- 第 2–3 層：推導（純函數，輸入只有 terrain / height） ----
+let D = null;
+function derive() {
+  const n = W * H;
+  // 高度平滑：整數定點 ×16，岩格加權 ×2，跑兩次
+  let a = new Int32Array(n);
+  for (let i = 0; i < n; i++) a[i] = height[i] * 16;
+  for (let pass = 0; pass < 2; pass++) {
+    const b = new Int32Array(n);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let s = 0, ws = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const X = x + dx, Y = y + dy;
+        if (!inb(X, Y)) continue;
+        const w = terrain[idx(X, Y)] === T.ROCK ? 2 : 1;
+        s += a[idx(X, Y)] * w; ws += w;
+      }
+      b[idx(x, y)] = Math.floor((s + (ws >> 1)) / ws);
+    }
+    a = b;
+  }
+  const hs = a;
+  // D8 流向：指向最低的鄰居（必須嚴格更低）
+  const dir = new Int32Array(n).fill(-1);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y);
+    if (terrain[i] === T.WATER || terrain[i] === T.EMPTY) continue;
+    let best = hs[i], bi = -1;
+    for (const [dx, dy] of N8) {
+      const X = x + dx, Y = y + dy;
+      if (!inb(X, Y)) continue;
+      const j = idx(X, Y);
+      if (hs[j] < best) { best = hs[j]; bi = j; }
+    }
+    dir[i] = bi;
+  }
+  // 河流：每座岩山（8 連通區塊）取最高格當泉源，沿 D8 最陡下降追蹤到水、房屋、平地或邊界。
+  // 不用「每格下雨的 flow_acc ≥ 閾值」：在發散坡面上 D8 會產生整片平行水流（見 README §3）。
+  const river = new Uint8Array(n), fall = new Uint8Array(n), cliff = new Uint8Array(n), snow = new Uint8Array(n);
+  const rockSeen = new Uint8Array(n);
+  for (let s0 = 0; s0 < n; s0++) {
+    if (terrain[s0] !== T.ROCK || rockSeen[s0]) continue;
+    let spring = s0, stack = [s0], size = 0; rockSeen[s0] = 1;
+    while (stack.length) {
+      const k = stack.pop(); size++;
+      if (hs[k] > hs[spring]) spring = k;
+      for (const [dx, dy] of N8) {
+        const X = k % W + dx, Y = (k / W | 0) + dy;
+        if (!inb(X, Y)) continue;
+        const j = idx(X, Y);
+        if (terrain[j] === T.ROCK && !rockSeen[j]) { rockSeen[j] = 1; stack.push(j); }
+      }
+    }
+    if (size < PARAMS.springMinRock) continue;
+    for (let i = spring, steps = 0; i >= 0 && steps < n; steps++) {
+      if (terrain[i] === T.WATER || terrain[i] === T.HOUSE) break;
+      river[i] = 1;
+      const j = dir[i];
+      if (j >= 0 && hs[i] - hs[j] >= PARAMS.cliffDiff * 16) fall[i] = 1;
+      i = j;
+    }
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y), t = terrain[i];
+    for (const [dx, dy] of N8) {
+      const X = x + dx, Y = y + dy;
+      if (inb(X, Y) && hs[i] - hs[idx(X, Y)] >= PARAMS.cliffDiff * 16) { cliff[i] = 1; break; }
+    }
+    if (t === T.ROCK && hs[i] >= PARAMS.snowHeight * 16) snow[i] = 1;
+  }
+  // 房屋連通區塊（4 連通）
+  const clusterId = new Int32Array(n).fill(-1), clusterSize = [];
+  for (let i = 0; i < n; i++) {
+    if (terrain[i] !== T.HOUSE || clusterId[i] >= 0) continue;
+    const id = clusterSize.length, stack = [i];
+    clusterId[i] = id; let size = 0;
+    while (stack.length) {
+      const k = stack.pop(); size++;
+      const x = k % W, y = (k / W) | 0;
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const X = x + dx, Y = y + dy;
+        if (!inb(X, Y)) continue;
+        const j = idx(X, Y);
+        if (terrain[j] === T.HOUSE && clusterId[j] < 0) { clusterId[j] = id; stack.push(j); }
+      }
+    }
+    clusterSize.push(size);
+  }
+  // 建築分類：8 鄰居計數 → 規則表
+  const building = new Array(n).fill(null);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y);
+    if (terrain[i] !== T.HOUSE) continue;
+    const cnt = {};
+    for (const [dx, dy] of N8) { const t = getT(x + dx, y + dy); cnt[t] = (cnt[t] || 0) + 1; }
+    const cs = clusterSize[clusterId[i]];
+    building[i] = RULES.find(r => matchRule(r.when, cnt, cs)).b;
+  }
+  D = { hs, dir, river, fall, cliff, snow, clusterId, clusterSize, building };
+}
+
+// ---- 第 4–5 層：dual-grid 幾何 + 渲染 ----
+const LOOKS = [
+  { name: '春', grass: [126,170,96], forest: '#3f6e3c', rock: '#8d8a80', water: '#5a9fc9', road: '#cdb68a', field: '#d9c25c', dock: '#8a6239', mine: '#5b5249', house: '#e9dcc4', roof: '#b4553f', tower: '#7c3a2e', snow: '#f4f6f8' },
+  { name: '秋', grass: [176,150,84], forest: '#9a4f25', rock: '#7e766b', water: '#4d7f9c', road: '#d8c3a0', field: '#c9853a', dock: '#6d4a2c', mine: '#4f453d', house: '#efe2cd', roof: '#6c4a7a', tower: '#3f2a4c', snow: '#ffffff' },
+  { name: '夜', grass: [52,78,92], forest: '#1f3b46', rock: '#4e5866', water: '#2b4d7a', road: '#7d7a6a', field: '#6f6a3c', dock: '#4a3a2a', mine: '#2b2b33', house: '#f2d88a', roof: '#384a6b', tower: '#1d2740', snow: '#cfe0f0' },
+];
+let look = 0;
+
+// 每個族：哪些格子算成員（設計文件 4.1 的 is_member）
+const FAMILIES = [
+  { key: 'field', member: i => terrain[i] === T.FIELD },
+  { key: 'road',  member: i => terrain[i] === T.ROAD },
+  { key: 'water', member: i => terrain[i] === T.WATER || D.river[i] === 1 },
+  { key: 'dock',  member: i => terrain[i] === T.DOCK },
+  { key: 'forest',member: i => terrain[i] === T.FOREST },
+  { key: 'rock',  member: i => terrain[i] === T.ROCK },
+  { key: 'mine',  member: i => terrain[i] === T.MINE },
+  { key: 'house', member: i => terrain[i] === T.HOUSE },
+];
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+
+// 角點 (cx, cy) 的 4 格：TL、TR、BL、BR，mask bit 1/2/4/8
+function cornerMask(cx, cy, fam) {
+  const cells = [[cx-1, cy-1], [cx, cy-1], [cx-1, cy], [cx, cy]];
+  let m = 0;
+  cells.forEach(([x, y], k) => { if (inb(x, y) && fam.member(idx(x, y))) m |= 1 << k; });
+  return m;
+}
+const ADJ = [[1, 2], [0, 3], [0, 3], [1, 2]];   // 共用邊的象限
+const OPP = [3, 2, 1, 0];
+
+// 一個角點片段 = 4 個四分之一格。外凸角畫圓、內凹角畫倒角、鞍點接通。
+function drawCornerTile(cx, cy, mask, color) {
+  if (mask === 0) return;
+  const px = cx * C, py = cy * C;
+  ctx.fillStyle = color;
+  if (mask === 15) { ctx.fillRect(px - HALF - .5, py - HALF - .5, C + 1, C + 1); return; }
+  for (let q = 0; q < 4; q++) {
+    const qx = px + (q & 1 ? 0 : -HALF), qy = py + (q & 2 ? 0 : -HALF);
+    const ccx = q & 1 ? px + HALF : px - HALF, ccy = q & 2 ? py + HALF : py - HALF; // 該格中心
+    const me = mask >> q & 1, a = mask >> ADJ[q][0] & 1, b = mask >> ADJ[q][1] & 1, o = mask >> OPP[q] & 1;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(qx - .5, qy - .5, HALF + 1, HALF + 1); ctx.clip();
+    ctx.beginPath();
+    if (me && !a && !b && !o) {               // CORNER_OUT
+      ctx.arc(ccx, ccy, HALF + .3, 0, Math.PI * 2); ctx.fill();
+    } else if (me) {                          // EDGE / CORNER_IN / SADDLE 的成員
+      ctx.rect(qx - .5, qy - .5, HALF + 1, HALF + 1); ctx.fill();
+    } else if (a && b) {                      // CORNER_IN 或 SADDLE 的缺口 → 倒角填滿
+      ctx.rect(qx - .5, qy - .5, HALF + 1, HALF + 1);
+      ctx.arc(ccx, ccy, HALF - .3, 0, Math.PI * 2);
+      ctx.fill('evenodd');
+    }
+    ctx.restore();
+  }
+}
+
+function shade(rgb, hs) {
+  const k = 0.82 + Math.min(hs, 15 * 16) / (15 * 16) * 0.4;
+  return `rgb(${rgb.map(v => Math.min(255, Math.round(v * k))).join(',')})`;
+}
+
+let towerCount = 0;
+function render() {
+  const L = LOOKS[look];
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y);
+    if (terrain[i] === T.EMPTY) continue;
+    ctx.fillStyle = shade(L.grass, D.hs[i]);
+    ctx.fillRect(x * C, y * C, C, C);
+  }
+  for (const fam of FAMILIES) {
+    for (let cy = 0; cy <= H; cy++) for (let cx = 0; cx <= W; cx++)
+      drawCornerTile(cx, cy, cornerMask(cx, cy, fam), L[fam.key]);
+  }
+  // 懸崖、瀑布、積雪
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y), X = x * C, Y = y * C;
+    if (document.getElementById('showCliff').checked && D.cliff[i] && !D.river[i]) {
+      ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.fillRect(X, Y, C, C);
+    }
+    if (D.snow[i]) { ctx.fillStyle = L.snow; ctx.beginPath(); ctx.arc(X + HALF, Y + HALF, HALF - 2, 0, 7); ctx.fill(); }
+    if (D.fall[i]) {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(X + 4, Y + 3); ctx.lineTo(X + 4, Y + C - 3); ctx.moveTo(X + C - 4, Y + 3); ctx.lineTo(X + C - 4, Y + C - 3); ctx.stroke();
+    }
+  }
+  // 建築：房族外凸角放塔（城堡），其餘格標類型
+  towerCount = 0;
+  const houseFam = FAMILIES.find(f => f.key === 'house');
+  for (let cy = 0; cy <= H; cy++) for (let cx = 0; cx <= W; cx++) {
+    const m = cornerMask(cx, cy, houseFam);
+    if (![1, 2, 4, 8].includes(m)) continue;
+    const q = Math.log2(m), x = cx - 1 + (q & 1), y = cy - 1 + (q >> 1);
+    if (D.building[idx(x, y)] !== 'CASTLE') continue;
+    const tx = cx * C + (q & 1 ? 3 : -3), ty = cy * C + (q & 2 ? 3 : -3);
+    ctx.fillStyle = L.tower; ctx.beginPath(); ctx.arc(tx, ty, 4.2, 0, 7); ctx.fill();
+    towerCount++;
+  }
+  ctx.font = `bold ${C - 4}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const b = D.building[idx(x, y)];
+    if (!b) continue;
+    ctx.fillStyle = L.roof; ctx.fillText(B_GLYPH[b], x * C + HALF, y * C + HALF + 1);
+  }
+  if (document.getElementById('showGrid').checked) {
+    ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let k = 0; k <= W; k++) { ctx.moveTo(k * C - HALF + .5, 0); ctx.lineTo(k * C - HALF + .5, cv.height); }
+    for (let k = 0; k <= H; k++) { ctx.moveTo(0, k * C - HALF + .5); ctx.lineTo(cv.width, k * C - HALF + .5); }
+    ctx.stroke();
+  }
+}
+
+function refresh() {
+  const t0 = performance.now();
+  derive();
+  const t1 = performance.now();
+  render();
+  const t2 = performance.now();
+  const rivers = D.river.reduce((s, v) => s + v, 0), falls = D.fall.reduce((s, v) => s + v, 0);
+  document.getElementById('stat').textContent =
+    `推導 ${(t1 - t0).toFixed(1)} ms · 渲染 ${(t2 - t1).toFixed(1)} ms · ${W}×${H} · 河道 ${rivers} 格 · 瀑布 ${falls} · 城堡塔 ${towerCount} · 配色「${LOOKS[look].name}」 · seed ${seed}`;
+  const tally = {};
+  D.building.forEach(b => { if (b) tally[b] = (tally[b] || 0) + 1; });
+  document.getElementById('counts').innerHTML = '<tr><th>類型</th><th>格數</th></tr>' +
+    RULES.map(r => `<tr><td>${B_GLYPH[r.b]} ${r.label}</td><td>${tally[r.b] || 0}</td></tr>`).join('');
+}
+
+// ---- 第 1 層：筆刷 ----
+let brush = T.HOUSE, undo = [], stroke = null;
+const BRUSH_COLORS = { 1: '#7eaa60', 2: '#3f6e3c', 3: '#8d8a80', 4: '#5a9fc9', 5: '#cdb68a', 6: '#b4553f', 7: '#d9c25c', 8: '#5b5249', 9: '#8a6239' };
+const bar = document.getElementById('brushes');
+for (let t = 1; t <= 9; t++) {
+  const b = document.createElement('button');
+  b.innerHTML = `<span class="sw" style="background:${BRUSH_COLORS[t]}"></span>${t} ${T_NAME[t]}`;
+  b.onclick = () => setBrush(t);
+  b.dataset.t = t; bar.appendChild(b);
+}
+function setBrush(t) { brush = t; bar.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.t === t)); }
+setBrush(T.HOUSE);
+
+function setCell(x, y, t, erase) {
+  if (!inb(x, y)) return;
+  const i = idx(x, y);
+  if (stroke.has(i)) return;               // 一筆畫內每格只改一次
+  stroke.set(i, [terrain[i], height[i]]);
+  if (erase) {
+    if (terrain[i] === T.ROCK) height[i] = Math.max(0, height[i] - 3);
+    terrain[i] = T.GRASS;
+  } else {
+    if (t === T.ROCK) height[i] = Math.min(15, height[i] + 3);   // 塗岩石就隆起
+    terrain[i] = t;
+  }
+}
+function paintAt(ev) {
+  const r = cv.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) / r.width * W), y = Math.floor((ev.clientY - r.top) / r.height * H);
+  const s = +document.getElementById('size').value, erase = ev.buttons === 2 || ev.button === 2;
+  for (let dy = -s; dy <= s; dy++) for (let dx = -s; dx <= s; dx++) setCell(x + dx, y + dy, brush, erase);
+  refresh();
+}
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); stroke = new Map(); paintAt(e); });
+cv.addEventListener('pointermove', e => { if (stroke && e.buttons) paintAt(e); });
+cv.addEventListener('pointerup', () => { if (stroke && stroke.size) undo.push(stroke); stroke = null; });
+addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    const s = undo.pop(); if (!s) return;
+    for (const [i, [t, h]] of s) { terrain[i] = t; height[i] = h; }
+    refresh(); e.preventDefault();
+  } else if (e.key >= '1' && e.key <= '9' && e.target.tagName !== 'TEXTAREA') setBrush(+e.key);
+});
+
+// ---- 第 1 層：程序生成（Against the Storm 式森林空地） ----
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash2(x, y, s) { let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 2246822519); h = Math.imul(h ^ h >>> 13, 1274126177); return ((h ^ h >>> 16) >>> 0) / 4294967296; }
+function vnoise(x, y, s) {
+  const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  const a = hash2(x0, y0, s), b = hash2(x0 + 1, y0, s), c = hash2(x0, y0 + 1, s), d = hash2(x0 + 1, y0 + 1, s);
+  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+}
+function digDisc(cx, cy, r, t) {
+  for (let y = Math.floor(cy - r - 1); y <= cy + r + 1; y++) for (let x = Math.floor(cx - r - 1); x <= cx + r + 1; x++)
+    if (inb(x, y) && Math.hypot(x - cx, y - cy) <= r) terrain[idx(x, y)] = t;
+}
+function generateGlade(s) {
+  seed = s; const rnd = mulberry32(s);
+  // 1. 全圖鋪森林，低頻 noise 高度 2–5
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    terrain[idx(x, y)] = T.FOREST;
+    height[idx(x, y)] = 2 + Math.min(3, Math.floor(vnoise(x * 0.09, y * 0.09, s) * 4));
+  }
+  // 2. 主空地：noise 擾動半徑
+  const mx = W / 2, my = H / 2, R = 8 + rnd() * 2;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (Math.hypot(x - mx, y - my) < R + (vnoise(x * 0.2, y * 0.2, s + 7) - 0.5) * 6) terrain[idx(x, y)] = T.GRASS;
+  // 3. 衛星空地：Poisson disc（擲飛鏢）
+  const sats = [], want = 4 + Math.floor(rnd() * 4);
+  for (let tries = 0; tries < 400 && sats.length < want; tries++) {
+    const p = [4 + rnd() * (W - 8), 4 + rnd() * (H - 8)];
+    if (Math.hypot(p[0] - mx, p[1] - my) < R + 7) continue;
+    if (sats.some(q => Math.hypot(p[0] - q[0], p[1] - q[1]) < 12)) continue;
+    sats.push(p);
+  }
+  for (const [x, y] of sats) digDisc(x, y, 2.5 + rnd() * 2.5, T.GRASS);
+  // 4. 走廊：從主空地往每個衛星擺動前進，寬 1–2
+  for (const [tx, ty] of sats) {
+    let x = mx, y = my; const wide = rnd() < 0.5;
+    for (let step = 0; step < 200 && Math.hypot(tx - x, ty - y) > 1; step++) {
+      const ang = Math.atan2(ty - y, tx - x) + (vnoise(x * 0.3, y * 0.3, s + 13) - 0.5) * 1.6;
+      x += Math.cos(ang) * 0.5; y += Math.sin(ang) * 0.5;
+      digDisc(x, y, wide ? 1.2 : 0.75, T.GRASS);
+    }
+  }
+  // 5. 撒特徵：岩簇、低處水塘、近水的田
+  const grass = [];
+  for (let i = 0; i < W * H; i++) if (terrain[i] === T.GRASS && Math.hypot(i % W - mx, (i / W | 0) - my) < R) grass.push(i);
+  for (let k = 0; k < 2; k++) {
+    const c = grass[Math.floor(rnd() * grass.length)], cx = c % W, cy = c / W | 0;
+    for (let y = cy - 2; y <= cy + 2; y++) for (let x = cx - 2; x <= cx + 2; x++) {
+      if (!inb(x, y) || Math.hypot(x - cx, y - cy) > 1.8) continue;
+      terrain[idx(x, y)] = T.ROCK; height[idx(x, y)] = Math.min(15, height[idx(x, y)] + 4 + Math.round((1.8 - Math.hypot(x - cx, y - cy)) * 3));
+    }
+  }
+  const low = grass.filter(i => terrain[i] === T.GRASS).sort((p, q) => height[p] - height[q] || hash2(p, 0, s) - hash2(q, 0, s))[0];
+  if (low !== undefined) {
+    const lx = low % W, ly = low / W | 0;
+    digDisc(lx, ly, 1.6, T.WATER);
+    for (let k = 0; k < 6; k++) {
+      const x = lx + Math.round((rnd() - 0.5) * 7), y = ly + Math.round((rnd() - 0.5) * 7);
+      if (inb(x, y) && terrain[idx(x, y)] === T.GRASS) terrain[idx(x, y)] = T.FIELD;
+    }
+  }
+  undo = [];
+}
+
+function demoVillage() {
+  seed = 1; terrain.fill(T.GRASS); height.fill(1);
+  const put = (x, y, t) => { if (inb(x, y)) terrain[idx(x, y)] = t; };
+  const ring = (cx, cy, t) => { for (const [dx, dy] of N8) put(cx + dx, cy + dy, t); };
+  put(6, 6, T.HOUSE); ring(6, 6, T.ROAD);                      // 教堂
+  put(6, 14, T.HOUSE); ring(6, 14, T.FIELD);                   // 風車
+  for (let y = 5; y < 9; y++) for (let x = 16; x < 20; x++) put(x, y, T.HOUSE); // 城堡（16 格）
+  for (const [x, y] of [[20, 6], [21, 6], [15, 8]]) put(x, y, T.HOUSE);
+  for (let x = 12; x < 25; x++) put(x, 11, T.ROAD);
+  put(12, 15, T.HOUSE); put(13, 15, T.HOUSE); put(12, 16, T.HOUSE); put(13, 16, T.HOUSE); // 連棟
+  put(9, 20, T.HOUSE);                                         // 農舍
+  for (let y = 30; y < H; y++) for (let x = 0; x < 14; x++) put(x, y, T.WATER); // 海
+  put(5, 29, T.HOUSE); put(6, 29, T.DOCK);                     // 漁屋
+  put(16, 20, T.HOUSE); put(17, 20, T.MINE);                   // 礦工屋
+  // 一座山：峰頂台地 + 斷崖環，峰頂積雪，河從最高點流下、過崖成瀑布
+  const mx = 33, my = 28;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = Math.hypot(x - mx, y - my);
+    if (d <= 2.5) { put(x, y, T.ROCK); height[idx(x, y)] = 15; }
+    else if (d <= 5.5) { put(x, y, T.ROCK); height[idx(x, y)] = Math.round(9 - (d - 2.5)); }
+    else if (d <= 12) height[idx(x, y)] = Math.max(1, Math.round(5 - (d - 5.5) * 0.6));
+  }
+  height[idx(mx + 1, my - 1)] = 15; terrain[idx(mx + 1, my - 1)] = T.ROCK;
+  undo = [];
+}
+
+// ---- 序列化：只存第 0 層。格式 [版本, W, H, seed u32 LE, terrain, height] → zlib → base64，與 ../godot 版互通 ----
+async function deflate(bytes, mode) {
+  if (typeof CompressionStream === 'undefined') return bytes;
+  const s = new Blob([bytes]).stream().pipeThrough(mode === 'c' ? new CompressionStream('deflate') : new DecompressionStream('deflate'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+async function toCode() {
+  const buf = new Uint8Array(7 + W * H * 2);
+  buf[0] = 1; buf[1] = W; buf[2] = H;
+  new DataView(buf.buffer).setUint32(3, seed >>> 0, true);   // little-endian，與 Godot 版互通
+  buf.set(terrain, 7); buf.set(height, 7 + W * H);
+  const z = await deflate(buf, 'c');
+  let bin = ''; z.forEach(b => bin += String.fromCharCode(b));
+  return { code: btoa(bin), raw: buf.length, packed: z.length };
+}
+async function fromCode(code) {
+  const z = Uint8Array.from(atob(code.trim()), ch => ch.charCodeAt(0));
+  const buf = await deflate(z, 'd');
+  if (buf[0] !== 1 || buf[1] !== W || buf[2] !== H) throw new Error('版本或尺寸不符');
+  seed = new DataView(buf.buffer).getUint32(3, true);
+  terrain = buf.slice(7, 7 + W * H); height = buf.slice(7 + W * H, 7 + W * H * 2);
+  undo = [];
+}
+document.getElementById('export').onclick = async () => {
+  const r = await toCode();
+  document.getElementById('code').value = r.code;
+  document.getElementById('codeStat').textContent = `原始 ${r.raw} bytes → 壓縮 ${r.packed} bytes → base64 ${r.code.length} 字元`;
+};
+document.getElementById('import').onclick = async () => {
+  try { await fromCode(document.getElementById('code').value); refresh(); document.getElementById('codeStat').textContent = '已載入'; }
+  catch (e) { document.getElementById('codeStat').textContent = '載入失敗：' + e.message; }
+};
+
+document.getElementById('demo').onclick = () => { demoVillage(); refresh(); };
+document.getElementById('glade').onclick = () => { generateGlade((Math.random() * 1e9) | 0); refresh(); };
+document.getElementById('look').onclick = () => { look = (look + 1) % LOOKS.length; refresh(); };
+document.getElementById('showGrid').onchange = refresh;
+document.getElementById('showCliff').onchange = refresh;
+
+document.getElementById('rules').innerHTML = '<tr><th>#</th><th>建築</th><th>條件</th></tr>' +
+  RULES.map((r, k) => `<tr><td>${k + 1}</td><td>${B_GLYPH[r.b]} ${r.label}</td><td>${r.note}<br><code>${JSON.stringify(r.when).replace(/"/g, '')}</code></td></tr>`).join('');
+
+demoVillage(); refresh();
+</script>
+</body>
+</html>

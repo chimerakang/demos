@@ -302,7 +302,7 @@ function shade(rgb, hs) {
   return `rgb(${rgb.map(v => Math.min(255, Math.round(v * k))).join(',')})`;
 }
 
-let towerCount = 0, bridgeCount = 0;
+let towerCount = 0, bridgeCount = 0, bridgeCells = 0;
 function render() {
   const L = LOOKS[look];
   ctx.clearRect(0, 0, cv.width, cv.height);
@@ -316,18 +316,31 @@ function render() {
     for (let cy = 0; cy <= H; cy++) for (let cx = 0; cx <= W; cx++)
       drawCornerTile(cx, cy, cornerMask(cx, cy, fam), L[fam.key]);
   }
-  // 橋：蓋在水面上，沿跨度方向畫橋面 + 兩側欄杆
-  bridgeCount = 0;
+  // 橋：蓋在水面上，沿跨度方向畫橋面 + 兩側欄杆。同方向連續的橋格 = 一座長橋，只有兩端畫橋頭柱。
+  bridgeCount = 0; bridgeCells = 0;
+  const sameSpan = (x, y, ax) => inb(x, y) && D.bridge.kind[idx(x, y)] && D.bridge.alongX[idx(x, y)] === ax;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const i = idx(x, y), k = D.bridge.kind[i];
     if (!k) continue;
-    bridgeCount++;
     const ax = D.bridge.alongX[i], X = x * C, Y = y * C, m = 3;
+    bridgeCells++;
+    const startEnd = ax ? !sameSpan(x - 1, y, ax) : !sameSpan(x, y - 1, ax);
+    const tailEnd = ax ? !sameSpan(x + 1, y, ax) : !sameSpan(x, y + 1, ax);
+    if (startEnd) bridgeCount++;
     ctx.fillStyle = k === 1 ? '#b07a4a' : '#b9b3a6';
     ax ? ctx.fillRect(X - 1, Y + m, C + 2, C - 2 * m) : ctx.fillRect(X + m, Y - 1, C - 2 * m, C + 2);
     ctx.fillStyle = k === 1 ? '#6e4527' : '#7d776b';
     if (ax) { ctx.fillRect(X - 1, Y + m - 1, C + 2, 2); ctx.fillRect(X - 1, Y + C - m - 1, C + 2, 2); }
     else { ctx.fillRect(X + m - 1, Y - 1, 2, C + 2); ctx.fillRect(X + C - m - 1, Y - 1, 2, C + 2); }
+    // 橋頭柱
+    const post = (px, py) => ctx.fillRect(px - 2, py - 2, 4, 4);
+    if (ax) {
+      if (startEnd) { post(X, Y + m); post(X, Y + C - m); }
+      if (tailEnd) { post(X + C, Y + m); post(X + C, Y + C - m); }
+    } else {
+      if (startEnd) { post(X + m, Y); post(X + C - m, Y); }
+      if (tailEnd) { post(X + m, Y + C); post(X + C - m, Y + C); }
+    }
   }
   // 懸崖、瀑布、積雪
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -375,7 +388,7 @@ function refresh() {
   const t2 = performance.now();
   const rivers = D.river.reduce((s, v) => s + v, 0), falls = D.fall.reduce((s, v) => s + v, 0);
   document.getElementById('stat').textContent =
-    `推導 ${(t1 - t0).toFixed(1)} ms · 渲染 ${(t2 - t1).toFixed(1)} ms · ${W}×${H} · 河道 ${rivers} 格 · 瀑布 ${falls} · 城堡塔 ${towerCount} · 橋 ${bridgeCount} · 配色「${LOOKS[look].name}」 · seed ${seed}`;
+    `推導 ${(t1 - t0).toFixed(1)} ms · 渲染 ${(t2 - t1).toFixed(1)} ms · ${W}×${H} · 河道 ${rivers} 格 · 瀑布 ${falls} · 城堡塔 ${towerCount} · 橋 ${bridgeCount} 座（${bridgeCells} 格） · 配色「${LOOKS[look].name}」 · seed ${seed}`;
   const tally = {};
   D.building.forEach(b => { if (b) tally[b] = (tally[b] || 0) + 1; });
   document.getElementById('counts').innerHTML = '<tr><th>類型</th><th>格數</th></tr>' +

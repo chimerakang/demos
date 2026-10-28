@@ -573,31 +573,41 @@ function drawCapsule(c,x,y,sc,alpha){
 }
 
 /* 開殼：上半彈飛微傾、下半下沉；k=0 閉合、k=1 全開 */
-function drawOpenShell(c,x,y,k,alpha,lift){
-  const r=c.r*(c.sc||1),e=easeOutQuart(k);
-  // 內腔：下半殼的碗狀內面，整顆填滿，後方機器完全被擋住
+function drawOpenShell(c,x,y,k,alpha){
+  // 鱷魚嘴：以中縫左端為鉸鏈，上顎逆時針旋開；下顎留在原地；兩顎之間為口腔內部
+  const r=c.r*(c.sc||1),e=easeOutQuart(k),th=1.15*e; // 最大開口約 66°
+  const hx=x-r,hy=y;
   ctx.globalAlpha=alpha;
-  ctx.drawImage(c.col[4],x-r,y-r,r*2,r*2);
-  ctx.globalCompositeOperation='lighter';
-  ctx.globalAlpha=.55*k*alpha;
-  const gs=r*2.6;ctx.drawImage(SPR[c.col[2]],x-gs/2,y-gs/2,gs,gs);
-  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-  // 下半殼外面（前緣）：留在原位
+  if(th>.01){
+    // 口腔：鉸鏈 → 下顎尖端 → 上顎尖端 的楔形（兩顎之間），往喉嚨漸暗；顎尖之外是背景
+    const tx=hx+r*2*Math.cos(-th),ty=hy+r*2*Math.sin(-th);
+    const g=ctx.createLinearGradient(hx,hy,x+r*.7,y-r*.4);
+    g.addColorStop(0,'#07030d');g.addColorStop(.5,'#1c1028');g.addColorStop(1,c.col[1]);
+    ctx.fillStyle=g;
+    // 外緣向喉嚨內凹，看起來是口腔而不是平面三角
+    const mx=(x+r+tx)/2,my=(y+ty)/2,cxp=mx+(hx-mx)*.45,cyp=my+(hy-my)*.45;
+    ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(x+r,y);
+    ctx.quadraticCurveTo(cxp,cyp,tx,ty);ctx.closePath();ctx.fill();
+    // 殼的厚度：沿兩條中縫各畫一道淺色邊
+    ctx.fillStyle='rgba(255,255,255,.28)';
+    ctx.fillRect(hx,y-r*.035,r*2,r*.07);
+    ctx.save();ctx.translate(hx,hy);ctx.rotate(-th);ctx.fillRect(0,-r*.035,r*2,r*.07);ctx.restore();
+    // 口腔內光（中獎色）
+    ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=.6*e*alpha;
+    const gs=r*2.4;ctx.drawImage(SPR[c.col[2]],x-gs/2,y-r*.25-gs/2,gs,gs);
+    ctx.globalAlpha=alpha;ctx.globalCompositeOperation='source-over';
+  }
+  // 下顎（下半殼，不動）
   ctx.save();ctx.translate(x,y);
   ctx.beginPath();ctx.rect(-r-2,0,r*2+4,r+2);ctx.clip();
-  ctx.globalAlpha=alpha;ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
+  ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
   ctx.restore();
-  // 上蓋：以中縫為軸朝觀眾翻開——前半段壓扁（外面），後半段翻到下方（露出內面、變暗），再往下滑出畫面
-  // lift（0~1）：翻開後上蓋朝鏡頭飛來——放大並淡出
-  const flip=e<.5?1-e/.5:-((e-.5)/.5);     // 1 → 0 → -1
-  const fly=lift||0,zs=1+fly*1.6,la=alpha*(1-fly);
-  if(la>0.01){
-    ctx.save();ctx.translate(x,y+r*.3*fly);ctx.scale(zs,Math.max(.02,Math.abs(flip))*(flip<0?-1:1)*zs);
-    ctx.beginPath();ctx.rect(-r-2,-r-2,r*2+4,r+2);ctx.clip();
-    ctx.globalAlpha=la;ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
-    if(flip<0){ctx.globalAlpha=la*.5;ctx.fillStyle='#07041a';ctx.fillRect(-r-2,-r-2,r*2+4,r+2);} // 內面較暗
-    ctx.restore();
-  }
+  // 上顎（上半殼，繞鉸鏈旋開）
+  ctx.save();ctx.translate(hx,hy);ctx.rotate(-th);ctx.translate(-hx,-hy);
+  ctx.beginPath();ctx.rect(x-r-2,y-r-2,r*2+4,r+2);ctx.clip();
+  ctx.drawImage(c.col[3],x-r,y-r,r*2,r*2);
+  ctx.restore();
   ctx.globalAlpha=1;
 }
 let exitCap=null; // 開過的扭蛋殼滑出畫面
@@ -861,11 +871,15 @@ function updateCore(dt,now){
       stepPhysics(dt,0);
       const wc=winCap,k=easeOutQuart(Math.min(1,t/DUR.rise));
       const S=Math.max(1,Math.min(12,Math.min(W*.42,H*.31)/wc.r)); // 放大到足以遮住整台機器
+      if(wc.phase!=='rise'){ // 升起起點：記錄目前角度，目標 = 再轉一圈後中縫恰好水平（繪製角 rot*.6 落在 2π 倍數）
+        const a0=wc.rot*.6,a1=Math.ceil(a0/6.2832)*6.2832+6.2832;
+        wc.ra0=a0;wc.ra1=a1;
+      }
       wc.phase='rise';
       wc.x=wc.fx+(CX-wc.fx)*k;wc.y=wc.fy+(H*.46-wc.fy)*k;
-      wc.sc=1+(S-1)*k;wc.rot+=.08*dt*(1-k);
+      wc.sc=1+(S-1)*k;wc.rot=(wc.ra0+(wc.ra1-wc.ra0)*k)/.6; // 轉正後才開蓋
       if(t<30)playNoise(.5,.2,'bandpass',600,2400,2,'dry',.3);
-      if(t>=DUR.rise){wc.x=CX;wc.y=H*.46;wc.sc=S;setMode('crack');}
+      if(t>=DUR.rise){wc.x=CX;wc.y=H*.46;wc.sc=S;wc.rot=wc.ra1/.6;setMode('crack');}
       break;
     }
     case 'crack':{
@@ -986,8 +1000,10 @@ function frameInner(now){
     // 球內扭蛋（裁切）
     ctx.save();ctx.beginPath();ctx.arc(g.cx,g.cy,R-1,0,6.28);ctx.clip();
     if(mode==='tumble'||mode==='load')drawPaddles(mA);
-    for(const c of caps){
-      if(c.phase==='in'||c.phase==='pull')drawCapsule(c,c.x,c.y,1,mA);
+    // 扭蛋升起後球內其餘扭蛋淡出（開蓋後上顎讓開，避免落選名字露出）
+    const inA=mode==='rise'?mA*Math.max(0,1-CORE.t/400):((mode==='crack'||mode==='reveal')?0:mA);
+    if(inA>0)for(const c of caps){
+      if(c.phase==='in'||c.phase==='pull')drawCapsule(c,c.x,c.y,1,inA);
     }
     ctx.restore();
     // 玻璃高光
@@ -1022,10 +1038,14 @@ function frameInner(now){
     ctx.globalAlpha=1;
   }
 
+  // 開蓋階段：機器壓暗（上顎旋開後不再遮住機器）
+  if(mode==='rise'||mode==='crack'||mode==='reveal'){
+    const k=mode==='rise'?Math.min(1,CORE.t/DUR.rise):1;
+    ctx.fillStyle='rgba(2,1,10,'+(k*.85).toFixed(3)+')';ctx.fillRect(-20,-20,W+40,H+40);
+  }
   // 出口外、托盤上的中選扭蛋
   if(winCap&&(winCap.phase==='out'||winCap.phase==='tray'||winCap.phase==='rise')){
-    if(mode==='crack'||mode==='reveal')drawOpenShell(winCap,winCap.x,winCap.y,Math.min(1,CORE.t/420),1,
-      mode==='reveal'?Math.min(1,CORE.t/700):0); // 揭曉後上蓋朝鏡頭飛來並淡出
+    if(mode==='crack'||mode==='reveal')drawOpenShell(winCap,winCap.x,winCap.y,Math.min(1,(mode==='reveal'?CORE.t+260:CORE.t)/520),1);
     else drawCapsule(winCap,winCap.x,winCap.y,winCap.sc||1,1);
   }
   // 上一位得主的扭蛋殼：滑出畫面右側

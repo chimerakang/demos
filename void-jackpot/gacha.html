@@ -165,7 +165,7 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:var(--tx);user-s
   <div class="t2">扭 蛋 抽 選 儀 式</div>
 </div>
 <div class="holo" id="hudInfo">在場靈魂 0</div>
-<div class="holo" id="verTag">GACHA v0.1 // 10s RITUAL // SFX: KENNEY CC0</div>
+<div class="holo" id="verTag">GACHA v0.2 // 10s RITUAL // SFX: KENNEY CC0</div>
 <div class="holo" id="phaseCap"></div>
 <div id="errBox"></div>
 <div class="holo" id="ledger"></div>
@@ -525,7 +525,7 @@ function placeInGlobe(c){
 let drumAng=0,drumW=0;
 function stepPhysics(dt,intensity){
   const g=GLOBE,R=g.R;
-  const gxv=Math.sin(drumAng)*.32,gyv=Math.cos(drumAng)*.32;
+  const gxv=Math.sin(drumAng)*.4,gyv=Math.cos(drumAng)*.4;
   const sim=[];
   for(const c of caps){
     if(c.phase!=='in')continue;
@@ -564,16 +564,20 @@ function stepPhysics(dt,intensity){
     }
   }
 }
+let labelA=1; // 扭蛋上名字的可見度：翻滾期間由 1 淡到 0
 function drawCapsule(c,x,y,sc,alpha){
   const r=c.r*sc,S=r*2;
   ctx.globalAlpha=alpha;
   ctx.save();ctx.translate(x,y);ctx.rotate(c.rot*.6);
   ctx.drawImage(c.col[3],-r,-r,S,S);
   ctx.restore();
-  // 名字：永遠正立，貼在扭蛋中段
-  const l=getLabel(c.name,'cap');
-  const s=Math.min(r*1.75/l.w,r*.95/l.h);
-  ctx.drawImage(l.c,x-l.w*s/2,y-l.h*s/2,l.w*s,l.h*s);
+  // 名字：永遠正立，貼在扭蛋中段；翻滾開始後逐漸淡出（labelA），之後的扭蛋都是無名的，名字到開殼才揭曉
+  if(labelA>0){
+    const l=getLabel(c.name,'cap');
+    const s=Math.min(r*1.75/l.w,r*.95/l.h);
+    ctx.globalAlpha=alpha*labelA;
+    ctx.drawImage(l.c,x-l.w*s/2,y-l.h*s/2,l.w*s,l.h*s);
+  }
   ctx.globalAlpha=1;
 }
 
@@ -784,6 +788,7 @@ function updateCore(dt,now){
   const t=CORE.t,g=GLOBE;
   switch(CORE.mode){
     case 'roster':{
+      labelA=1;
       const n=caps.length;
       caps.forEach((c,i)=>{
         const st=(i/n)*1300,k=Math.min(1,Math.max(0,(t-st)/320));
@@ -796,6 +801,7 @@ function updateCore(dt,now){
       break;
     }
     case 'load':{
+      labelA=1;
       let allIn=true;
       for(const c of caps){
         if(c.phase==='fly'){
@@ -825,10 +831,11 @@ function updateCore(dt,now){
       // 角速度包絡：升 20% → 持平 → 末 25% 減速
       let w;
       if(p<.2)w=p/.2;else if(p<.75)w=1;else w=1-(p-.75)/.25;
-      drumW=w*.085;
+      drumW=w*.13;                   // v0.2：滾筒角速度 .085→.13（更快）
       drumAng+=drumW*dt;
+      labelA=Math.max(0,Math.min(1,1-(p-.15)/.5)); // 翻滾 15%→65% 期間名字淡出
       CORE.crank+=drumW*2.2*dt;
-      stepPhysics(dt,w*1.6);
+      stepPhysics(dt,w*2.4);
       if(drumW>.02&&now-CORE.lastTick>95/(w+.2)){CORE.lastTick=now;ratchet();}
       if(w>.3&&now-CORE.lastBed>1150){CORE.lastBed=now;shakeBed(w);}
       if(p>=1){
@@ -838,6 +845,7 @@ function updateCore(dt,now){
       break;
     }
     case 'drop':{
+      labelA=0;
       drumAng*=Math.pow(.9,dt);       // 重力回正
       stepPhysics(dt,0);
       const wc=winCap;
@@ -1167,6 +1175,7 @@ function backToVoid(){
   // 球內扭蛋尺寸隨人數重算（避免越抽越空）
   const inside=caps.filter(c=>c.phase==='in');
   if(inside.length){const r=capRadius(inside.length);inside.forEach(c=>c.r=r);}
+  labelA=1; // 回到待機時球內扭蛋重新顯示名字
   setMode('idle');
   sigil.classList.remove('busy');
   updateHud(getPool().length);

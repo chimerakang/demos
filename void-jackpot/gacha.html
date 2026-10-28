@@ -183,7 +183,8 @@ Rogue</textarea>
    load   2.0–3.5s 名字縮成扭蛋，飛入球體
    tumble 3.5–7.5s 滾筒旋轉、扭蛋互撞
    drop   7.5–8.5s 中選扭蛋被導向出口、滾入托盤
-   reveal 8.5s     扭蛋裂開、名字揭曉
+   rise   8.5–9.2s 扭蛋飛到鏡頭前中央放大（擋住機器）
+   reveal 9.2s     扭蛋裂開、名字揭曉；下一抽時開過的殼滑出畫面
  快速版（同獎項連抽，約 3 秒）：直接從 tumble 短版開始。
  中獎者於演出開始前以 crypto.getRandomValues 抽定，演出為劇場效果。
 ========================================================= */
@@ -518,6 +519,29 @@ function drawCapsule(c,x,y,sc,alpha){
   ctx.globalAlpha=1;
 }
 
+/* 開殼：上半彈飛微傾、下半下沉；k=0 閉合、k=1 全開 */
+function drawOpenShell(c,x,y,k,alpha,lift){
+  const r=c.r*(c.sc||1),e=easeOutQuart(k),gap=r*.42*e;
+  // 內芯：填滿兩半殼之間的縫隙，讓後面的機器完全看不到
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle='#fff6dc';ctx.beginPath();ctx.arc(x,y,r*.93,0,6.28);ctx.fill();
+  ctx.globalCompositeOperation='lighter';
+  ctx.globalAlpha=.85*k*alpha;
+  const gs=r*3.2;ctx.drawImage(SPR[c.col[2]],x-gs/2,y-gs/2,gs,gs);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  // 上半殼：掀起並微傾（lift 供滑出畫面時使用）
+  ctx.save();ctx.translate(x,y-gap-(lift||0));ctx.rotate(-.22*e);
+  ctx.beginPath();ctx.rect(-r-2,-r-2,r*2+4,r+2);ctx.clip();
+  ctx.globalAlpha=alpha;ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
+  ctx.restore();
+  // 下半殼：原地微沉
+  ctx.save();ctx.translate(x,y+r*.1*e);
+  ctx.beginPath();ctx.rect(-r-2,0,r*2+4,r+2);ctx.clip();
+  ctx.globalAlpha=alpha;ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
+  ctx.restore();
+  ctx.globalAlpha=1;
+}
+let exitCap=null; // 開過的扭蛋殼滑出畫面
 /* ---- 粒子（火花 / 彩帶）統一上限 ---- */
 let sparks=[],confetti=[];
 const SPRKEYS=['gold','white','cyan'];
@@ -679,8 +703,8 @@ function pick(n){return 1+((Math.random()*n)|0);}
 
 /* ---- 狀態機 ---- */
 const CORE={mode:'idle',t:0,winner:null,shake:0,quick:false,flashT:0,crank:0,lastTick:0,lastBed:0,dropStage:-1,crack:0};
-const DUR={roster:2000,load:1500,tumble:4000,tumbleQuick:1700,drop:1000};
-const PHASE_CAP={roster:'在場靈魂',load:'裝填中',tumble:'命運翻滾',drop:'',reveal:''};
+const DUR={roster:2000,load:1500,tumble:4000,tumbleQuick:1700,drop:1000,rise:650,exit:450};
+const PHASE_CAP={roster:'在場靈魂',load:'裝填中',tumble:'命運翻滾',drop:'',rise:'',crack:'',reveal:''};
 function setCap(t){const pc=document.getElementById('phaseCap');pc.textContent=t;pc.style.opacity=t?1:0;}
 function setMode(m){CORE.mode=m;CORE.t=0;setCap(PHASE_CAP[m]||'');}
 const easeOutQuart=t=>1-Math.pow(1-t,4);
@@ -766,17 +790,30 @@ function updateCore(dt,now){
         wc.x=ox+(tx-ox)*k;wc.y=oy+(ty-oy)*easeOutBounce(k);
         wc.rot+=.25*dt;
       }else{
-        wc.phase='tray';wc.x=g.tray.x;wc.y=g.tray.y-wc.r;
+        wc.phase='tray';wc.x=g.tray.x;wc.y=g.tray.y-wc.r;wc.sc=1;
+        wc.fx=wc.x;wc.fy=wc.y;
         clunkSfx('tray');
-        setMode('crack');
+        setMode('rise');
       }
+      break;
+    }
+    case 'rise':{
+      // 中選扭蛋飛到鏡頭前中央並放大，自然擋住整台機器
+      stepPhysics(dt,0);
+      const wc=winCap,k=easeOutQuart(Math.min(1,t/DUR.rise));
+      const S=Math.max(1,Math.min(12,Math.min(W*.42,H*.31)/wc.r)); // 放大到足以遮住整台機器
+      wc.phase='rise';
+      wc.x=wc.fx+(CX-wc.fx)*k;wc.y=wc.fy+(H*.46-wc.fy)*k;
+      wc.sc=1+(S-1)*k;wc.rot+=.08*dt*(1-k);
+      if(t<30)playNoise(.5,.2,'bandpass',600,2400,2,'dry',.3);
+      if(t>=DUR.rise){wc.x=CX;wc.y=H*.46;wc.sc=S;setMode('crack');}
       break;
     }
     case 'crack':{
       stepPhysics(dt,0);
       if(t<40&&CORE.crack===0){
         CORE.crack=1;popSfx();
-        burst(curTier().sparks,curTier().key==='t1',winCap.x,winCap.y-winCap.r*.3,1.1);
+        burst(curTier().sparks,curTier().key==='t1',winCap.x,winCap.y,1.6);
         CORE.shake=Math.max(CORE.shake,10);
         flash.classList.remove('go');void flash.offsetWidth;flash.classList.add('go');
       }
@@ -927,25 +964,16 @@ function frameInner(now){
   }
 
   // 出口外、托盤上的中選扭蛋
-  if(winCap&&(winCap.phase==='out'||winCap.phase==='tray')){
-    if(mode==='crack'||mode==='reveal'){
-      // 裂開：兩半殼分離
-      const k=Math.min(1,CORE.t/300),r=winCap.r;
-      const gap=r*1.3*easeOutQuart(k);
-      ctx.save();
-      ctx.beginPath();ctx.rect(winCap.x-r*2,winCap.y-r*2-gap,r*4,r*2+gap);ctx.clip();
-      ctx.globalAlpha=1;ctx.drawImage(winCap.col[3],winCap.x-r,winCap.y-r-gap,r*2,r*2);
-      ctx.restore();
-      ctx.save();
-      ctx.beginPath();ctx.rect(winCap.x-r*2,winCap.y,r*4,r*2+gap);ctx.clip();
-      ctx.drawImage(winCap.col[3],winCap.x-r,winCap.y-r+gap*.4,r*2,r*2);
-      ctx.restore();
-      // 內部光
-      ctx.globalCompositeOperation='lighter';
-      ctx.globalAlpha=.9*k;
-      const gs=r*5;ctx.drawImage(SPR[winCap.col[2]],winCap.x-gs/2,winCap.y-gs/2,gs,gs);
-      ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-    }else drawCapsule(winCap,winCap.x,winCap.y,1,1);
+  if(winCap&&(winCap.phase==='out'||winCap.phase==='tray'||winCap.phase==='rise')){
+    if(mode==='crack'||mode==='reveal')drawOpenShell(winCap,winCap.x,winCap.y,Math.min(1,CORE.t/320),1,0);
+    else drawCapsule(winCap,winCap.x,winCap.y,winCap.sc||1,1);
+  }
+  // 上一位得主的扭蛋殼：滑出畫面右側
+  if(exitCap){
+    const k=Math.min(1,(now-exitCap.t0)/DUR.exit),e=easeInQuad(k);
+    const r=exitCap.c.r*(exitCap.c.sc||1);
+    drawOpenShell(exitCap.c,exitCap.x0+(W+r*2.5-exitCap.x0)*e,exitCap.y0-r*.6*e,1,1-k*.3);
+    if(k>=1)exitCap=null;
   }
 
   // 火花
@@ -1050,8 +1078,11 @@ function backToVoid(){
   CORE.crack=0;
   // 中選扭蛋離場；若不移除中選者則放回球內
   if(winCap){
+    exitCap={c:winCap,x0:winCap.x,y0:winCap.y,t0:performance.now()};
     if(removeWinner.checked){caps=caps.filter(c=>c!==winCap);}
-    else placeInGlobe(winCap);
+    else{ // 不移除中選者：殼滑出後以新扭蛋身分回到球內
+      const back=winCap;setTimeout(function(){back.sc=1;placeInGlobe(back);},DUR.exit);
+    }
     winCap=null;
   }
   // 球內扭蛋尺寸隨人數重算（避免越抽越空）

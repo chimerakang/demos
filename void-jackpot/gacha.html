@@ -6,106 +6,146 @@
 <title>VOID://JACKPOT — 扭蛋抽選儀式</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;600;700&family=Share+Tech+Mono&family=Noto+Sans+TC:wght@300;700;900&display=swap" rel="stylesheet">
+<script>
+/* ---- 色系主題（v9.6）：四套夜景配色，每次載入隨機（避免與上次相同）；可用 ?theme=neon|abyss|rose|moss 指定 ----
+   所有頁面共用同一份定義；CSS 以 var(--p) 等取用、JS 以 window.VJ_T 取用。三頁需同步修改。 */
+(function(){
+const H=rgb=>'#'+rgb.split(',').map(v=>(+v).toString(16).padStart(2,'0')).join('');
+const D=(rgb,k)=>rgb.split(',').map(v=>Math.round(+v*k)).join(',');
+const TH={
+ neon:{name:'霓虹彩虹',p:'0,230,255',pl:'190,245,255',s:'255,60,180',sl:'255,160,220',t:'160,80,255',
+   w:'255,220,110',wl:'255,245,200',wd:'255,160,0',bg:'#020108',bg0:'#050213',bg1:'#0a0524',bg2:'#02010a',
+   pn:'4,8,24',bgr:'2,1,10',tx:'#cfe8ff',tx2:'#eaf6ff',txd:'150,180,255',
+   planets:[['#39e6ff','#0a4d66','0,230,255','cyan'],['#ff6ec7','#6a1248','255,60,180','pink'],
+     ['#b98cff','#38176e','160,80,255','violet'],['#ffd97a','#7a5a10','255,220,110','gold'],
+     ['#7dffcf','#0e5a44','120,255,200','cyan'],['#ff9e6e','#7a3212','255,150,90','pink'],
+     ['#7dd0ff','#123f7a','120,200,255','cyan'],['#9dff70','#1d5a18','150,255,110','white'],
+     ['#ffb347','#7a3d08','255,170,70','gold'],['#ff5e5e','#6e0f1d','255,90,90','pink'],
+     ['#e6c8ff','#4b2a80','220,180,255','violet'],['#66ffe3','#0b5c4d','100,255,225','cyan']]},
+ abyss:{name:'深海藍',p:'138,216,240',pl:'222,242,250',s:'79,143,214',sl:'160,200,235',t:'40,110,170',
+   w:'245,185,74',wl:'251,227,168',wd:'225,140,40',bg:'#030711',bg0:'#040812',bg1:'#081a30',bg2:'#02050c',
+   pn:'5,11,24',bgr:'2,5,12',tx:'#e6f1f8',tx2:'#f5fafd',txd:'127,149,171'},
+ rose:{name:'暗紫玫瑰',p:'227,154,140',pl:'246,214,204',s:'168,111,168',sl:'214,176,214',t:'110,45,110',
+   w:'243,220,162',wl:'250,238,214',wd:'220,170,90',bg:'#09050f',bg0:'#0a0612',bg1:'#1e0f24',bg2:'#06030a',
+   pn:'12,7,18',bgr:'6,2,10',tx:'#f4ece6',tx2:'#fbf6f1',txd:'160,138,156'},
+ moss:{name:'墨綠琥珀',p:'232,166,60',pl:'250,222,160',s:'111,174,139',sl:'170,215,190',t:'30,100,75',
+   w:'246,239,224',wl:'255,255,255',wd:'220,160,70',bg:'#040d0a',bg0:'#050f0b',bg1:'#10271d',bg2:'#020805',
+   pn:'6,20,16',bgr:'2,8,6',tx:'#e8e2d2',tx2:'#f6efe0',txd:'143,163,151'}
+};
+const keys=Object.keys(TH);
+let k=new URLSearchParams(location.search).get('theme');
+if(!TH[k]){let last=null;try{last=localStorage.getItem('vj_theme_last');}catch(e){}
+  const pool=keys.filter(x=>x!==last);k=pool[Math.floor(Math.random()*pool.length)];}
+try{localStorage.setItem('vj_theme_last',k);}catch(e){}
+const T=Object.assign({key:k},TH[k]);
+if(!T.planets)T.planets=[[T.p,'cyan'],[T.s,'pink'],[T.t,'violet'],[T.w,'gold'],[T.pl,'cyan'],[T.sl,'pink']]
+  .map(([c,g])=>[H(c),H(D(c,.35)),c,g]);
+for(const f of ['p','pl','s','sl','t','w','wl','wd'])T[f+'h']=H(T[f]);
+const root=document.documentElement.style;
+for(const f in T)if(typeof T[f]==='string')root.setProperty('--'+f,T[f]);
+window.VJ_T=T;window.VJ_H=H;window.VJ_D=D;
+})();
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden;background:#020108}
-body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-select:none}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:var(--tx);user-select:none}
 #world{position:fixed;inset:0;display:block}
 #scan{position:fixed;inset:0;z-index:15;pointer-events:none;
   background:repeating-linear-gradient(0deg,rgba(2,4,14,.16) 0 1px,transparent 1px 3px)}
 .holo{position:fixed;z-index:20;pointer-events:none;font-family:'Share Tech Mono',monospace}
 #hudTop{top:22px;left:50%;transform:translateX(-50%);text-align:center}
-#hudTop .t1{font-size:11px;letter-spacing:.8em;text-indent:.8em;color:rgba(120,220,255,.55)}
+#hudTop .t1{font-size:11px;letter-spacing:.8em;text-indent:.8em;color:rgba(var(--pl),.55)}
 #hudTop .t2{margin-top:6px;font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
   font-size:clamp(18px,3vw,26px);letter-spacing:.5em;text-indent:.5em;
-  color:#eaf6ff;text-shadow:0 0 20px rgba(0,200,255,.6),0 0 60px rgba(160,80,255,.4)}
+  color:var(--tx2);text-shadow:0 0 20px rgba(var(--p),.6),0 0 60px rgba(var(--t),.4)}
 #hudInfo{bottom:110px;left:50%;transform:translateX(-50%);
-  font-size:11px;letter-spacing:.35em;color:rgba(150,180,255,.45);text-align:center;white-space:nowrap}
-#verTag{left:26px;bottom:26px;font-size:10px;letter-spacing:.3em;color:rgba(120,160,255,.4)}
+  font-size:11px;letter-spacing:.35em;color:rgba(var(--txd),.45);text-align:center;white-space:nowrap}
+#verTag{left:26px;bottom:26px;font-size:10px;letter-spacing:.3em;color:rgba(var(--txd),.4)}
 #phaseCap{top:10.5%;left:50%;transform:translateX(-50%);
   font-family:'Chakra Petch','Noto Sans TC';font-weight:600;
   font-size:clamp(14px,2.4vw,20px);letter-spacing:.6em;text-indent:.6em;
-  color:rgba(255,120,210,.9);text-shadow:0 0 14px rgba(255,60,180,.7);
+  color:rgba(var(--sl),.9);text-shadow:0 0 14px rgba(var(--s),.7);
   opacity:0;transition:opacity .3s;white-space:nowrap}
 #errBox{position:fixed;z-index:99;left:8px;top:8px;max-width:80vw;font:11px monospace;
   color:#ff8;background:rgba(80,0,0,.7);padding:6px 8px;display:none;white-space:pre-wrap}
 #ledger{position:fixed;z-index:20;left:26px;top:50%;transform:translateY(-50%);
   pointer-events:none;font-family:'Share Tech Mono',monospace;font-size:11px;
-  letter-spacing:.15em;line-height:2.1;color:rgba(150,190,255,.55);max-width:34vw}
-#ledger .lg-t1{color:#ffe066;text-shadow:0 0 10px rgba(255,220,110,.5)}
-#ledger .lg-t2{color:#ff8fd2;text-shadow:0 0 8px rgba(255,60,180,.4)}
-#ledger .lg-t3{color:#7fe8ff;text-shadow:0 0 8px rgba(0,230,255,.4)}
-#ledger .lg-h{color:rgba(140,230,255,.5);letter-spacing:.4em;margin-bottom:2px}
+  letter-spacing:.15em;line-height:2.1;color:rgba(var(--txd),.55);max-width:34vw}
+#ledger .lg-t1{color:var(--wh);text-shadow:0 0 10px rgba(var(--w),.5)}
+#ledger .lg-t2{color:var(--sh);text-shadow:0 0 8px rgba(var(--s),.4)}
+#ledger .lg-t3{color:var(--ph);text-shadow:0 0 8px rgba(var(--p),.4)}
+#ledger .lg-h{color:rgba(var(--pl),.5);letter-spacing:.4em;margin-bottom:2px}
 #sigil{position:fixed;z-index:30;bottom:34px;left:50%;transform:translateX(-50%);
   width:74px;height:74px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  color:#dffbff;font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
+  color:var(--plh);font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
   font-size:14px;letter-spacing:.2em;text-indent:.2em;
-  background:radial-gradient(circle at 50% 35%,rgba(0,230,255,.25),rgba(10,5,30,.85) 70%);
-  border:1px solid rgba(0,230,255,.6);
-  box-shadow:0 0 24px rgba(0,230,255,.35),inset 0 0 18px rgba(0,230,255,.2);
+  background:radial-gradient(circle at 50% 35%,rgba(var(--p),.25),rgba(var(--pn),.85) 70%);
+  border:1px solid rgba(var(--p),.6);
+  box-shadow:0 0 24px rgba(var(--p),.35),inset 0 0 18px rgba(var(--p),.2);
   transition:transform .2s,box-shadow .25s,opacity .3s}
 #sigil::before,#sigil::after{content:"";position:absolute;inset:-9px;border-radius:50%;
-  border:1px dashed rgba(0,230,255,.35);animation:sigilSpin 10s linear infinite}
-#sigil::after{inset:-18px;border-color:rgba(255,60,180,.25);animation-duration:16s;animation-direction:reverse}
+  border:1px dashed rgba(var(--p),.35);animation:sigilSpin 10s linear infinite}
+#sigil::after{inset:-18px;border-color:rgba(var(--s),.25);animation-duration:16s;animation-direction:reverse}
 @keyframes sigilSpin{to{transform:rotate(360deg)}}
 #sigil:hover{transform:translateX(-50%) scale(1.08)}
 #sigil.busy{pointer-events:none;opacity:.35}
 .cornerBtn{position:fixed;z-index:40;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:11px;
-  letter-spacing:.3em;padding:10px 14px;border-radius:2px;background:rgba(4,8,24,.6);text-decoration:none;transition:all .2s}
-#gate{right:26px;top:26px;color:rgba(140,230,255,.7);border:1px solid rgba(0,230,255,.3)}
-#gate:hover{color:#dffbff;border-color:rgba(0,230,255,.8)}
-#muteBtn{right:26px;top:74px;color:rgba(140,230,255,.7);border:1px solid rgba(0,230,255,.3)}
-#modeLink{left:26px;top:26px;color:rgba(255,220,110,.75);border:1px solid rgba(255,220,110,.35)}
-#modeLink2{left:26px;top:74px;color:rgba(255,220,110,.75);border:1px solid rgba(255,220,110,.35)}
+  letter-spacing:.3em;padding:10px 14px;border-radius:2px;background:rgba(var(--pn),.6);text-decoration:none;transition:all .2s}
+#gate{right:26px;top:26px;color:rgba(var(--pl),.7);border:1px solid rgba(var(--p),.3)}
+#gate:hover{color:var(--plh);border-color:rgba(var(--p),.8)}
+#muteBtn{right:26px;top:74px;color:rgba(var(--pl),.7);border:1px solid rgba(var(--p),.3)}
+#modeLink{left:26px;top:26px;color:rgba(var(--w),.75);border:1px solid rgba(var(--w),.35)}
+#modeLink2{left:26px;top:74px;color:rgba(var(--w),.75);border:1px solid rgba(var(--w),.35)}
 #uplink{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
   background:rgba(2,1,10,.55);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s}
 #uplink.open{opacity:1;pointer-events:auto}
 .uplinkBox{width:min(560px,90vw);text-align:center}
 .uplinkBox .cap{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.6em;text-indent:.6em;
-  color:rgba(140,230,255,.7);margin-bottom:16px}
+  color:rgba(var(--pl),.7);margin-bottom:16px}
 #nameInput{width:100%;min-height:180px;resize:vertical;background:transparent;
-  border:0;border-top:1px solid rgba(0,230,255,.4);border-bottom:1px solid rgba(255,60,180,.4);
-  color:#dffbff;font-family:'Share Tech Mono','Noto Sans TC',monospace;font-size:16px;
+  border:0;border-top:1px solid rgba(var(--p),.4);border-bottom:1px solid rgba(var(--s),.4);
+  color:var(--plh);font-family:'Share Tech Mono','Noto Sans TC',monospace;font-size:16px;
   padding:18px 10px;line-height:2;outline:none;text-align:center;letter-spacing:.1em;
-  text-shadow:0 0 8px rgba(0,230,255,.5)}
+  text-shadow:0 0 8px rgba(var(--p),.5)}
 .uplinkRow{margin-top:18px;display:flex;gap:22px;justify-content:center;align-items:center;
-  font-size:12px;color:rgba(170,200,255,.6);letter-spacing:.15em;flex-wrap:wrap}
-.uplinkRow input[type=checkbox]{accent-color:#ff3cb4}
-.tierNum{width:52px;background:rgba(4,8,24,.6);border:1px solid rgba(0,230,255,.35);
-  color:#dffbff;font-family:'Share Tech Mono';font-size:14px;text-align:center;padding:6px 2px;outline:none}
-.holoBtn{cursor:pointer;background:none;border:1px solid rgba(0,230,255,.5);color:#bff4ff;
+  font-size:12px;color:rgba(var(--txd),.6);letter-spacing:.15em;flex-wrap:wrap}
+.uplinkRow input[type=checkbox]{accent-color:var(--sh)}
+.tierNum{width:52px;background:rgba(var(--pn),.6);border:1px solid rgba(var(--p),.35);
+  color:var(--plh);font-family:'Share Tech Mono';font-size:14px;text-align:center;padding:6px 2px;outline:none}
+.holoBtn{cursor:pointer;background:none;border:1px solid rgba(var(--p),.5);color:var(--plh);
   font-family:'Chakra Petch','Noto Sans TC';font-size:13px;letter-spacing:.3em;text-indent:.3em;
   padding:10px 26px;transition:all .2s}
-.holoBtn:hover{background:rgba(0,230,255,.1)}
+.holoBtn:hover{background:rgba(var(--p),.1)}
 #goldFrame{position:fixed;inset:0;z-index:44;pointer-events:none;opacity:0;transition:opacity .5s;
-  box-shadow:inset 0 0 120px rgba(255,190,60,.35),inset 0 0 30px rgba(255,220,110,.3)}
+  box-shadow:inset 0 0 120px rgba(var(--w),.35),inset 0 0 30px rgba(var(--w),.3)}
 #goldFrame.on{opacity:1}
 #reveal{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:16px;pointer-events:none;opacity:0;transition:opacity .4s;
   background:radial-gradient(ellipse 60% 55% at 50% 48%,rgba(2,1,10,.72),rgba(2,1,10,.2) 70%,transparent)}
 #reveal.show{opacity:1;pointer-events:auto}
-#reveal .rl{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.9em;text-indent:.9em;color:#8ff3ff;opacity:0}
+#reveal .rl{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.9em;text-indent:.9em;color:var(--ph);opacity:0}
 #reveal.show .rl{animation:rIn .6s .2s both}
 #reveal .tierTag{font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
   font-size:clamp(15px,2.6vw,22px);letter-spacing:.8em;text-indent:.8em;opacity:0;padding:8px 22px;border:1px solid currentColor}
 #reveal.show .tierTag{animation:rIn .5s .1s both}
-#reveal.t3 .tierTag{color:#5be6ff}
-#reveal.t2 .tierTag{color:#ff6ec7}
-#reveal.t1 .tierTag{color:#ffe066;box-shadow:0 0 24px rgba(255,220,110,.35),inset 0 0 14px rgba(255,220,110,.15)}
+#reveal.t3 .tierTag{color:var(--ph)}
+#reveal.t2 .tierTag{color:var(--sh)}
+#reveal.t1 .tierTag{color:var(--wh);box-shadow:0 0 24px rgba(var(--w),.35),inset 0 0 14px rgba(var(--w),.15)}
 #winTxt{font-family:'Chakra Petch','Noto Sans TC';font-weight:900;text-align:center;
   font-size:clamp(46px,11vw,130px);letter-spacing:.04em;padding:0 4vw;max-width:96vw;word-break:break-all;color:#fff}
-#reveal.t3 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(0,230,255,1),0 0 90px rgba(0,180,255,.8)}
-#reveal.t2 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(255,60,180,1),0 0 90px rgba(200,80,255,.8)}
-#reveal.t1 #winTxt{background:linear-gradient(105deg,#ffe066 0%,#fff8d6 18%,#ffd75e 32%,#fffbe8 50%,#ffe066 66%,#ff9f1c 84%,#ffe066 100%);
+#reveal.t3 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(var(--p),1),0 0 90px rgba(var(--p),.8)}
+#reveal.t2 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(var(--s),1),0 0 90px rgba(var(--t),.8)}
+#reveal.t1 #winTxt{background:linear-gradient(105deg,var(--wh) 0%,var(--wlh) 18%,var(--wh) 32%,var(--wlh) 50%,var(--wh) 66%,var(--wdh) 84%,var(--wh) 100%);
   background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 20px rgba(255,220,110,.95)) drop-shadow(0 0 90px rgba(255,160,0,.6))}
+  filter:drop-shadow(0 0 20px rgba(var(--w),.95)) drop-shadow(0 0 90px rgba(var(--wd),.6))}
 #reveal.show #winTxt{animation:wIn .8s cubic-bezier(.15,1.6,.3,1) both}
 #reveal.t1.show #winTxt{animation:wIn .8s cubic-bezier(.15,1.6,.3,1) both,shimmer 3s linear 1.2s infinite}
 @keyframes shimmer{from{background-position:0 0}to{background-position:200% 0}}
 @keyframes wIn{0%{transform:scale(.1);opacity:0;filter:blur(20px)}55%{transform:scale(1.15);opacity:1;filter:blur(0)}100%{transform:scale(1)}}
 #reveal .rc{font-weight:700;font-size:clamp(16px,3vw,24px);letter-spacing:.7em;text-indent:.7em;
-  color:#ffd9f0;text-shadow:0 0 16px rgba(255,60,180,.8);opacity:0}
+  color:var(--slh);text-shadow:0 0 16px rgba(var(--s),.8);opacity:0}
 #reveal.show .rc{animation:rIn .6s .5s both}
 #reveal .ra{display:flex;gap:22px;margin-top:14px;opacity:0}
 #reveal.show .ra{animation:rIn .6s .8s both}
@@ -176,6 +216,7 @@ Rogue</textarea>
 
 <script>
 "use strict";
+const TH=window.VJ_T; // 色系主題（見 <head> 內定義；T 在 frameInner 內是時間，故命名 TH）
 /* =========================================================
  扭蛋抽選儀式（GACHA v0.1）
  流程（完整版 10 秒）：
@@ -222,10 +263,10 @@ function makeGlow(color,size=64){
   return c;
 }
 const SPR={
-  cyan:makeGlow('rgba(0,230,255,1)'),
-  pink:makeGlow('rgba(255,60,180,1)'),
-  violet:makeGlow('rgba(160,80,255,1)'),
-  gold:makeGlow('rgba(255,220,110,1)'),
+  cyan:makeGlow(`rgba(${TH.p},1)`),
+  pink:makeGlow(`rgba(${TH.s},1)`),
+  violet:makeGlow(`rgba(${TH.t},1)`),
+  gold:makeGlow(`rgba(${TH.w},1)`),
   white:makeGlow('rgba(240,250,255,1)')
 };
 const STARSPR=(function(){
@@ -245,14 +286,9 @@ const TWK=[];
 for(let i=0;i<22;i++)TWK.push({x:Math.random(),y:Math.random()*.5,ph:Math.random()*6.28,sp:.5+Math.random()*1.3,sz:10+Math.random()*16});
 
 // 扭蛋殼 sprite：上半彩色、下半乳白、中縫、高光；每色一張，繪製時縮放
-const CAPCOLS=[
-  ['#39e6ff','#0a4d66','cyan'],
-  ['#ff6ec7','#6a1248','pink'],
-  ['#b98cff','#38176e','violet'],
-  ['#7dffcf','#0e5a44','cyan'],
-  ['#ffb347','#7a3d08','gold']
-];
-const GOLDCOL=['#ffd97a','#7a5a10','gold'];
+const CAPCOLS=[[TH.p,'cyan'],[TH.s,'pink'],[TH.t,'violet'],[TH.pl,'cyan'],[TH.wd,'gold']]
+  .map(([c,g])=>[VJ_H(c),VJ_H(VJ_D(c,.35)),g]); // 扭蛋殼色由主題提供
+const GOLDCOL=[TH.wh,VJ_H(VJ_D(TH.w,.35)),'gold'];
 function makeCapsule(col){
   const S=128,R=S/2-3,c=document.createElement('canvas');c.width=c.height=S;
   const g=c.getContext('2d');
@@ -266,7 +302,7 @@ function makeCapsule(col){
   hi.addColorStop(0,'#ffffff');hi.addColorStop(.25,col[0]);hi.addColorStop(1,col[1]);
   g.fillStyle=hi;g.fillRect(0,0,S,S/2);
   // 中縫
-  g.fillStyle='rgba(10,5,25,.55)';g.fillRect(0,S/2-1.5,S,3);
+  g.fillStyle=`rgba(${TH.pn},.55)`;g.fillRect(0,S/2-1.5,S,3);
   // 高光
   g.globalAlpha=.55;g.fillStyle='#fff';
   g.beginPath();g.ellipse(S/2-R*.4,S/2-R*.5,R*.22,R*.12,-.7,0,6.28);g.fill();
@@ -276,8 +312,25 @@ function makeCapsule(col){
   g.beginPath();g.arc(S/2,S/2,R,0,6.28);g.stroke();
   return c;
 }
-CAPCOLS.forEach(col=>col.push(makeCapsule(col)));
-GOLDCOL.push(makeCapsule(GOLDCOL));
+// 扭蛋內腔 sprite：開殼後看到的碗狀內面（同色系、中央暗、邊緣亮）
+function makeCavity(col){
+  const S=128,R=S/2-3,c=document.createElement('canvas');c.width=c.height=S;
+  const g=c.getContext('2d');
+  g.save();g.beginPath();g.arc(S/2,S/2,R,0,6.28);g.clip();
+  // 內面：上緣陰影深、往下漸亮（像看進一個碗）
+  const lg=g.createLinearGradient(0,0,0,S);
+  lg.addColorStop(0,'#0a0618');lg.addColorStop(.3,col[1]);lg.addColorStop(.75,col[1]);lg.addColorStop(1,col[0]);
+  g.fillStyle=lg;g.fillRect(0,0,S,S);
+  // 邊緣高光環（殼的厚度）
+  const rg=g.createRadialGradient(S/2,S/2,R*.86,S/2,S/2,R);
+  rg.addColorStop(0,'rgba(255,255,255,0)');rg.addColorStop(.7,'rgba(255,255,255,.25)');rg.addColorStop(1,'rgba(255,255,255,.7)');
+  g.fillStyle=rg;g.fillRect(0,0,S,S);
+  g.restore();
+  g.strokeStyle='rgba(5,2,15,.7)';g.lineWidth=2.5;g.beginPath();g.arc(S/2,S/2,R,0,6.28);g.stroke();
+  return c;
+}
+CAPCOLS.forEach(col=>{col.push(makeCapsule(col));col.push(makeCavity(col));}); // col[3] 殼、col[4] 內腔
+GOLDCOL.push(makeCapsule(GOLDCOL));GOLDCOL.push(makeCavity(GOLDCOL));
 
 // 名字標籤：白字黑邊，烘一次
 const LABELS=new Map();
@@ -294,12 +347,12 @@ function getLabel(name,style){
   c.width=tw+pad*2;c.height=px+pad*2;
   g.font=font;g.textAlign='center';g.textBaseline='middle';
   if(style==='cap'){
-    g.lineJoin='round';g.lineWidth=7;g.strokeStyle='rgba(8,4,22,.9)';
+    g.lineJoin='round';g.lineWidth=7;g.strokeStyle=`rgba(${TH.pn},.9)`;
     g.strokeText(name,c.width/2,c.height/2);
     g.fillStyle='#fff';g.fillText(name,c.width/2,c.height/2);
   }else{
-    g.fillStyle='rgba(190,240,255,.95)';
-    g.shadowColor='rgba(0,230,255,.8)';g.shadowBlur=10;
+    g.fillStyle=`rgba(${TH.pl},.95)`;
+    g.shadowColor=`rgba(${TH.p},.8)`;g.shadowBlur=10;
     g.fillText(name,c.width/2,c.height/2);
   }
   if(LABELS.size>600)LABELS.clear();
@@ -317,7 +370,7 @@ function buildStaticLayers(){
   staticBG.width=W*DPR;staticBG.height=H*DPR;
   sbx.setTransform(DPR,0,0,DPR,0,0);
   const bgGrad=sbx.createLinearGradient(0,0,0,H);
-  bgGrad.addColorStop(0,'#050213');bgGrad.addColorStop(.55,'#0a0524');bgGrad.addColorStop(1,'#02010a');
+  bgGrad.addColorStop(0,TH.bg0);bgGrad.addColorStop(.55,TH.bg1);bgGrad.addColorStop(1,TH.bg2);
   sbx.fillStyle=bgGrad;sbx.fillRect(0,0,W,H);
   sbx.globalCompositeOperation='lighter';
   sbx.globalAlpha=.12;
@@ -328,12 +381,12 @@ function buildStaticLayers(){
   for(let i=0;i<220;i++){
     const x=Math.random()*W,y=Math.random()*H*.75,s=Math.random()*2+.5;
     sbx.globalAlpha=.25+Math.random()*.6;
-    sbx.fillStyle='#dffbff';sbx.fillRect(x,y,s,s);
+    sbx.fillStyle=TH.plh;sbx.fillRect(x,y,s,s);
   }
   sbx.globalAlpha=1;sbx.globalCompositeOperation='source-over';
   // 地板：透視格線（靜態）
   const fy=H*.82;
-  sbx.strokeStyle='rgba(0,230,255,.10)';sbx.lineWidth=1;
+  sbx.strokeStyle=`rgba(${TH.p},.10)`;sbx.lineWidth=1;
   for(let i=0;i<9;i++){
     const y=fy+(H-fy)*Math.pow(i/9,1.6);
     sbx.beginPath();sbx.moveTo(0,y);sbx.lineTo(W,y);sbx.stroke();
@@ -342,7 +395,7 @@ function buildStaticLayers(){
     sbx.beginPath();sbx.moveTo(CX+i*W*.045,fy);sbx.lineTo(CX+i*W*.16,H);sbx.stroke();
   }
   const fl=sbx.createLinearGradient(0,fy,0,H);
-  fl.addColorStop(0,'rgba(0,230,255,.06)');fl.addColorStop(1,'rgba(0,230,255,0)');
+  fl.addColorStop(0,`rgba(${TH.p},.06)`);fl.addColorStop(1,`rgba(${TH.p},0)`);
   sbx.fillStyle=fl;sbx.fillRect(0,fy,W,H-fy);
   // 暗角
   const vg=sbx.createRadialGradient(CX,H*.5,H*.3,CX,H*.5,H*.95);
@@ -356,14 +409,14 @@ function buildStaticLayers(){
   gx.clearRect(0,0,S,S);
   gx.save();gx.beginPath();gx.arc(c,c,R,0,6.28);gx.clip();
   const rim=gx.createRadialGradient(c,c,R*.72,c,c,R);
-  rim.addColorStop(0,'rgba(140,230,255,0)');rim.addColorStop(.85,'rgba(140,230,255,.08)');rim.addColorStop(1,'rgba(200,245,255,.42)');
+  rim.addColorStop(0,`rgba(${TH.pl},0)`);rim.addColorStop(.85,`rgba(${TH.pl},.08)`);rim.addColorStop(1,`rgba(${TH.pl},.42)`);
   gx.fillStyle=rim;gx.fillRect(0,0,S,S);
   gx.globalAlpha=.32;gx.fillStyle='#fff';
   gx.beginPath();gx.ellipse(c-R*.42,c-R*.5,R*.26,R*.12,-.75,0,6.28);gx.fill();
   gx.globalAlpha=.14;
   gx.beginPath();gx.ellipse(c+R*.45,c+R*.5,R*.18,R*.07,-.75,0,6.28);gx.fill();
   gx.restore();
-  gx.globalAlpha=1;gx.strokeStyle='rgba(200,245,255,.55)';gx.lineWidth=2;
+  gx.globalAlpha=1;gx.strokeStyle=`rgba(${TH.pl},.55)`;gx.lineWidth=2;
   gx.beginPath();gx.arc(c,c,R,0,6.28);gx.stroke();
 }
 
@@ -521,24 +574,30 @@ function drawCapsule(c,x,y,sc,alpha){
 
 /* 開殼：上半彈飛微傾、下半下沉；k=0 閉合、k=1 全開 */
 function drawOpenShell(c,x,y,k,alpha,lift){
-  const r=c.r*(c.sc||1),e=easeOutQuart(k),gap=r*.42*e;
-  // 內芯：填滿兩半殼之間的縫隙，讓後面的機器完全看不到
+  const r=c.r*(c.sc||1),e=easeOutQuart(k);
+  // 內腔：下半殼的碗狀內面，整顆填滿，後方機器完全被擋住
   ctx.globalAlpha=alpha;
-  ctx.fillStyle='#fff6dc';ctx.beginPath();ctx.arc(x,y,r*.93,0,6.28);ctx.fill();
+  ctx.drawImage(c.col[4],x-r,y-r,r*2,r*2);
   ctx.globalCompositeOperation='lighter';
-  ctx.globalAlpha=.85*k*alpha;
-  const gs=r*3.2;ctx.drawImage(SPR[c.col[2]],x-gs/2,y-gs/2,gs,gs);
+  ctx.globalAlpha=.55*k*alpha;
+  const gs=r*2.6;ctx.drawImage(SPR[c.col[2]],x-gs/2,y-gs/2,gs,gs);
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-  // 上半殼：掀起並微傾（lift 供滑出畫面時使用）
-  ctx.save();ctx.translate(x,y-gap-(lift||0));ctx.rotate(-.22*e);
-  ctx.beginPath();ctx.rect(-r-2,-r-2,r*2+4,r+2);ctx.clip();
-  ctx.globalAlpha=alpha;ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
-  ctx.restore();
-  // 下半殼：原地微沉
-  ctx.save();ctx.translate(x,y+r*.1*e);
+  // 下半殼外面（前緣）：留在原位
+  ctx.save();ctx.translate(x,y);
   ctx.beginPath();ctx.rect(-r-2,0,r*2+4,r+2);ctx.clip();
   ctx.globalAlpha=alpha;ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
   ctx.restore();
+  // 上蓋：以中縫為軸朝觀眾翻開——前半段壓扁（外面），後半段翻到下方（露出內面、變暗），再往下滑出畫面
+  // lift（0~1）：翻開後上蓋朝鏡頭飛來——放大並淡出
+  const flip=e<.5?1-e/.5:-((e-.5)/.5);     // 1 → 0 → -1
+  const fly=lift||0,zs=1+fly*1.6,la=alpha*(1-fly);
+  if(la>0.01){
+    ctx.save();ctx.translate(x,y+r*.3*fly);ctx.scale(zs,Math.max(.02,Math.abs(flip))*(flip<0?-1:1)*zs);
+    ctx.beginPath();ctx.rect(-r-2,-r-2,r*2+4,r+2);ctx.clip();
+    ctx.globalAlpha=la;ctx.drawImage(c.col[3],-r,-r,r*2,r*2);
+    if(flip<0){ctx.globalAlpha=la*.5;ctx.fillStyle='#07041a';ctx.fillRect(-r-2,-r-2,r*2+4,r+2);} // 內面較暗
+    ctx.restore();
+  }
   ctx.globalAlpha=1;
 }
 let exitCap=null; // 開過的扭蛋殼滑出畫面
@@ -556,7 +615,7 @@ function burst(n,gold,ox,oy,power){
   }
 }
 function spawnConfetti(n){
-  const cols=['#ffe066','#fff8d6','#ff6ec7','#5be6ff'];
+  const cols=[TH.wh,TH.wlh,TH.sh,TH.ph];
   for(let i=0;i<n;i++){
     confetti.push({x:CX+(Math.random()-.5)*W*.6,y:-30-Math.random()*H*.3,
       vx:(Math.random()-.5)*2.2,vy:2+Math.random()*3,rot:Math.random()*6.28,vr:(Math.random()-.5)*.3,
@@ -835,38 +894,38 @@ function drawMachine(alpha,T){
   ctx.fillStyle='#0d0a2a';
   roundRect(bx,bt,bw,bb-bt,R*.12);ctx.fill();
   const bg=ctx.createLinearGradient(bx,0,bx+bw,0);
-  bg.addColorStop(0,'rgba(0,230,255,.22)');bg.addColorStop(.5,'rgba(160,80,255,.08)');bg.addColorStop(1,'rgba(255,60,180,.2)');
+  bg.addColorStop(0,`rgba(${TH.p},.22)`);bg.addColorStop(.5,`rgba(${TH.t},.08)`);bg.addColorStop(1,`rgba(${TH.s},.2)`);
   ctx.fillStyle=bg;roundRect(bx,bt,bw,bb-bt,R*.12);ctx.fill();
-  ctx.strokeStyle='rgba(140,230,255,.45)';ctx.lineWidth=1.5;roundRect(bx,bt,bw,bb-bt,R*.12);ctx.stroke();
+  ctx.strokeStyle=`rgba(${TH.pl},.45)`;ctx.lineWidth=1.5;roundRect(bx,bt,bw,bb-bt,R*.12);ctx.stroke();
   // 機身面板線
-  ctx.strokeStyle='rgba(140,230,255,.14)';
+  ctx.strokeStyle=`rgba(${TH.pl},.14)`;
   ctx.beginPath();ctx.moveTo(bx+R*.1,bt+R*.2);ctx.lineTo(bx+bw-R*.1,bt+R*.2);ctx.stroke();
   // 頸環（球體與機身接合）
   ctx.fillStyle='#161240';
   roundRect(g.cx-R*.78,bt-R*.1,R*1.56,R*.22,R*.06);ctx.fill();
-  ctx.strokeStyle='rgba(255,220,110,.5)';ctx.stroke();
+  ctx.strokeStyle=`rgba(${TH.w},.5)`;ctx.stroke();
   // 把手
   const ck=g.crank;
   ctx.fillStyle='#0a0820';ctx.beginPath();ctx.arc(ck.x,ck.y,ck.r*1.25,0,6.28);ctx.fill();
-  ctx.strokeStyle='rgba(255,220,110,.55)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ck.x,ck.y,ck.r*1.25,0,6.28);ctx.stroke();
+  ctx.strokeStyle=`rgba(${TH.w},.55)`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(ck.x,ck.y,ck.r*1.25,0,6.28);ctx.stroke();
   ctx.save();ctx.translate(ck.x,ck.y);ctx.rotate(CORE.crank);
-  ctx.fillStyle='#ffd97a';
+  ctx.fillStyle=TH.wh;
   roundRect(-ck.r*.22,-ck.r*1.05,ck.r*.44,ck.r*2.1,ck.r*.2);ctx.fill();
   roundRect(-ck.r*1.05,-ck.r*.22,ck.r*2.1,ck.r*.44,ck.r*.2);ctx.fill();
-  ctx.fillStyle='#fff3c4';ctx.beginPath();ctx.arc(0,0,ck.r*.3,0,6.28);ctx.fill();
+  ctx.fillStyle=TH.wlh;ctx.beginPath();ctx.arc(0,0,ck.r*.3,0,6.28);ctx.fill();
   ctx.restore();
   // 出口
   const o=g.out;
   ctx.fillStyle='#030214';roundRect(o.x-o.w/2,o.y-o.h/2,o.w,o.h,R*.06);ctx.fill();
-  ctx.strokeStyle='rgba(255,60,180,.55)';ctx.lineWidth=1.5;roundRect(o.x-o.w/2,o.y-o.h/2,o.w,o.h,R*.06);ctx.stroke();
-  ctx.fillStyle='rgba(255,60,180,.18)';ctx.fillRect(o.x-o.w/2,o.y+o.h*.3,o.w,o.h*.2);
+  ctx.strokeStyle=`rgba(${TH.s},.55)`;ctx.lineWidth=1.5;roundRect(o.x-o.w/2,o.y-o.h/2,o.w,o.h,R*.06);ctx.stroke();
+  ctx.fillStyle=`rgba(${TH.s},.18)`;ctx.fillRect(o.x-o.w/2,o.y+o.h*.3,o.w,o.h*.2);
   // 托盤
   const tr=g.tray;
   ctx.fillStyle='#120e36';
   ctx.beginPath();ctx.ellipse(tr.x,tr.y,tr.w/2,tr.w*.16,0,0,6.28);ctx.fill();
-  ctx.strokeStyle='rgba(255,220,110,.45)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.strokeStyle=`rgba(${TH.w},.45)`;ctx.lineWidth=1.5;ctx.stroke();
   // 球體底：暗色玻璃
-  ctx.fillStyle='rgba(8,6,30,.72)';
+  ctx.fillStyle=`rgba(${TH.pn},.72)`;
   ctx.beginPath();ctx.arc(g.cx,g.cy,R,0,6.28);ctx.fill();
   ctx.globalAlpha=1;
 }
@@ -876,12 +935,12 @@ function roundRect(x,y,w,h,r){
 }
 function drawPaddles(alpha){
   const g=GLOBE,R=g.R;
-  ctx.globalAlpha=alpha*.5;ctx.strokeStyle='rgba(200,245,255,.7)';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.globalAlpha=alpha*.5;ctx.strokeStyle=`rgba(${TH.pl},.7)`;ctx.lineWidth=3;ctx.lineCap='round';
   for(let i=0;i<3;i++){
     const a=drumAng*1.0+i*2.094;
     ctx.beginPath();ctx.moveTo(g.cx,g.cy);ctx.lineTo(g.cx+Math.cos(a)*R*.42,g.cy+Math.sin(a)*R*.42);ctx.stroke();
   }
-  ctx.fillStyle='rgba(200,245,255,.6)';ctx.beginPath();ctx.arc(g.cx,g.cy,R*.06,0,6.28);ctx.fill();
+  ctx.fillStyle=`rgba(${TH.pl},.6)`;ctx.beginPath();ctx.arc(g.cx,g.cy,R*.06,0,6.28);ctx.fill();
   ctx.globalAlpha=1;
 }
 
@@ -965,7 +1024,8 @@ function frameInner(now){
 
   // 出口外、托盤上的中選扭蛋
   if(winCap&&(winCap.phase==='out'||winCap.phase==='tray'||winCap.phase==='rise')){
-    if(mode==='crack'||mode==='reveal')drawOpenShell(winCap,winCap.x,winCap.y,Math.min(1,CORE.t/320),1,0);
+    if(mode==='crack'||mode==='reveal')drawOpenShell(winCap,winCap.x,winCap.y,Math.min(1,CORE.t/420),1,
+      mode==='reveal'?Math.min(1,CORE.t/700):0); // 揭曉後上蓋朝鏡頭飛來並淡出
     else drawCapsule(winCap,winCap.x,winCap.y,winCap.sc||1,1);
   }
   // 上一位得主的扭蛋殼：滑出畫面右側
@@ -1116,8 +1176,9 @@ removeWinner.addEventListener('change',function(){updateHud(getPool().length);})
 ['cnt3','cnt2','cnt1'].forEach(function(id){$(id).addEventListener('input',function(){saveState();if(CORE.mode==='idle')updateHud(getPool().length);});});
 $('muteBtn').addEventListener('click',function(){
   muted=!muted;this.textContent=muted?'♪ OFF':'♪ ON';
-  this.style.color=muted?'rgba(120,120,150,.5)':'rgba(140,230,255,.7)';
+  this.style.color=muted?'rgba(120,120,150,.5)':`rgba(${TH.pl},.7)`;
 });
+document.getElementById('verTag').textContent+=' // 色系：'+TH.name+'（?theme=neon|abyss|rose|moss 可指定）';
 document.addEventListener('visibilitychange',function(){if(!document.hidden){last=performance.now();PERF.acc=0;PERF.n=0;}});
 updateHud(getPool().length);
 </script>

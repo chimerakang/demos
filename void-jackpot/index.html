@@ -6,10 +6,50 @@
 <title>VOID://JACKPOT v9 — 星隕拉霸（優化版）</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;600;700&family=Share+Tech+Mono&family=Noto+Sans+TC:wght@300;700;900&display=swap" rel="stylesheet">
+<script>
+/* ---- 色系主題（v9.6）：四套夜景配色，每次載入隨機（避免與上次相同）；可用 ?theme=neon|abyss|rose|moss 指定 ----
+   所有頁面共用同一份定義；CSS 以 var(--p) 等取用、JS 以 window.VJ_T 取用。三頁需同步修改。 */
+(function(){
+const H=rgb=>'#'+rgb.split(',').map(v=>(+v).toString(16).padStart(2,'0')).join('');
+const D=(rgb,k)=>rgb.split(',').map(v=>Math.round(+v*k)).join(',');
+const TH={
+ neon:{name:'霓虹彩虹',p:'0,230,255',pl:'190,245,255',s:'255,60,180',sl:'255,160,220',t:'160,80,255',
+   w:'255,220,110',wl:'255,245,200',wd:'255,160,0',bg:'#020108',bg0:'#050213',bg1:'#0a0524',bg2:'#02010a',
+   pn:'4,8,24',bgr:'2,1,10',tx:'#cfe8ff',tx2:'#eaf6ff',txd:'150,180,255',
+   planets:[['#39e6ff','#0a4d66','0,230,255','cyan'],['#ff6ec7','#6a1248','255,60,180','pink'],
+     ['#b98cff','#38176e','160,80,255','violet'],['#ffd97a','#7a5a10','255,220,110','gold'],
+     ['#7dffcf','#0e5a44','120,255,200','cyan'],['#ff9e6e','#7a3212','255,150,90','pink'],
+     ['#7dd0ff','#123f7a','120,200,255','cyan'],['#9dff70','#1d5a18','150,255,110','white'],
+     ['#ffb347','#7a3d08','255,170,70','gold'],['#ff5e5e','#6e0f1d','255,90,90','pink'],
+     ['#e6c8ff','#4b2a80','220,180,255','violet'],['#66ffe3','#0b5c4d','100,255,225','cyan']]},
+ abyss:{name:'深海藍',p:'138,216,240',pl:'222,242,250',s:'79,143,214',sl:'160,200,235',t:'40,110,170',
+   w:'245,185,74',wl:'251,227,168',wd:'225,140,40',bg:'#030711',bg0:'#040812',bg1:'#081a30',bg2:'#02050c',
+   pn:'5,11,24',bgr:'2,5,12',tx:'#e6f1f8',tx2:'#f5fafd',txd:'127,149,171'},
+ rose:{name:'暗紫玫瑰',p:'227,154,140',pl:'246,214,204',s:'168,111,168',sl:'214,176,214',t:'110,45,110',
+   w:'243,220,162',wl:'250,238,214',wd:'220,170,90',bg:'#09050f',bg0:'#0a0612',bg1:'#1e0f24',bg2:'#06030a',
+   pn:'12,7,18',bgr:'6,2,10',tx:'#f4ece6',tx2:'#fbf6f1',txd:'160,138,156'},
+ moss:{name:'墨綠琥珀',p:'232,166,60',pl:'250,222,160',s:'111,174,139',sl:'170,215,190',t:'30,100,75',
+   w:'246,239,224',wl:'255,255,255',wd:'220,160,70',bg:'#040d0a',bg0:'#050f0b',bg1:'#10271d',bg2:'#020805',
+   pn:'6,20,16',bgr:'2,8,6',tx:'#e8e2d2',tx2:'#f6efe0',txd:'143,163,151'}
+};
+const keys=Object.keys(TH);
+let k=new URLSearchParams(location.search).get('theme');
+if(!TH[k]){let last=null;try{last=localStorage.getItem('vj_theme_last');}catch(e){}
+  const pool=keys.filter(x=>x!==last);k=pool[Math.floor(Math.random()*pool.length)];}
+try{localStorage.setItem('vj_theme_last',k);}catch(e){}
+const T=Object.assign({key:k},TH[k]);
+if(!T.planets)T.planets=[[T.p,'cyan'],[T.s,'pink'],[T.t,'violet'],[T.w,'gold'],[T.pl,'cyan'],[T.sl,'pink']]
+  .map(([c,g])=>[H(c),H(D(c,.35)),c,g]);
+for(const f of ['p','pl','s','sl','t','w','wl','wd'])T[f+'h']=H(T[f]);
+const root=document.documentElement.style;
+for(const f in T)if(typeof T[f]==='string')root.setProperty('--'+f,T[f]);
+window.VJ_T=T;window.VJ_H=H;window.VJ_D=D;
+})();
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden;background:#020108}
-body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-select:none}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:var(--tx);user-select:none}
 #world{position:fixed;inset:0;display:block}
 /* v9：掃描線疊層（純靜態 CSS，幾乎零成本的 CRT 質感） */
 #scan{position:fixed;inset:0;z-index:15;pointer-events:none;
@@ -17,51 +57,51 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
 
 .holo{position:fixed;z-index:20;pointer-events:none;font-family:'Share Tech Mono',monospace}
 #hudTop{top:22px;left:50%;transform:translateX(-50%);text-align:center}
-#hudTop .t1{font-size:11px;letter-spacing:.8em;text-indent:.8em;color:rgba(120,220,255,.55)}
+#hudTop .t1{font-size:11px;letter-spacing:.8em;text-indent:.8em;color:rgba(var(--pl),.55)}
 #hudTop .t2{margin-top:6px;font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
   font-size:clamp(18px,3vw,26px);letter-spacing:.5em;text-indent:.5em;
-  color:#eaf6ff;text-shadow:0 0 20px rgba(0,200,255,.6),0 0 60px rgba(160,80,255,.4)}
+  color:var(--tx2);text-shadow:0 0 20px rgba(var(--p),.6),0 0 60px rgba(var(--t),.4)}
 #hudInfo{bottom:110px;left:50%;transform:translateX(-50%);
-  font-size:11px;letter-spacing:.35em;color:rgba(150,180,255,.45);text-align:center;white-space:nowrap}
-#verTag{left:26px;bottom:26px;font-size:10px;letter-spacing:.3em;color:rgba(120,160,255,.4)}
+  font-size:11px;letter-spacing:.35em;color:rgba(var(--txd),.45);text-align:center;white-space:nowrap}
+#verTag{left:26px;bottom:26px;font-size:10px;letter-spacing:.3em;color:rgba(var(--txd),.4)}
 #phaseCap{top:14%;left:50%;transform:translateX(-50%);
   font-family:'Chakra Petch','Noto Sans TC';font-weight:600;
   font-size:clamp(14px,2.4vw,20px);letter-spacing:.6em;text-indent:.6em;
-  color:rgba(255,120,210,.9);text-shadow:0 0 14px rgba(255,60,180,.7);
+  color:rgba(var(--sl),.9);text-shadow:0 0 14px rgba(var(--s),.7);
   opacity:0;transition:opacity .3s}
 #errBox{position:fixed;z-index:99;left:8px;top:8px;max-width:80vw;font:11px monospace;
   color:#ff8;background:rgba(80,0,0,.7);padding:6px 8px;display:none;white-space:pre-wrap}
 #ledger{position:fixed;z-index:20;left:26px;top:50%;transform:translateY(-50%);
   pointer-events:none;font-family:'Share Tech Mono',monospace;font-size:11px;
-  letter-spacing:.15em;line-height:2.1;color:rgba(150,190,255,.55);max-width:34vw}
-#ledger .lg-t1{color:#ffe066;text-shadow:0 0 10px rgba(255,220,110,.5)}
-#ledger .lg-t2{color:#ff8fd2;text-shadow:0 0 8px rgba(255,60,180,.4)}
-#ledger .lg-t3{color:#7fe8ff;text-shadow:0 0 8px rgba(0,230,255,.4)}
-#ledger .lg-h{color:rgba(140,230,255,.5);letter-spacing:.4em;margin-bottom:2px}
+  letter-spacing:.15em;line-height:2.1;color:rgba(var(--txd),.55);max-width:34vw}
+#ledger .lg-t1{color:var(--wh);text-shadow:0 0 10px rgba(var(--w),.5)}
+#ledger .lg-t2{color:var(--sh);text-shadow:0 0 8px rgba(var(--s),.4)}
+#ledger .lg-t3{color:var(--ph);text-shadow:0 0 8px rgba(var(--p),.4)}
+#ledger .lg-h{color:rgba(var(--pl),.5);letter-spacing:.4em;margin-bottom:2px}
 
 #sigil{
   position:fixed;z-index:30;bottom:34px;left:50%;transform:translateX(-50%);
   width:74px;height:74px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  color:#dffbff;font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
+  color:var(--plh);font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
   font-size:14px;letter-spacing:.2em;text-indent:.2em;
-  background:radial-gradient(circle at 50% 35%,rgba(0,230,255,.25),rgba(10,5,30,.85) 70%);
-  border:1px solid rgba(0,230,255,.6);
-  box-shadow:0 0 24px rgba(0,230,255,.35),inset 0 0 18px rgba(0,230,255,.2);
+  background:radial-gradient(circle at 50% 35%,rgba(var(--p),.25),rgba(var(--pn),.85) 70%);
+  border:1px solid rgba(var(--p),.6);
+  box-shadow:0 0 24px rgba(var(--p),.35),inset 0 0 18px rgba(var(--p),.2);
   transition:transform .2s,box-shadow .25s,opacity .3s}
 #sigil::before,#sigil::after{content:"";position:absolute;inset:-9px;border-radius:50%;
-  border:1px dashed rgba(0,230,255,.35);animation:sigilSpin 10s linear infinite}
-#sigil::after{inset:-18px;border-color:rgba(255,60,180,.25);animation-duration:16s;animation-direction:reverse}
+  border:1px dashed rgba(var(--p),.35);animation:sigilSpin 10s linear infinite}
+#sigil::after{inset:-18px;border-color:rgba(var(--s),.25);animation-duration:16s;animation-direction:reverse}
 @keyframes sigilSpin{to{transform:rotate(360deg)}}
 #sigil:hover{transform:translateX(-50%) scale(1.08)}
 #sigil.busy{pointer-events:none;opacity:.35}
 
 #gate{position:fixed;z-index:40;right:26px;top:26px;cursor:pointer;
   font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;
-  color:rgba(140,230,255,.7);padding:10px 14px;
-  border:1px solid rgba(0,230,255,.3);border-radius:2px;
-  background:rgba(4,8,24,.6);transition:all .2s}
-#gate:hover{color:#dffbff;border-color:rgba(0,230,255,.8)}
+  color:rgba(var(--pl),.7);padding:10px 14px;
+  border:1px solid rgba(var(--p),.3);border-radius:2px;
+  background:rgba(var(--pn),.6);transition:all .2s}
+#gate:hover{color:var(--plh);border-color:rgba(var(--p),.8)}
 
 #uplink{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
   background:rgba(2,1,10,.55);backdrop-filter:blur(10px);
@@ -69,47 +109,47 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
 #uplink.open{opacity:1;pointer-events:auto}
 .uplinkBox{width:min(560px,90vw);text-align:center}
 .uplinkBox .cap{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.6em;text-indent:.6em;
-  color:rgba(140,230,255,.7);margin-bottom:16px}
+  color:rgba(var(--pl),.7);margin-bottom:16px}
 #nameInput{width:100%;min-height:180px;resize:vertical;background:transparent;
-  border:0;border-top:1px solid rgba(0,230,255,.4);border-bottom:1px solid rgba(255,60,180,.4);
-  color:#dffbff;font-family:'Share Tech Mono','Noto Sans TC',monospace;font-size:16px;
+  border:0;border-top:1px solid rgba(var(--p),.4);border-bottom:1px solid rgba(var(--s),.4);
+  color:var(--plh);font-family:'Share Tech Mono','Noto Sans TC',monospace;font-size:16px;
   padding:18px 10px;line-height:2;outline:none;text-align:center;letter-spacing:.1em;
-  text-shadow:0 0 8px rgba(0,230,255,.5)}
+  text-shadow:0 0 8px rgba(var(--p),.5)}
 .uplinkRow{margin-top:18px;display:flex;gap:22px;justify-content:center;align-items:center;
-  font-size:12px;color:rgba(170,200,255,.6);letter-spacing:.15em;flex-wrap:wrap}
-.uplinkRow input[type=checkbox]{accent-color:#ff3cb4}
-.tierNum{width:52px;background:rgba(4,8,24,.6);border:1px solid rgba(0,230,255,.35);
-  color:#dffbff;font-family:'Share Tech Mono';font-size:14px;text-align:center;padding:6px 2px;outline:none}
-.holoBtn{cursor:pointer;background:none;border:1px solid rgba(0,230,255,.5);color:#bff4ff;
+  font-size:12px;color:rgba(var(--txd),.6);letter-spacing:.15em;flex-wrap:wrap}
+.uplinkRow input[type=checkbox]{accent-color:var(--sh)}
+.tierNum{width:52px;background:rgba(var(--pn),.6);border:1px solid rgba(var(--p),.35);
+  color:var(--plh);font-family:'Share Tech Mono';font-size:14px;text-align:center;padding:6px 2px;outline:none}
+.holoBtn{cursor:pointer;background:none;border:1px solid rgba(var(--p),.5);color:var(--plh);
   font-family:'Chakra Petch','Noto Sans TC';font-size:13px;letter-spacing:.3em;text-indent:.3em;
   padding:10px 26px;transition:all .2s}
-.holoBtn:hover{background:rgba(0,230,255,.1)}
+.holoBtn:hover{background:rgba(var(--p),.1)}
 
 #goldFrame{position:fixed;inset:0;z-index:44;pointer-events:none;opacity:0;transition:opacity .5s;
-  box-shadow:inset 0 0 120px rgba(255,190,60,.35),inset 0 0 30px rgba(255,220,110,.3)}
+  box-shadow:inset 0 0 120px rgba(var(--w),.35),inset 0 0 30px rgba(var(--w),.3)}
 #goldFrame.on{opacity:1}
 
 #reveal{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:16px;pointer-events:none;opacity:0;transition:opacity .4s}
 #reveal.show{opacity:1;pointer-events:auto}
 #reveal .rl{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.9em;text-indent:.9em;
-  color:#8ff3ff;opacity:0}
+  color:var(--ph);opacity:0}
 #reveal.show .rl{animation:rIn .6s .2s both}
 #reveal .tierTag{font-family:'Chakra Petch','Noto Sans TC';font-weight:700;
   font-size:clamp(15px,2.6vw,22px);letter-spacing:.8em;text-indent:.8em;opacity:0;
   padding:8px 22px;border:1px solid currentColor}
 #reveal.show .tierTag{animation:rIn .5s .1s both}
-#reveal.t3 .tierTag{color:#5be6ff}
-#reveal.t2 .tierTag{color:#ff6ec7}
-#reveal.t1 .tierTag{color:#ffe066;box-shadow:0 0 24px rgba(255,220,110,.35),inset 0 0 14px rgba(255,220,110,.15)}
+#reveal.t3 .tierTag{color:var(--ph)}
+#reveal.t2 .tierTag{color:var(--sh)}
+#reveal.t1 .tierTag{color:var(--wh);box-shadow:0 0 24px rgba(var(--w),.35),inset 0 0 14px rgba(var(--w),.15)}
 #winTxt{font-family:'Chakra Petch','Noto Sans TC';font-weight:900;text-align:center;
   font-size:clamp(46px,11vw,130px);letter-spacing:.04em;padding:0 4vw;max-width:96vw;word-break:break-all;color:#fff}
-#reveal.t3 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(0,230,255,1),0 0 90px rgba(0,180,255,.8)}
-#reveal.t2 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(255,60,180,1),0 0 90px rgba(200,80,255,.8)}
-#reveal.t1 #winTxt{background:linear-gradient(105deg,#ffe066 0%,#fff8d6 18%,#ffd75e 32%,#fffbe8 50%,#ffe066 66%,#ff9f1c 84%,#ffe066 100%);
+#reveal.t3 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(var(--p),1),0 0 90px rgba(var(--p),.8)}
+#reveal.t2 #winTxt{text-shadow:0 0 12px #fff,0 0 30px rgba(var(--s),1),0 0 90px rgba(var(--t),.8)}
+#reveal.t1 #winTxt{background:linear-gradient(105deg,var(--wh) 0%,var(--wlh) 18%,var(--wh) 32%,var(--wlh) 50%,var(--wh) 66%,var(--wdh) 84%,var(--wh) 100%);
   background-size:200% 100%;
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 20px rgba(255,220,110,.95)) drop-shadow(0 0 90px rgba(255,160,0,.6))}
+  filter:drop-shadow(0 0 20px rgba(var(--w),.95)) drop-shadow(0 0 90px rgba(var(--wd),.6))}
 #reveal.show #winTxt{animation:wIn .8s cubic-bezier(.15,1.6,.3,1) both}
 /* v9：頭獎金字流光 */
 #reveal.t1.show #winTxt{animation:wIn .8s cubic-bezier(.15,1.6,.3,1) both,shimmer 3s linear 1.2s infinite}
@@ -117,7 +157,7 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
 @keyframes wIn{0%{transform:scale(.1);opacity:0;filter:blur(20px)}
   55%{transform:scale(1.15);opacity:1;filter:blur(0)}100%{transform:scale(1)}}
 #reveal .rc{font-weight:700;font-size:clamp(16px,3vw,24px);letter-spacing:.7em;text-indent:.7em;
-  color:#ffd9f0;text-shadow:0 0 16px rgba(255,60,180,.8);opacity:0}
+  color:var(--slh);text-shadow:0 0 16px rgba(var(--s),.8);opacity:0}
 #reveal.show .rc{animation:rIn .6s .5s both}
 #reveal .ra{display:flex;gap:22px;margin-top:14px;opacity:0}
 #reveal.show .ra{animation:rIn .6s .8s both}
@@ -139,7 +179,7 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
   <div class="t2">星 隕 抽 選 儀 式</div>
 </div>
 <div class="holo" id="hudInfo">在場靈魂 0</div>
-<div class="holo" id="verTag">BUILD v9.5 // OPTIMIZED FX+</div>
+<div class="holo" id="verTag">BUILD v9.6 // HALF-RATE BLOOM</div>
 <div class="holo" id="phaseCap"></div>
 <div id="errBox"></div>
 <div class="holo" id="ledger"></div>
@@ -148,16 +188,16 @@ body{font-family:'Noto Sans TC','Chakra Petch',sans-serif;color:#cfe8ff;user-sel
 <div id="gate">⟟ 靈魂名單</div>
 <a id="modeLink" href="./slot.html" style="position:fixed;z-index:40;left:26px;top:26px;cursor:pointer;
   font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;
-  color:rgba(255,220,110,.75);padding:10px 14px;border:1px solid rgba(255,220,110,.35);
-  border-radius:2px;background:rgba(4,8,24,.6);text-decoration:none">✦ 老虎機模式</a>
+  color:rgba(var(--w),.75);padding:10px 14px;border:1px solid rgba(var(--w),.35);
+  border-radius:2px;background:rgba(var(--pn),.6);text-decoration:none">✦ 老虎機模式</a>
 <a id="modeLink2" href="./gacha.html" style="position:fixed;z-index:40;left:26px;top:74px;cursor:pointer;
   font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;
-  color:rgba(255,220,110,.75);padding:10px 14px;border:1px solid rgba(255,220,110,.35);
-  border-radius:2px;background:rgba(4,8,24,.6);text-decoration:none">◉ 扭蛋模式</a>
+  color:rgba(var(--w),.75);padding:10px 14px;border:1px solid rgba(var(--w),.35);
+  border-radius:2px;background:rgba(var(--pn),.6);text-decoration:none">◉ 扭蛋模式</a>
 <div id="muteBtn" style="position:fixed;z-index:40;right:26px;top:74px;cursor:pointer;
   font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;
-  color:rgba(140,230,255,.7);padding:10px 14px;border:1px solid rgba(0,230,255,.3);
-  border-radius:2px;background:rgba(4,8,24,.6)">♪ ON</div>
+  color:rgba(var(--pl),.7);padding:10px 14px;border:1px solid rgba(var(--p),.3);
+  border-radius:2px;background:rgba(var(--pn),.6)">♪ ON</div>
 
 <div id="uplink">
   <div class="uplinkBox">
@@ -199,6 +239,7 @@ Rogue</textarea>
 
 <script>
 "use strict";
+const TH=window.VJ_T; // 色系主題（見 <head> 內定義；T 在 frameInner 內是時間，故命名 TH）
 /* =========================================================
  演出流程：
  idle → charge(靈魂收束) → collide(滿場星球互撞)
@@ -235,27 +276,14 @@ function makeGlow(color,size=64){
   return c;
 }
 const SPR={
-  cyan:makeGlow('rgba(0,230,255,1)'),
-  pink:makeGlow('rgba(255,60,180,1)'),
-  violet:makeGlow('rgba(160,80,255,1)'),
-  gold:makeGlow('rgba(255,220,110,1)'),
+  cyan:makeGlow(`rgba(${TH.p},1)`),
+  pink:makeGlow(`rgba(${TH.s},1)`),
+  violet:makeGlow(`rgba(${TH.t},1)`),
+  gold:makeGlow(`rgba(${TH.w},1)`),
   white:makeGlow('rgba(240,250,255,1)')
 };
 const SPRKEYS=['cyan','pink','violet'];
-const PCOLS=[ // 行星配色 [亮,暗,rgb字串,glow鍵]（v9.4：6 色擴充為 12 色）
-  ['#39e6ff','#0a4d66','0,230,255','cyan'],
-  ['#ff6ec7','#6a1248','255,60,180','pink'],
-  ['#b98cff','#38176e','160,80,255','violet'],
-  ['#ffd97a','#7a5a10','255,220,110','gold'],
-  ['#7dffcf','#0e5a44','120,255,200','cyan'],
-  ['#ff9e6e','#7a3212','255,150,90','pink'],
-  ['#7dd0ff','#123f7a','120,200,255','cyan'],   // 天藍
-  ['#9dff70','#1d5a18','150,255,110','white'],  // 萊姆綠
-  ['#ffb347','#7a3d08','255,170,70','gold'],    // 橙
-  ['#ff5e5e','#6e0f1d','255,90,90','pink'],     // 緋紅
-  ['#e6c8ff','#4b2a80','220,180,255','violet'], // 薰衣草
-  ['#66ffe3','#0b5c4d','100,255,225','cyan']    // 薄荷
-];
+const PCOLS=TH.planets.map(c=>c.slice()); // 行星配色 [亮,暗,rgb字串,glow鍵]，由主題提供（霓虹 12 色、其他 6 色）
 const FOV=520;
 function proj(x,y,z){const s=FOV/(FOV+z);return {x:CX+x*s,y:CY+y*s,s};}
 
@@ -270,7 +298,7 @@ function makeStreak(rgb,size=64){
   g.fillStyle=grad;g.fillRect(0,0,8,size);
   return c;
 }
-const STREAK={cyan:makeStreak('0,230,255'),pink:makeStreak('255,60,180')};
+const STREAK={cyan:makeStreak(TH.p),pink:makeStreak(TH.s)};
 // 行星球體 sprite：光影漸層 + 緯度紋理帶 + 晨昏線（取代逐幀 createRadialGradient）
 function makePlanetSprite(col){
   const S=128,R=S/2-2;
@@ -299,9 +327,9 @@ const RAYSPR=(function(){
   for(let i=0;i<20;i++){
     const a=i*(6.28/20),lw=5+((i*37)%15);
     const gr=g.createLinearGradient(0,0,Math.cos(a)*L,Math.sin(a)*L);
-    gr.addColorStop(0,'rgba(255,232,160,.4)');
-    gr.addColorStop(.45,'rgba(255,180,80,.14)');
-    gr.addColorStop(1,'rgba(255,180,80,0)');
+    gr.addColorStop(0,`rgba(${TH.w},.4)`);
+    gr.addColorStop(.45,`rgba(${TH.wd},.14)`);
+    gr.addColorStop(1,`rgba(${TH.wd},0)`);
     g.strokeStyle=gr;g.lineWidth=lw;
     g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(a)*L,Math.sin(a)*L);g.stroke();
   }
@@ -314,7 +342,7 @@ const AURORA=(function(){
   const w=1024,h=300,c=document.createElement('canvas');c.width=w;c.height=h;
   const g=c.getContext('2d');
   g.globalCompositeOperation='lighter';g.lineCap='round';
-  const cols=['0,230,255','160,80,255','255,60,180'];
+  const cols=[TH.p,TH.t,TH.s];
   for(let i=0;i<3;i++){
     const yc=h*(.28+i*.2),amp=26+i*16;
     for(let pass=0;pass<5;pass++){
@@ -335,8 +363,8 @@ const CONE=(function(){
   const w=256,h=512,c=document.createElement('canvas');c.width=w;c.height=h;
   const g=c.getContext('2d');
   const grad=g.createLinearGradient(0,0,0,h);
-  grad.addColorStop(0,'rgba(255,235,170,.55)');
-  grad.addColorStop(1,'rgba(255,235,170,0)');
+  grad.addColorStop(0,`rgba(${TH.w},.55)`);
+  grad.addColorStop(1,`rgba(${TH.w},0)`);
   g.fillStyle=grad;
   g.beginPath();g.moveTo(w/2,0);g.lineTo(0,h);g.lineTo(w,h);g.closePath();g.fill();
   return c;
@@ -367,16 +395,17 @@ function getLabel(name,style){ // style: 'planet' | 'soulF'(前) | 'soulB'(後)
   const px=32,pad=8;
   const c=document.createElement('canvas');
   const g=c.getContext('2d');
-  const font=(style==='planet'?'700':'300')+' '+px+"px 'Noto Sans TC','Chakra Petch'";
+  const bold=style==='planet'||style.endsWith('b'); // v9.6：人數少時用粗體大字
+  const font=(bold?'700':'300')+' '+px+"px 'Noto Sans TC','Chakra Petch'";
   g.font=font;
   const tw=Math.ceil(g.measureText(name).width);
   c.width=tw+pad*2;c.height=px+pad*2;
   g.font=font;g.textAlign='center';g.textBaseline='middle';
   if(style==='planet'){
-    g.fillStyle='rgba(6,2,16,.85)';g.fillText(name,c.width/2,c.height/2+1.5);
+    g.fillStyle=`rgba(${TH.pn},.85)`;g.fillText(name,c.width/2,c.height/2+1.5);
     g.fillStyle='#fff';g.fillText(name,c.width/2,c.height/2);
   }else{
-    g.fillStyle=style==='soulF'?'rgba(140,230,255,.95)':'rgba(120,150,220,.7)';
+    g.fillStyle=style.startsWith('soulF')?(bold?`rgba(${TH.pl},1)`:`rgba(${TH.pl},.95)`):`rgba(${TH.txd},.7)`;
     g.fillText(name,c.width/2,c.height/2);
   }
   if(LABELS.size>400)LABELS.clear(); // 防止名單頻繁更換時無限成長
@@ -416,7 +445,7 @@ function buildStaticLayers(){
   sbx.setTransform(DPR,0,0,DPR,0,0);
   // 夜空漸層
   const bgGrad=sbx.createLinearGradient(0,0,0,H);
-  bgGrad.addColorStop(0,'#050213');bgGrad.addColorStop(.55,'#0a0524');bgGrad.addColorStop(1,'#02010a');
+  bgGrad.addColorStop(0,TH.bg0);bgGrad.addColorStop(.55,TH.bg1);bgGrad.addColorStop(1,TH.bg2);
   sbx.fillStyle=bgGrad;sbx.fillRect(0,0,W,H);
   // 星雲（美術強化：拉開空間深度）
   sbx.globalCompositeOperation='lighter';
@@ -429,7 +458,7 @@ function buildStaticLayers(){
   for(const s of starSeed){
     const r=.4+s[2]*1.2;
     sbx.globalAlpha=.25+s[2]*.6;
-    sbx.fillStyle='#cfe8ff';
+    sbx.fillStyle=TH.tx;
     sbx.fillRect(s[0]*W,s[1]*H*.68,r,r);
   }
   sbx.globalAlpha=1;
@@ -438,16 +467,16 @@ function buildStaticLayers(){
   const hor=H*.72;
   for(const b of skyline){
     const p=proj(b.x,0,900);const bw=b.w*p.s,bh=b.h*p.s;
-    sbx.fillStyle='rgba(8,4,26,.92)';
+    sbx.fillStyle=`rgba(${TH.pn},.92)`;
     sbx.fillRect(p.x-bw/2,hor-bh,bw,bh);
-    sbx.fillStyle=b.win<.5?'rgba(0,230,255,.14)':'rgba(255,60,180,.12)';
+    sbx.fillStyle=b.win<.5?`rgba(${TH.p},.14)`:`rgba(${TH.s},.12)`;
     for(let wy=hor-bh+8;wy<hor-6;wy+=14){
       if(((wy*7+b.x)|0)%3===0)sbx.fillRect(p.x-bw/2+4,wy,bw-8,2);
     }
   }
   // 地平霧
   const fog=sbx.createLinearGradient(0,hor-90,0,hor+50);
-  fog.addColorStop(0,'rgba(160,80,255,0)');fog.addColorStop(.6,'rgba(120,40,220,.16)');fog.addColorStop(1,'rgba(0,230,255,.10)');
+  fog.addColorStop(0,`rgba(${TH.t},0)`);fog.addColorStop(.6,`rgba(${TH.t},.16)`);fog.addColorStop(1,`rgba(${TH.p},.10)`);
   sbx.fillStyle=fog;sbx.fillRect(0,hor-90,W,140);
   // 暗角（美術強化：視線聚焦畫面中心，以半解析度烘焙）
   const vw=Math.max(2,W>>1),vh=Math.max(2,H>>1);
@@ -459,8 +488,8 @@ function buildStaticLayers(){
 
 /* ---- v9 自適應畫質：以平均幀時間自動升降特效等級 ---- */
 const QLEVELS=[
-  {dust:180,bloom:2},  // L0 全特效
-  {dust:120,bloom:2},  // L1
+  {dust:140,bloom:2},  // L0 全特效（v9.6：星塵 180→140）
+  {dust:100,bloom:2},  // L1
   {dust:80, bloom:1},  // L2 單層 bloom
   {dust:50, bloom:0}   // L3 關 bloom（低階手機保底）
 ];
@@ -495,6 +524,8 @@ function allDone(){advanceTier();return tierIdx>=TIERS.length;}
 
 /* ---- 靈魂（idle 環繞名） ---- */
 let souls=[];
+// v9.6：名字字級係數——6 人以下 2.2 倍、40 人以上 1 倍，中間線性
+function nameScale(){const n=souls.length;return n<=6?2.2:n>=40?1:1+1.2*(40-n)/34;}
 function rebuildSouls(){
   const pool=getPool();
   souls=pool.map((name,i)=>({
@@ -538,7 +569,7 @@ function spawnPlanets(){
   const sMid=FOV/(FOV+290);
   PSPANX=(W*.5)/sMid*1.12;
   PSPANY=(H*.52)/sMid*1.05;
-  const cap=[72,60,48,36][PERF.lvl];
+  const cap=[60,50,40,30][PERF.lvl]; // v9.6：行星 72→60
   const N=Math.min(cap,Math.max(30,Math.round(W*H/16000)));
   planets=[];
   for(let i=0;i<N;i++){
@@ -687,7 +718,7 @@ function drawPlanet(p,dim){
     ctx.stroke();
   }
   // 名字（v9：預渲染標籤快取）
-  const fs=rad*.55;
+  const fs=rad*.55*Math.min(1.3,nameScale()); // v9.6：人數少時行星名字放大
   if(fs>=8){
     const l=getLabel(p.name,'planet');
     let sc=fs/l.px;
@@ -718,7 +749,7 @@ function impactSpark(x,y,n,k1,k2){
   for(let i=0;i<n;i++){
     const a=Math.random()*6.28,sp=Math.random()*6+2;
     sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-      life:1,decay:.028+Math.random()*.03,sz:Math.random()*9+4,
+      life:1,decay:.028+Math.random()*.03,sz:Math.random()*8+3,
       k:i%3===0?'white':(i%2?(k1||'white'):(k2||'white'))});
   }
 }
@@ -727,7 +758,7 @@ function burst(n,gold,ox,oy){
   for(let i=0;i<n;i++){
     const a=Math.random()*6.28,sp=Math.random()*18+5,up=Math.random()*8;
     sparks.push({x:bx,y:by,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-up,
-      life:1,decay:.005+Math.random()*.009,sz:Math.random()*22+8,
+      life:1,decay:.005+Math.random()*.009,sz:Math.random()*16+6,
       k:gold?(Math.random()<.6?'gold':'white'):SPRKEYS[Math.random()*3|0]});
   }
 }
@@ -736,7 +767,7 @@ function shockwave(){
 }
 /* v9：頭獎彩帶（旋轉矩形紙片，翻面用 sin 縮放模擬） */
 function spawnConfetti(n){
-  const cols=['#ffe066','#fff8d6','#ff6ec7','#5be6ff'];
+  const cols=[TH.wh,TH.wlh,TH.sh,TH.ph];
   for(let i=0;i<n;i++){
     confetti.push({x:CX+(Math.random()-.5)*W*.6,y:-30-Math.random()*H*.35,
       vx:(Math.random()-.5)*2.2,vy:2+Math.random()*3,
@@ -822,11 +853,11 @@ function drawSlots(T,now){
 
   // 機框
   ctx.globalCompositeOperation='source-over';
-  ctx.fillStyle='rgba(8,4,26,.9)';
-  ctx.strokeStyle='rgba(255,220,110,.8)';
+  ctx.fillStyle=`rgba(${TH.pn},.9)`;
+  ctx.strokeStyle=`rgba(${TH.w},.8)`;
   ctx.lineWidth=2.5;
   roundRect(fx,fy,fw,fh,14);ctx.fill();ctx.stroke();
-  ctx.strokeStyle='rgba(0,230,255,.4)';
+  ctx.strokeStyle=`rgba(${TH.p},.4)`;
   ctx.lineWidth=1;
   roundRect(fx+5,fy+5,fw-10,fh-10,10);ctx.stroke();
 
@@ -852,7 +883,7 @@ function drawSlots(T,now){
   ctx.textAlign='center';ctx.textBaseline='bottom';
   const strobe=REEL.slammed? (Math.sin(T*22)*.5+.5):.35+Math.sin(T*6)*.15;
   ctx.globalAlpha=strobe;
-  ctx.fillStyle='#ffe066';
+  ctx.fillStyle=TH.wh;
   ctx.fillText(jt,CX,fy-14);
   ctx.globalAlpha=strobe*.6;
   ctx.fillStyle='#fff';
@@ -880,7 +911,7 @@ function drawSlots(T,now){
       ctx.fillText(name,CX,yy-8);ctx.fillText(name,CX,yy+8);
     }
     ctx.globalAlpha=isPay?1:.35;
-    ctx.fillStyle=isPay?(REEL.slammed?'#ffe066':'#eaf6ff'):'#8aa4d9';
+    ctx.fillStyle=isPay?(REEL.slammed?TH.wh:TH.tx2):'#8aa4d9';
     ctx.fillText(name,CX,yy);
   }
   // 玻璃反光（v9 美術強化）
@@ -896,9 +927,9 @@ function drawSlots(T,now){
   if(pk!==payKey){
     payKey=pk;
     payGrad=ctx.createLinearGradient(fx,0,fx+fw,0);
-    payGrad.addColorStop(0,'rgba(255,220,110,0)');
-    payGrad.addColorStop(.5,`rgba(255,220,110,${REEL.slammed?.9:.35})`);
-    payGrad.addColorStop(1,'rgba(255,220,110,0)');
+    payGrad.addColorStop(0,`rgba(${TH.w},0)`);
+    payGrad.addColorStop(.5,`rgba(${TH.w},${REEL.slammed?.9:.35})`);
+    payGrad.addColorStop(1,`rgba(${TH.w},0)`);
   }
   ctx.strokeStyle=payGrad;ctx.lineWidth=REEL.slammed?3:1.5;
   ctx.beginPath();ctx.moveTo(fx+10,centerY-ih/2);ctx.lineTo(fx+fw-10,centerY-ih/2);ctx.stroke();
@@ -1154,15 +1185,15 @@ function updateCore(dt,now){
         // 所有行星化為爆炸碎片
         for(const pl of planets){
           const pp=proj(pl.x,pl.y,pl.z);
-          if(pp.s>0)for(let i=0;i<5;i++){
+          if(pp.s>0)for(let i=0;i<3;i++){
             const a=Math.random()*6.28,sp=Math.random()*14+4;
             sparks.push({x:pp.x,y:pp.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-              life:1,decay:.008+Math.random()*.01,sz:Math.random()*18+6,
+              life:1,decay:.008+Math.random()*.01,sz:Math.random()*14+5,
               k:pl.col[3]});
           }
         }
-        burst(260,true,CX,CY);
-        if(FXON)spawnEmbers(56,CX,CY,340); // v9.1：爆後餘燼緩升
+        burst(200,true,CX,CY);
+        if(FXON)spawnEmbers(40,CX,CY,340); // v9.1：爆後餘燼緩升
         planets=[];
         setMode('boom');
       }
@@ -1226,7 +1257,7 @@ function frameInner(now){
   const swM=(CORE.mode==='slots'||CORE.mode==='reveal')?.3:1;
   ctx.save();ctx.translate(sx+Math.sin(T*.31)*7*swM,sy+Math.cos(T*.23)*5*swM);
 
-  ctx.strokeStyle='rgba(0,230,255,.12)';ctx.lineWidth=1;
+  ctx.strokeStyle=`rgba(${TH.p},.12)`;ctx.lineWidth=1;
   const flow=(T*40)%80;
   for(let i=0;i<16;i++){
     const z=i*80-flow+40;
@@ -1309,7 +1340,7 @@ function frameInner(now){
     for(let ring=0;ring<3;ring++){
       const rr=coreR+34+ring*26+E*20;
       const rot=T*(ring%2?-.7:.9)+ring*2.1;
-      ctx.strokeStyle=ring===1?`rgba(255,60,180,${.35+E*.5})`:`rgba(0,230,255,${.3+E*.5})`;
+      ctx.strokeStyle=ring===1?`rgba(${TH.s},${.35+E*.5})`:`rgba(${TH.p},${.3+E*.5})`;
       ctx.lineWidth=2;
       ctx.beginPath();ctx.arc(CX,CY,rr,rot,rot+Math.PI*(0.6+E*.8));ctx.stroke();
     }
@@ -1323,6 +1354,7 @@ function frameInner(now){
   /* 靈魂（idle/charge） */
   if(mode==='idle'||mode==='charge'){
     souls.sort((a,b)=>Math.sin(b.a)-Math.sin(a.a)); // v9：原地排序，零複製
+    const NS=nameScale();
     for(const s of souls){
       s.a+=s.sp*dt*(1+E*9);
       if(mode==='charge'){s.pull=Math.min(1,s.pull+.022*dt*(1+E));}
@@ -1333,10 +1365,9 @@ function frameInner(now){
       if(p.s<=0)continue;
       const alpha=(1-s.pull*.9)*Math.min(1,p.s*1.1);
       if(alpha<.03)continue;
-      const fs=Math.max(9,15*p.s);
+      const fs=Math.max(9,15*NS*p.s); // v9.6：字級隨人數自適應
       ctx.globalAlpha=alpha;
-      // v9：預渲染名字標籤取代逐幀 font 設定 + fillText
-      const l=getLabel(s.name,Math.sin(s.a)>0?'soulF':'soulB');
+      const l=getLabel(s.name,(Math.sin(s.a)>0?'soulF':'soulB')+(NS>1.4?'b':''));
       const sc=fs/l.px;
       ctx.drawImage(l.c,p.x-l.w*sc/2,p.y-l.h*sc/2,l.w*sc,l.h*sc);
       const gsz=fs*1.4;
@@ -1408,7 +1439,7 @@ function frameInner(now){
       if(r.life<=0)continue;
       rings[rn++]=r;
       ctx.globalAlpha=r.life*.8;
-      ctx.strokeStyle=r.mini?'rgba(190,240,255,1)':(r.gold?'rgba(255,220,110,1)':'rgba(200,240,255,1)');
+      ctx.strokeStyle=r.mini?`rgba(${TH.pl},1)`:(r.gold?`rgba(${TH.w},1)`:`rgba(${TH.pl},1)`);
       ctx.lineWidth=r.mini?1.5:(r.gold?5:2.5);
       // v9.5：mini 衝擊環帶座標（撞擊點），大衝擊波維持爆心
       ctx.beginPath();ctx.arc(r.x===undefined?CX:r.x,r.y===undefined?CY:r.y,r.r,0,6.28);ctx.stroke();
@@ -1503,30 +1534,44 @@ function frameInner(now){
 }
 requestAnimationFrame(frame);
 
+let bloomTick=0;
 const bloomA=document.createElement('canvas'),bA=bloomA.getContext('2d');
 const bloomB=document.createElement('canvas'),bB=bloomB.getContext('2d');
 function applyBloom(strength,layers){
   if(strength<=0)return;
-  const bw=Math.max(2,(W/4)|0),bh=Math.max(2,(H/4)|0);
+  const bw=Math.max(2,(W/5)|0),bh=Math.max(2,(H/5)|0); // v9.6：bloom 降採樣 1/4→1/5
   if(bloomA.width!==bw||bloomA.height!==bh){
     bloomA.width=bw;bloomA.height=bh;
     bloomB.width=Math.max(2,bw>>1);bloomB.height=Math.max(2,bh>>1);
   }
-  bA.globalCompositeOperation='copy';
-  bA.drawImage(cv,0,0,bw,bh);
-  if(layers>1){
-    bB.globalCompositeOperation='copy';
+  // v9.6：兩層 bloom 先在小圖上相加，再一次疊回全螢幕——全螢幕合成從 2 次降為 1 次（主要成本）
+  const aA=Math.min(.8,strength*.5),aB=Math.min(.8,strength*.62);
+  let outA=layers>1?aB:aA;
+  // v9.6：主畫布讀回（bloom 主要成本）改為每兩幀一次；bloom 為低頻光暈，30Hz 更新肉眼無差，合成仍每幀做
+  bloomTick++;
+  if(bloomTick&1&&bloomA.width===bw){}
+  else if(layers>1){
+    // 主畫布只讀回一次（讀回是主要成本之一）：A' = (aA/aB)·A，B' 由 A' 再縮一半
+    const w=aA/aB;
+    bA.globalCompositeOperation='copy';bA.globalAlpha=w;
+    bA.drawImage(cv,0,0,bw,bh);
+    bB.globalCompositeOperation='copy';bB.globalAlpha=1;
     bB.drawImage(bloomA,0,0,bloomB.width,bloomB.height);
+    // A' += B'/w（小圖上相加；1/w>1 以兩次疊加補足）
+    bA.globalCompositeOperation='lighter';bA.globalAlpha=1;
+    bA.drawImage(bloomB,0,0,bw,bh);
+    bA.globalAlpha=Math.min(1,1/w-1);
+    bA.drawImage(bloomB,0,0,bw,bh);
+    outA=aB;
+  }else{
+    bA.globalCompositeOperation='copy';bA.globalAlpha=1;
+    bA.drawImage(cv,0,0,bw,bh);
   }
   ctx.save();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.globalCompositeOperation='lighter';
-  ctx.globalAlpha=Math.min(.8,strength*.5);
+  ctx.globalAlpha=outA;
   ctx.drawImage(bloomA,0,0,cv.width,cv.height);
-  if(layers>1){
-    ctx.globalAlpha=Math.min(.8,strength*.62);
-    ctx.drawImage(bloomB,0,0,cv.width,cv.height);
-  }
   ctx.restore();
 }
 
@@ -1631,9 +1676,10 @@ removeWinner.addEventListener('change',rebuildSouls);
 document.getElementById('muteBtn').addEventListener('click',function(){
   muted=!muted;
   this.textContent=muted?'♪ OFF':'♪ ON';
-  this.style.color=muted?'rgba(120,120,150,.5)':'rgba(140,230,255,.7)';
+  this.style.color=muted?'rgba(120,120,150,.5)':`rgba(${TH.pl},.7)`;
 });
 // v9：分頁切回時重置幀計時，避免 dt 突刺與效能取樣被污染
+document.getElementById('verTag').textContent+=' // 色系：'+TH.name+'（?theme=neon|abyss|rose|moss 可指定）';
 document.addEventListener('visibilitychange',function(){
   if(!document.hidden){last=performance.now();PERF.acc=0;PERF.n=0;}
 });

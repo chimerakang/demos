@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1794127910|4020444';
+const CACHE_VERSION = '1794149867|4731201';
 /** @type {string} */
 const CACHE_PREFIX = 'Dev Tycoon Proto-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;

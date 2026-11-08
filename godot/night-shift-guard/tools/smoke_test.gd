@@ -127,6 +127,29 @@ func _run() -> void:
 	_check(GameState.night == n_before, "讀回 night=%d" % GameState.night)
 	_check(GameState.known_relation("b", "a") == "hostile", "筆記本關係無序 key 正常")
 
+	# ── 對話樹 ──
+	print("== 對話樹 ==")
+	var handwritten := 0
+	var bad_links := 0
+	for a in DataLoader.applicants.values():
+		_check(a.has_dialogue(), "%s 有對話樹" % a.id) if not a.has_dialogue() else null
+		var nodes: Dictionary = a.dialogue.get("nodes", {})
+		for nid in nodes.keys():
+			for o in nodes[nid].get("options", []):
+				var nxt: String = o.get("next", "")
+				if nxt != "" and not nodes.has(nxt):
+					bad_links += 1
+					printerr("  斷鏈 %s.%s → %s" % [a.id, nid, nxt])
+		if a.dialogue.get("start") == "s":
+			handwritten += 1
+	_check(bad_links == 0, "對話樹無斷鏈")
+	_check(handwritten >= 6, "手寫對話 %d 位" % handwritten)
+	var cb := DataLoader.get_applicant("chen_bo")
+	_check(cb.dialogue_node("n6").has("line"), "陳伯的真話節點存在")
+	var runner2 := DataLoader.get_applicant("h_debt_runner")
+	_check(runner2.dialogue_has_contradiction(), "假死者對話裡有可抓的矛盾")
+	_check(Judge.check_fires(DataLoader.rules.filter(func(r): return r.check_id == "answer_contradiction")[0], runner2), "answer_contradiction 檢查點能從對話樹命中")
+
 	# ── 七晚全跑：全知玩家，每位都判對，排房依序填 ──
 	print("== 七晚全跑 ==")
 	GameState.reset_all()

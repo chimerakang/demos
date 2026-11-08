@@ -63,7 +63,8 @@ python3 tools/fetch_web_templates.py 4.7-stable
 ## 灰盒操作
 
 - 左欄：登記者、第一句話、畫面線索、文件按鈕、問句、擲筊、三個章（准予入住 **A** / 拒絕 **D** / 通報 **R**）
-- 中欄：桌面，點文件會放上來，最多兩份並排比對；「清桌」清空
+- 中欄「對話」：多回合對話樹，選項有語氣（綠＝客氣、紅＝不耐煩）；對鬼不耐煩會推執念、追問才逼得出矛盾；蓋章後對方會回一句，按「下一位」才換人
+- 中欄「桌面」：點文件會放上來，最多兩份並排比對；「清桌」清空
 - 擲筊：每晚額度見 nights.json；聖筊＝可以收、陰筊＝不行、笑筊＝土地公不替你決定（假冒者、抽查員、沖煞日）
 - 下方分頁：事件 log / 筆記本（已知關係、見過的鬼與活人，跨保全繼承）/ 今晚規矩
 - F1：Debug 面板（顯示真相、跳過本晚、混亂/記點 +1、重置存檔）
@@ -72,7 +73,7 @@ python3 tools/fetch_web_templates.py 4.7-stable
 
 ## 新增內容的方式
 
-- 新登記者：`applicants.json` 加一筆，`nights.json` 排進某晚
+- 新登記者：`applicants.json` 加一筆，`nights.json` 排進某晚；沒寫 `dialogue` 會自動從 `answers` 合成一棵基本對話樹，重點角色請手寫（參考 `tools/author_dialogues.py`）
 - 新檢查點：`rules.json` 加一筆 `kind: check`，`judge.gd` 的 `check_fires()` 加一個分支（或先用 `visual_tells` tag 實驗，不用動程式）
 - 新相沖規則：`rules.json` 加一筆 `kind: conflict`，`room_table.gd` 的 `conflict_fires()` 加分支（或用 `relations[].kind` 同名泛用鍵）
 

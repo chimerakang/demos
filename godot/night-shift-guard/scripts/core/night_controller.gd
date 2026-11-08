@@ -11,6 +11,7 @@ var queue: Array[Applicant] = []
 var current: Applicant = null
 var active_rules: Array[Rule] = []
 var pending_returns: Array[String] = []     # 活人被放進來 → 隔晚回來的 applicant id
+var auto_advance: bool = true               # false 時由畫面呼叫 next_applicant()（讓反應台詞停留）
 
 
 func start_night() -> void:
@@ -52,12 +53,18 @@ func stamp(stamp_id: String) -> void:
 	else:
 		GameState.wrong_count += 1
 	GameState.notes["applicants_seen"][current.id] = "ghost" if current.is_ghost() else "human"
+	# 對鬼不耐煩：故事鬼執念 +5/級；對活人太客氣：混亂不變但筆記提醒（活人會纏）
+	if current.is_story and current.temper > 0:
+		GameState.push_axis(current.id, 5 * current.temper)
+	current.temper = 0
 	EventBus.applicant_resolved.emit(current, verdict)
 	# 若已被記滿點，game_over 會從 GameState 發出，這裡不再往下走
 	if GameState.strikes >= GameState.MAX_STRIKES:
 		state = State.ENDED
 		return
-	next_applicant()
+	current = null
+	if auto_advance:
+		next_applicant()
 
 
 func settle() -> void:
@@ -131,6 +138,11 @@ func _build_queue(cfg: Dictionary) -> void:
 		queue.append(a)
 	if cfg.get("shuffle", false):
 		queue.shuffle()
+
+
+## 對話選項的 effects 也走這裡（desk 呼叫）
+func apply_consequences(list: Array, context: Dictionary = {}) -> void:
+	_apply_consequences(list, context)
 
 
 func _apply_consequences(list: Array, context: Dictionary = {}) -> void:

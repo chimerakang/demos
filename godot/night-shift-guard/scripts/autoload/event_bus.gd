@@ -15,6 +15,7 @@ signal game_over(reason: String)
 # ── 玩家行為（規則引擎只監聽這些）──
 signal stamp_pressed(applicant_id: String, stamp: String)        # approve / deny / report
 signal question_asked(applicant_id: String, question_id: String)
+signal dialogue_choice(applicant_id: String, node_id: String, option_text: String, tone: String)
 signal document_inspected(applicant_id: String, doc_id: String, side: String)
 signal applicant_placed(applicant_id: String, floor: int, room: int)
 signal applicant_removed(applicant_id: String, floor: int, room: int)

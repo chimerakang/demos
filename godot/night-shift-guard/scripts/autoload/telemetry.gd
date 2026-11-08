@@ -17,6 +17,7 @@ func _ready() -> void:
 	_http.request_completed.connect(_on_request_completed)
 	# 監聽所有玩家行為
 	EventBus.stamp_pressed.connect(func(a, s): log_event("stamp", {"applicant": a, "stamp": s}))
+	EventBus.dialogue_choice.connect(func(a, n, t, tone): log_event("dialogue", {"applicant": a, "node": n, "text": t, "tone": tone}))
 	EventBus.question_asked.connect(func(a, q): log_event("question", {"applicant": a, "question": q}))
 	EventBus.document_inspected.connect(func(a, d, s): log_event("inspect", {"applicant": a, "doc": d, "side": s}))
 	EventBus.applicant_placed.connect(func(a, f, r): log_event("place", {"applicant": a, "floor": f, "room": r}))

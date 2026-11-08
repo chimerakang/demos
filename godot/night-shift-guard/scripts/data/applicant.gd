@@ -35,9 +35,20 @@ enum Kind { GHOST, HUMAN, HUMAN_DISGUISED, INSPECTOR }
 # ── 關係（排房推理的真相）──
 @export var relations: Array[Dictionary] = []   # [{with: id, kind: hostile|family|debt|property, clue: "..."}]
 
+# ── 對話樹 ──
+## dialogue = {"start": node_id, "nodes": {id: {"line": "對方說的話", "options": [
+##   {"text": "你的回應", "next": node_id 或 "", "tone": "kind|neutral|harsh",
+##    "contradicts": ["doc_id.欄位"], "effects": [{"kind": "axis", "value": 5}], "note": "筆記本一句話"}]}}}
+## 沒寫的登記者會由 DataLoader 依 answers 自動合成一棵基本樹。
+@export var dialogue: Dictionary = {}
+@export var temper: int = 0                     # 本次對話累積的不耐（harsh +1 / kind −1），結算用
+
 # ── 文本 ──
 @export var intro_line: String = ""             # 走到櫃檯時說的第一句
 @export var plea_line: String = ""              # 被拒絕時說的話（活人的道德壓力）
+@export var on_approve: String = ""             # 蓋准予入住後的反應
+@export var on_deny: String = ""                # 蓋拒絕後的反應（空則用 plea_line）
+@export var on_report: String = ""              # 被通報時的反應
 @export var return_as: String = ""              # 活人被放進來後，隔晚回來時變成哪個 applicant id
 
 
@@ -54,6 +65,25 @@ func document(doc_id: String) -> Document:
 		if d.id == doc_id:
 			return d
 	return null
+
+
+func has_dialogue() -> bool:
+	return dialogue.has("start") and dialogue.has("nodes")
+
+
+func dialogue_node(id: String) -> Dictionary:
+	return (dialogue.get("nodes", {}) as Dictionary).get(id, {})
+
+
+## 對話樹裡是否有任何「說了會跟文件矛盾」的選項（給 Judge 的 answer_contradiction 用）
+func dialogue_has_contradiction() -> bool:
+	for n in (dialogue.get("nodes", {}) as Dictionary).values():
+		for o in n.get("options", []):
+			if not (o.get("contradicts", []) as Array).is_empty():
+				return true
+		if not (n.get("contradicts", []) as Array).is_empty():
+			return true
+	return false
 
 
 func relation_with(other_id: String) -> Dictionary:
@@ -95,5 +125,9 @@ static func from_dict(d: Dictionary) -> Applicant:
 	a.relations.assign(d.get("relations", []))
 	a.intro_line = d.get("intro_line", "")
 	a.plea_line = d.get("plea_line", "")
+	a.on_approve = d.get("on_approve", "")
+	a.on_deny = d.get("on_deny", "")
+	a.on_report = d.get("on_report", "")
+	a.dialogue = d.get("dialogue", {})
 	a.return_as = d.get("return_as", "")
 	return a

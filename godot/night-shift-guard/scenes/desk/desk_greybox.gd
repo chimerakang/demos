@@ -19,6 +19,11 @@ var show_truth: bool = false             # Debug：顯示真相
 # ── UI 節點 ──
 var top_bar: Label
 var left_panel: VBoxContainer
+var mid_tabs: TabContainer
+var dialogue_box: RichTextLabel
+var options_box: VBoxContainer
+var dialogue_notes: Array[String] = []      # 本晚對話中記下的線索
+var applied_effects: Dictionary = {}        # "node|idx" -> true，同一選項效果只套一次
 var desk_slots: Array[RichTextLabel] = []
 var desk_slot_titles: Array[Label] = []
 var right_panel: VBoxContainer
@@ -35,6 +40,7 @@ var debug_panel: PanelContainer
 
 func _ready() -> void:
 	night = NightController.new()
+	night.auto_advance = false
 	add_child(night)
 	_build_ui()
 	_connect_bus()
@@ -59,7 +65,25 @@ func _build_ui() -> void:
 	add_child(cols)
 
 	left_panel = _panel(cols, 268, 396, "登記者")
-	var desk := _panel(cols, 400, 396, "桌面（點文件放上來，兩份並排）")
+	mid_tabs = TabContainer.new()
+	mid_tabs.custom_minimum_size = Vector2(400, 396)
+	cols.add_child(mid_tabs)
+	# 對話分頁
+	var convo := VBoxContainer.new()
+	convo.name = "對話"
+	mid_tabs.add_child(convo)
+	dialogue_box = RichTextLabel.new()
+	dialogue_box.bbcode_enabled = true
+	dialogue_box.scroll_following = true
+	dialogue_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dialogue_box.custom_minimum_size = Vector2(0, 200)
+	convo.add_child(dialogue_box)
+	options_box = VBoxContainer.new()
+	convo.add_child(options_box)
+	# 桌面分頁
+	var desk := VBoxContainer.new()
+	desk.name = "桌面"
+	mid_tabs.add_child(desk)
 	right_panel = _panel(cols, 252, 396, "房間表")
 
 	# 桌面：兩格
@@ -69,7 +93,7 @@ func _build_ui() -> void:
 	desk.add_child(slots)
 	for i in 2:
 		var pc := PanelContainer.new()
-		pc.custom_minimum_size = Vector2(190, 330)
+		pc.custom_minimum_size = Vector2(186, 320)
 		pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0.93, 0.90, 0.80)
@@ -233,6 +257,7 @@ func _on_night_started(n: int) -> void:
 	var cfg := DataLoader.night_config(n)
 	jiaobei_left = int(cfg.get("jiaobei_uses", 3))
 	tonight_mistakes.clear()
+	dialogue_notes.clear()
 	_refresh_top()
 	_refresh_rules()
 	_log("[color=yellow]第 %d 晚開始[/color]" % n)
@@ -287,21 +312,11 @@ func _on_applicant_arrived(a: Applicant) -> void:
 		btn.pressed.connect(_show_document.bind(a, d))
 		docs_row.add_child(btn)
 
-	# 問句
-	for qid in DataLoader.questions.keys():
-		if not a.answers.has(qid):
-			continue
-		var qb := Button.new()
-		qb.text = DataLoader.questions[qid].get("text", qid)
-		qb.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		qb.add_theme_font_size_override("font_size", 13)
-		qb.pressed.connect(func():
-			EventBus.question_asked.emit(a.id, qid)
-			_log("你：%s　%s：「%s」" % [qb.text, a.display_name, a.answers[qid].get("text", "")])
-			qb.text = "✓ " + qb.text
-			qb.disabled = true
-		)
-		left_panel.add_child(qb)
+	var tip := Label.new()
+	tip.text = "跟他講話 → 中間「對話」分頁\n看文件 → 點上面的文件"
+	tip.add_theme_font_size_override("font_size", 12)
+	tip.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	left_panel.add_child(tip)
 
 	# 擲筊
 	var jb := Button.new()
@@ -321,6 +336,77 @@ func _on_applicant_arrived(a: Applicant) -> void:
 		stamps.add_child(sbtn)
 
 	_log("[color=aqua]→ %s 走到櫃檯[/color]" % a.display_name)
+	_start_dialogue(a)
+
+
+# ───────────────────────── 對話 ─────────────────────────
+
+func _start_dialogue(a: Applicant) -> void:
+	applied_effects.clear()
+	dialogue_box.clear()
+	mid_tabs.current_tab = 0
+	if not a.has_dialogue():
+		dialogue_box.append_text("[color=gray]（他什麼都沒說。）[/color]\n")
+		_clear(options_box, 0)
+		return
+	_goto_node(a, a.dialogue["start"])
+
+
+func _goto_node(a: Applicant, node_id: String) -> void:
+	_clear(options_box, 0)
+	if node_id == "":
+		dialogue_box.append_text("[color=gray]（對話告一段落。看文件、排房、蓋章。）[/color]\n")
+		var again := Button.new()
+		again.text = "再跟他說話"
+		again.add_theme_font_size_override("font_size", 13)
+		again.pressed.connect(func(): _goto_node(a, a.dialogue["start"]))
+		options_box.add_child(again)
+		return
+	var node := a.dialogue_node(node_id)
+	if node.is_empty():
+		push_warning("對話節點不存在：%s.%s" % [a.id, node_id])
+		_goto_node(a, "")
+		return
+	dialogue_box.append_text("[color=#e8d8a8][b]%s[/b][/color]　%s\n" % [a.display_name, node.get("line", "……")])
+	var opts: Array = node.get("options", [])
+	if opts.is_empty():
+		_goto_node(a, "")
+		return
+	for i in opts.size():
+		var o: Dictionary = opts[i]
+		var b := Button.new()
+		b.text = o.get("text", "……")
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_size_override("font_size", 14)
+		b.clip_text = true
+		match o.get("tone", "neutral"):
+			"kind": b.modulate = Color(0.8, 1.0, 0.85)
+			"harsh": b.modulate = Color(1.0, 0.75, 0.7)
+		b.pressed.connect(_choose_option.bind(a, node_id, i, o))
+		options_box.add_child(b)
+
+
+func _choose_option(a: Applicant, node_id: String, idx: int, o: Dictionary) -> void:
+	var tone: String = o.get("tone", "neutral")
+	dialogue_box.append_text("[color=#9ad0ff][b]你[/b][/color]　%s\n" % o.get("text", ""))
+	EventBus.dialogue_choice.emit(a.id, node_id, o.get("text", ""), tone)
+	var key := "%s|%d" % [node_id, idx]
+	if not applied_effects.has(key):
+		applied_effects[key] = true
+		match tone:
+			"harsh": a.temper += 1
+			"kind": a.temper -= 1
+		var effects: Array = o.get("effects", [])
+		if not effects.is_empty():
+			night.apply_consequences(effects)
+		var note: String = o.get("note", "")
+		if note != "":
+			dialogue_notes.append("%s：%s" % [a.display_name, note])
+			_log("[color=gold]筆記：%s[/color]" % note)
+			_refresh_notebook()
+		if not (o.get("contradicts", []) as Array).is_empty():
+			dialogue_box.append_text("[color=orange]（這跟文件對不上。）[/color]\n")
+	_goto_node(a, o.get("next", ""))
 
 
 func _show_document(a: Applicant, d: Document) -> void:
@@ -333,6 +419,7 @@ func _show_document(a: Applicant, d: Document) -> void:
 		for k in d.back_fields.keys():
 			lines.append("[b]%s[/b]　%s" % [k, d.back_fields[k]])
 	lines.append("[color=#665]章：%s[/color]" % (_stamps_text(d.stamps) if not d.stamps.is_empty() else "（無）"))
+	mid_tabs.current_tab = 1
 	desk_slot_titles[next_slot].text = "%s · %s" % [a.display_name, d.title]
 	desk_slots[next_slot].text = "\n".join(lines)
 	next_slot = 1 - next_slot
@@ -405,8 +492,22 @@ func _on_applicant_resolved(a: Applicant, verdict: Dictionary) -> void:
 		var missed: Array = verdict["missed_checks"]
 		_log("[color=red]× %s[/color]%s" % [verdict["reason"], ("　可用線索：" + ", ".join(missed)) if not missed.is_empty() else ""])
 		tonight_mistakes.append("%s：%s" % [a.display_name, verdict["reason"]])
-		if verdict["stamp"] == Judge.STAMP_DENY and a.plea_line != "":
-			_log("%s：「%s」" % [a.display_name, a.plea_line])
+	var react := ""
+	match verdict["stamp"]:
+		Judge.STAMP_APPROVE: react = a.on_approve
+		Judge.STAMP_DENY: react = a.on_deny if a.on_deny != "" else a.plea_line
+		Judge.STAMP_REPORT: react = a.on_report if a.on_report != "" else a.plea_line
+	if react != "":
+		_log("%s：「%s」" % [a.display_name, react])
+		dialogue_box.append_text("[color=#e8d8a8][b]%s[/b][/color]　%s\n" % [a.display_name, react])
+	mid_tabs.current_tab = 0
+	_clear(options_box, 0)
+	_clear(left_panel, 1)
+	if night.state == NightController.State.QUEUE:
+		var nxt := Button.new()
+		nxt.text = "下一位 →"
+		nxt.pressed.connect(func(): night.next_applicant())
+		options_box.add_child(nxt)
 	_refresh_rooms()
 	_refresh_top()
 	_refresh_notebook()
@@ -557,6 +658,10 @@ func _refresh_notebook() -> void:
 			ghosts.append(_name_of(id))
 		else:
 			humans.append(_name_of(id))
+	if not dialogue_notes.is_empty():
+		lines.append("[b]今晚對話記下的[/b]")
+		for n in dialogue_notes:
+			lines.append("　" + n)
 	lines.append("[b]見過的鬼[/b]　" + "、".join(ghosts))
 	lines.append("[b]見過的活人[/b]　" + "、".join(humans))
 	notebook.text = "\n".join(lines)

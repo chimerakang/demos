@@ -96,7 +96,7 @@ static func check_fires(r: Rule, a: Applicant) -> bool:
 			for q in a.answers.keys():
 				if not (a.answers[q].get("contradicts", []) as Array).is_empty():
 					return true
-			return false
+			return a.dialogue_has_contradiction()
 		"almanac_clash":
 			return a.visual_tells.has("almanac_clash")
 		"forged_document":

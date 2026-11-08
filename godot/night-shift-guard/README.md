@@ -41,19 +41,22 @@ data/
   nights.json            七晚時程（第 4–6 晚待填）
   questions.json         對講機問句
 tools/
-  subset_font.sh         中文字型子集（網頁版必做）
+  subset_font.sh         中文字型子集
+  fetch_web_templates.py 只下載網頁匯出模板（HTTP Range，約 20 MB）
+  smoke_test.tscn/.gd    無頭冒煙測試（CI 也跑）
   export_web.sh          匯出 + 本機預覽
 ```
 
 ## 開始
 
 ```bash
-# 1. 用 Godot 4.7 開啟 project.godot，直接 F5 可跑灰盒（中文會是方框，先裝字型）
-# 2. 字型：下載 Noto Sans TC Regular 到 assets/fonts/，然後
+# 1. 用 Godot 4.7 開啟 project.godot，直接 F5 可跑灰盒（字型子集已隨 repo 附上）
+# 2. 新增大量文本後重做字型子集：下載 Noto Sans TC 到 assets/fonts/，然後
 pip install fonttools brotli
 ./tools/subset_font.sh
-#    再到 project.godot 取消 gui/theme/custom_font 的註解
-# 3. 網頁匯出
+#    （CI 每次建置也會自動重做）
+# 3. 網頁匯出（只需 20 MB 的網頁模板，不用整包 1.2 GB）
+python3 tools/fetch_web_templates.py 4.7-stable
 ./tools/export_web.sh            # → build/web，開 http://localhost:8060
 ```
 

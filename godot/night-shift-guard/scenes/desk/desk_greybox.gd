@@ -77,6 +77,12 @@ func _build_ui() -> void:
 	overlay = PanelContainer.new()
 	overlay.position = Vector2(160, 60)
 	overlay.size = Vector2(640, 420)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.09, 0.09, 0.13, 1.0)
+	sb.border_color = Color(0.78, 0.64, 0.29, 1.0)
+	sb.set_border_width_all(2)
+	sb.set_content_margin_all(16)
+	overlay.add_theme_stylebox_override("panel", sb)
 	add_child(overlay)
 	var vb := VBoxContainer.new()
 	overlay.add_child(vb)
@@ -164,7 +170,7 @@ func _on_applicant_arrived(a: Applicant) -> void:
 		left_panel.add_child(none)
 	for d in a.documents:
 		var btn := Button.new()
-		btn.text = "📄 " + d.title
+		btn.text = "◆ " + d.title
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.pressed.connect(_show_document.bind(a, d))
 		left_panel.add_child(btn)
@@ -189,7 +195,7 @@ func _on_applicant_arrived(a: Applicant) -> void:
 	approve.pressed.connect(_on_stamp.bind(Judge.STAMP_APPROVE))
 	mid_panel.add_child(approve)
 	var deny := Button.new()
-	deny.text = "✗ 拒絕（D）"
+	deny.text = "× 拒絕（D）"
 	deny.pressed.connect(_on_stamp.bind(Judge.STAMP_DENY))
 	mid_panel.add_child(deny)
 	var report := Button.new()

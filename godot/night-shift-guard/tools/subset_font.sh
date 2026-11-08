@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SRC="assets/fonts/NotoSansTC-Regular.ttf"
+SRC="${SRC:-assets/fonts/NotoSansTC-Regular.ttf}"
 OUT="assets/fonts/NotoSansTC-subset.ttf"
 CHARS_FILE="build/used_chars.txt"
 

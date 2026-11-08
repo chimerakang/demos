@@ -1,0 +1,13 @@
+# Godot 4
+.godot/
+*.import
+build/
+export_presets.cfg.bak
+
+# 字型原檔（只留子集）
+assets/fonts/NotoSansTC-*.ttf
+!assets/fonts/NotoSansTC-subset.ttf
+
+# OS
+.DS_Store
+Thumbs.db

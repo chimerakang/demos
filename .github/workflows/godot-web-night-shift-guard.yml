@@ -1,0 +1,77 @@
+# 夜班保全：Godot 4.7 網頁匯出 → 發佈到 /night-shift-guard/
+# 來源在 godot/night-shift-guard/。單執行緒匯出，GitHub Pages 不需要 COOP/COEP 標頭。
+# 中文字型在 CI 下載 Noto Sans TC 並做子集，只留遊戲文本用到的字。
+name: godot-web-night-shift-guard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'godot/night-shift-guard/**'
+      - '.github/workflows/godot-web-night-shift-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: godot-web-night-shift-guard
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.0
+  PROJECT_DIR: godot/night-shift-guard
+  OUT_DIR: night-shift-guard
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godot ${{ env.GODOT_VERSION }} + export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: true
+
+      - name: Smoke test (headless)
+        run: |
+          cd "$PROJECT_DIR"
+          godot --headless --path . --import >/dev/null 2>&1 || true
+          godot --headless --path . tools/smoke_test.tscn
+
+      - name: Subset CJK font
+        run: |
+          pip install --quiet fonttools brotli
+          cd "$PROJECT_DIR"
+          mkdir -p assets/fonts
+          curl -sSL -o assets/fonts/NotoSansTC-Regular.ttf \
+            "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf"
+          ./tools/subset_font.sh
+          # 啟用字型
+          sed -i 's|^; theme/custom_font=|theme/custom_font=|' project.godot
+          grep -n "custom_font" project.godot
+
+      - name: Export Web
+        run: |
+          cd "$PROJECT_DIR"
+          mkdir -p build/web
+          godot --headless --path . --import >/dev/null 2>&1 || true
+          godot --headless --export-release "Web" build/web/index.html
+          ls -la build/web
+          test -f build/web/index.wasm
+
+      - name: Publish to /${{ env.OUT_DIR }}/
+        run: |
+          rm -rf "$OUT_DIR"
+          mkdir "$OUT_DIR"
+          cp -r "$PROJECT_DIR"/build/web/* "$OUT_DIR"/
+          test -f "$OUT_DIR"/index.html
+          du -sh "$OUT_DIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT_DIR"
+          git commit -m "CI: publish night-shift-guard Godot web build (${GITHUB_SHA::7})" || { echo "no changes"; exit 0; }
+          git push

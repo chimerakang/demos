@@ -1,0 +1,114 @@
+[
+  {
+    "id": "check_death_cert",
+    "kind": "check",
+    "check_id": "has_death_cert",
+    "text_shown": "沒有死亡證明書的，一律不得入住。",
+    "unlock_night": 1,
+    "severity": "minor"
+  },
+  {
+    "id": "check_id_cancelled",
+    "kind": "check",
+    "check_id": "id_cancelled",
+    "text_shown": "身分證必須有戶政事務所的註銷章。沒蓋章的，人還活著。",
+    "unlock_night": 2,
+    "severity": "minor"
+  },
+  {
+    "id": "conflict_same_incident",
+    "kind": "conflict",
+    "check_id": "same_incident",
+    "text_shown": "同一天、同一地點走的，不要排在同一層。你不會想知道為什麼。",
+    "unlock_night": 2,
+    "severity": "major",
+    "consequences": [
+      { "kind": "chaos", "value": 1 },
+      { "kind": "axis", "target": "a", "value": 15 },
+      { "kind": "axis", "target": "b", "value": 15 },
+      { "kind": "damage_floor" }
+    ]
+  },
+  {
+    "id": "check_shadow",
+    "kind": "check",
+    "check_id": "shadow",
+    "text_shown": "櫃檯燈下有影子的，不是我們的客人。",
+    "unlock_night": 3,
+    "severity": "minor"
+  },
+  {
+    "id": "check_feet",
+    "kind": "check",
+    "check_id": "feet",
+    "text_shown": "注意腳。",
+    "unlock_night": 3,
+    "severity": "minor"
+  },
+  {
+    "id": "conflict_zodiac",
+    "kind": "conflict",
+    "check_id": "zodiac_clash",
+    "text_shown": "生肖六沖（鼠馬、牛羊、虎猴、兔雞、龍狗、蛇豬）不同層。這是老規矩。",
+    "unlock_night": 3,
+    "severity": "minor",
+    "consequences": [{ "kind": "chaos", "value": 1 }]
+  },
+  {
+    "id": "check_answers",
+    "kind": "check",
+    "check_id": "answer_contradiction",
+    "text_shown": "多問一句。說的跟寫的不一樣，就有問題。",
+    "unlock_night": 4,
+    "severity": "minor"
+  },
+  {
+    "id": "conflict_family",
+    "kind": "conflict",
+    "check_id": "family_same_floor",
+    "text_shown": "家屬可以排同層。但先確認他們想不想見面。",
+    "unlock_night": 4,
+    "severity": "minor",
+    "consequences": [
+      { "kind": "axis", "target": "a", "value": -10 },
+      { "kind": "axis", "target": "b", "value": -10 }
+    ]
+  },
+  {
+    "id": "check_almanac",
+    "kind": "check",
+    "check_id": "almanac_clash",
+    "text_shown": "對照農民曆。今日沖煞的生肖，今晚不收。",
+    "unlock_night": 5,
+    "severity": "minor"
+  },
+  {
+    "id": "conflict_debt",
+    "kind": "conflict",
+    "check_id": "debt",
+    "text_shown": "訃聞治喪委員名單裡有債主的，不要跟債主同層。",
+    "unlock_night": 5,
+    "severity": "major",
+    "consequences": [
+      { "kind": "chaos", "value": 1 },
+      { "kind": "axis", "target": "b", "value": 20 }
+    ]
+  },
+  {
+    "id": "check_forged",
+    "kind": "check",
+    "check_id": "forged_document",
+    "text_shown": "最近有人偽造死亡證明。看章、看字體、看日期。",
+    "unlock_night": 6,
+    "severity": "major"
+  },
+  {
+    "id": "conflict_property",
+    "kind": "conflict",
+    "check_id": "property",
+    "text_shown": "除戶謄本同一個地址、不同年代的，是前後任屋主。有糾紛。",
+    "unlock_night": 6,
+    "severity": "minor",
+    "consequences": [{ "kind": "chaos", "value": 1 }]
+  }
+]

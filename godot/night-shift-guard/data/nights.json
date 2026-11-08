@@ -1,0 +1,30 @@
+[
+  {
+    "night": 1,
+    "title": "第一夜",
+    "notice": "新人你好。規矩很簡單：有死亡證明的才能住。其他的，明天再說。——土地公（代）",
+    "applicants": ["chen_bo", "g_wang_ama", "h_lin_debtor", "g_street_youth", "g_nurse", "h_lost_student"],
+    "shuffle": false,
+    "jiaobei_uses": 3
+  },
+  {
+    "night": 2,
+    "title": "第二夜",
+    "notice": "昨晚有人沒看身分證。活人的身分證沒有註銷章。另外，同一天同一個地方走的，不要排同一層。",
+    "applicants": ["a_mei", "g_truck_driver", "g_scooter_rider", "h_grief_mother", "g_old_teacher", "g_fisherman", "h_debt_runner"],
+    "shuffle": true,
+    "jiaobei_uses": 3
+  },
+  {
+    "night": 3,
+    "title": "第三夜",
+    "notice": "（待填：林家四口分批來；解鎖影子、腳、生肖）",
+    "applicants": ["lin_father", "lin_mother", "lin_son", "lin_daughter"],
+    "shuffle": false,
+    "jiaobei_uses": 3
+  },
+  { "night": 4, "title": "第四夜", "notice": "（待填）", "applicants": [], "shuffle": true, "jiaobei_uses": 3 },
+  { "night": 5, "title": "第五夜", "notice": "（待填：農曆七月最後一天）", "applicants": [], "shuffle": true, "jiaobei_uses": 2 },
+  { "night": 6, "title": "第六夜", "notice": "（待填）", "applicants": [], "shuffle": true, "jiaobei_uses": 2 },
+  { "night": 7, "title": "最後一夜", "notice": "（待填：鬼門關前；管委會抽查）", "applicants": ["inspector"], "shuffle": false, "jiaobei_uses": 1 }
+]

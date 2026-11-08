@@ -35,6 +35,7 @@ window/stretch/scale_mode="integer"
 
 ; 中文字型：執行 tools/subset_font.sh 產生子集後取消註解
 theme/custom_font="res://assets/fonts/NotoSansTC-subset.ttf"
+theme/default_font_size=17
 
 [input]
 

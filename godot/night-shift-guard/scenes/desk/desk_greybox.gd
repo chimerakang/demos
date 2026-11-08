@@ -426,7 +426,7 @@ func _on_settlement(report: Dictionary) -> void:
 	# 報紙
 	lines.append("\n[color=gold]今日報紙[/color]")
 	if tonight_mistakes.is_empty():
-		lines.append("　八里山區一夜平安。")
+		lines.append("　八川山區一夜平安。")
 	else:
 		for m in tonight_mistakes:
 			lines.append("　" + _headline_for(m))
@@ -454,12 +454,12 @@ func _headline_for(m: String) -> String:
 	if m.contains("活人"):
 		return "山區民宿傳失蹤　家屬：他說要去借廁所"
 	if m.contains("拒絕了真正的鬼"):
-		return "龍米路深夜有人徘徊　居民稱「看起來像在找地方住」"
+		return "龍溪路深夜有人徘徊　居民稱「看起來像在找地方住」"
 	if m.contains("沖煞"):
 		return "廟方：昨夜有客人不該進門"
 	if m.contains("抽查員"):
 		return "福德宮管委會發函：夜班人員態度待改善"
-	return "八里山區昨夜不平靜"
+	return "八川山區昨夜不平靜"
 
 
 func _on_game_over(reason: String) -> void:

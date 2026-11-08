@@ -40,7 +40,17 @@ PY
 
 echo "使用字元數：$(python3 -c "import io;print(len(io.open('$CHARS_FILE',encoding='utf-8').read()))")"
 
-pyftsubset "$SRC" \
+# 可變字型 → 先做出指定字重的靜態實例（預設 700 = Bold，畫面上比 Regular 清楚很多）
+WGHT="${WGHT:-700}"
+INST="build/NotoSansTC-wght${WGHT}.ttf"
+if python3 -c "from fontTools.ttLib import TTFont; import sys; sys.exit(0 if 'fvar' in TTFont('$SRC') else 1)"; then
+  fonttools varLib.instancer "$SRC" "wght=$WGHT" -o "$INST" >/dev/null
+  echo "已從可變字型產生 wght=$WGHT 靜態實例"
+else
+  cp "$SRC" "$INST"
+fi
+
+pyftsubset "$INST" \
   --text-file="$CHARS_FILE" \
   --output-file="$OUT" \
   --layout-features='*' \

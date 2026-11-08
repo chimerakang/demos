@@ -16,27 +16,63 @@
       {
         "id": "chen_bo_death",
         "type": "death_cert",
-        "fields": { "姓名": "陳文雄", "性別": "男", "出生": "1953-04-12", "死亡時間": "2024-09-03 02:40", "死亡地點": "新北市八里區中山路二段 停車場", "死亡原因": "心因性休克", "開立醫院": "淡水馬偕紀念醫院" },
-        "stamps": ["hospital"]
+        "fields": {
+          "姓名": "陳文雄",
+          "性別": "男",
+          "出生": "1953-04-12",
+          "死亡時間": "2024-09-03 02:40",
+          "死亡地點": "新北市八里區中山路二段 停車場",
+          "死亡原因": "心因性休克",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
       },
       {
         "id": "chen_bo_id",
         "type": "id_card",
-        "fields": { "姓名": "陳文雄", "出生": "1953-04-12", "住址": "新北市八里區中山路二段 88 號 B1" },
-        "back_fields": { "父": "陳金水", "母": "陳林玉", "配偶": "（歿）", "役別": "常備役" },
-        "stamps": ["cancelled"]
+        "fields": {
+          "姓名": "陳文雄",
+          "出生": "1953-04-12",
+          "住址": "新北市八里區中山路二段 88 號 B1"
+        },
+        "back_fields": {
+          "父": "陳金水",
+          "母": "陳林玉",
+          "配偶": "（歿）",
+          "役別": "常備役"
+        },
+        "stamps": [
+          "cancelled"
+        ]
       }
     ],
-    "portrait": { "face": "old_m_1", "hair": "grey_short", "outfit": "polo_beige", "trait": "car_keys" },
+    "portrait": {
+      "face": "old_m_1",
+      "hair": "grey_short",
+      "outfit": "polo_beige",
+      "trait": "car_keys"
+    },
     "has_shadow": false,
     "feet_on_ground": false,
     "answers": {
-      "q_name": { "text": "陳。陳文雄。我兒子來了嗎？" },
-      "q_date": { "text": "……九月三號吧。他說九月三號要來接我。" },
-      "q_why": { "text": "等我兒子。他說會來接我回家，我在車上等他。" }
+      "q_name": {
+        "text": "陳。陳文雄。我兒子來了嗎？"
+      },
+      "q_date": {
+        "text": "……九月三號吧。他說九月三號要來接我。"
+      },
+      "q_why": {
+        "text": "等我兒子。他說會來接我回家，我在車上等他。"
+      }
     },
     "relations": [
-      { "with": "lin_son", "kind": "family", "clue": "死亡證明上的兒子名字，跟 7 樓那場火的死者同名" }
+      {
+        "with": "lin_son",
+        "kind": "family",
+        "clue": "死亡證明上的兒子名字，跟 7 樓那場火的死者同名"
+      }
     ],
     "intro_line": "不好意思，我兒子有沒有來過？姓陳，開一台白色的車。",
     "plea_line": "那我在外面等就好。他來了麻煩跟他說一聲。"
@@ -58,28 +94,68 @@
       {
         "id": "a_mei_death",
         "type": "death_cert",
-        "fields": { "姓名": "林小妹", "性別": "女", "出生": "1997-02-20", "死亡時間": "2004-08-14 03:15", "死亡地點": "新北市八里區中山路二段 88 號 7F", "死亡原因": "火災（一氧化碳中毒）", "開立醫院": "淡水馬偕紀念醫院" },
-        "stamps": ["hospital"]
+        "fields": {
+          "姓名": "林小妹",
+          "性別": "女",
+          "出生": "1997-02-20",
+          "死亡時間": "2004-08-14 03:15",
+          "死亡地點": "新北市八里區中山路二段 88 號 7F",
+          "死亡原因": "火災（一氧化碳中毒）",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
       },
       {
         "id": "a_mei_obit",
         "type": "obituary",
-        "fields": { "亡者": "林小妹", "享年": "八歲", "家屬": "母 林淑芬 泣告", "公祭": "2004-08-28 八里殯儀館" },
-        "flaws": [{ "check": "address_mismatch", "field": "亡者", "note": "死在 7F，但身分證住址是 12F——她那晚在別人家" }]
+        "fields": {
+          "亡者": "林小妹",
+          "享年": "八歲",
+          "家屬": "母 林淑芬 泣告",
+          "公祭": "2004-08-28 八里殯儀館"
+        },
+        "flaws": [
+          {
+            "check": "address_mismatch",
+            "field": "亡者",
+            "note": "死在 7F，但身分證住址是 12F——她那晚在別人家"
+          }
+        ]
       }
     ],
-    "portrait": { "face": "child_f_1", "hair": "twin_tails", "outfit": "red_dress", "trait": "none" },
+    "portrait": {
+      "face": "child_f_1",
+      "hair": "twin_tails",
+      "outfit": "red_dress",
+      "trait": "none"
+    },
     "has_shadow": false,
     "feet_on_ground": false,
     "visual_tells": [],
     "answers": {
-      "q_name": { "text": "……妳是誰？媽媽叫我不要跟陌生人講話。" },
-      "q_date": { "text": "今天星期六。媽媽說星期六會帶我去玩。" },
-      "q_why": { "text": "我在等媽媽。她說等一下就回來。" }
+      "q_name": {
+        "text": "……妳是誰？媽媽叫我不要跟陌生人講話。"
+      },
+      "q_date": {
+        "text": "今天星期六。媽媽說星期六會帶我去玩。"
+      },
+      "q_why": {
+        "text": "我在等媽媽。她說等一下就回來。"
+      }
     },
     "relations": [
-      { "with": "lin_mother", "kind": "hostile", "clue": "她死在林家那場火裡——她那晚在林家過夜" },
-      { "with": "g_street_youth", "kind": "zodiac", "clue": "" }
+      {
+        "with": "lin_mother",
+        "kind": "hostile",
+        "clue": "她死在林家那場火裡——她那晚在林家過夜"
+      },
+      {
+        "with": "g_street_youth",
+        "kind": "zodiac",
+        "clue": ""
+      }
     ],
     "intro_line": "叔叔，媽媽有沒有來？她說等一下就回來。",
     "plea_line": "那我在樓下等。你不要關燈喔。"
@@ -98,15 +174,67 @@
     "death_cause": "火災",
     "address": "新北市八里區中山路二段 88 號 7F",
     "documents": [
-      { "id": "lin_father_death", "type": "death_cert", "fields": { "姓名": "林建成", "性別": "男", "出生": "1959-11-02", "死亡時間": "2004-08-14 03:20", "死亡地點": "新北市八里區中山路二段 88 號 7F", "死亡原因": "火災", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] },
-      { "id": "lin_father_hr", "type": "household_removal", "fields": { "戶長": "林建成", "戶籍地址": "新北市八里區中山路二段 88 號 7F", "除戶原因": "死亡", "除戶日期": "2004-09-01", "同戶人口": "林陳美玉、林志豪、林雅婷" }, "stamps": ["household_office"] }
+      {
+        "id": "lin_father_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "林建成",
+          "性別": "男",
+          "出生": "1959-11-02",
+          "死亡時間": "2004-08-14 03:20",
+          "死亡地點": "新北市八里區中山路二段 88 號 7F",
+          "死亡原因": "火災",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "lin_father_hr",
+        "type": "household_removal",
+        "fields": {
+          "戶長": "林建成",
+          "戶籍地址": "新北市八里區中山路二段 88 號 7F",
+          "除戶原因": "死亡",
+          "除戶日期": "2004-09-01",
+          "同戶人口": "林陳美玉、林志豪、林雅婷"
+        },
+        "stamps": [
+          "household_office"
+        ]
+      }
     ],
-    "portrait": { "face": "mid_m_2", "hair": "black_side", "outfit": "shirt_burnt", "trait": "soot" },
-    "answers": { "q_name": { "text": "林建成。我太太跟小孩呢？" }, "q_why": { "text": "我們要吃飯。一家人要一起吃飯。" } },
+    "portrait": {
+      "face": "mid_m_2",
+      "hair": "black_side",
+      "outfit": "shirt_burnt",
+      "trait": "soot"
+    },
+    "answers": {
+      "q_name": {
+        "text": "林建成。我太太跟小孩呢？"
+      },
+      "q_why": {
+        "text": "我們要吃飯。一家人要一起吃飯。"
+      }
+    },
     "relations": [
-      { "with": "lin_mother", "kind": "family", "clue": "除戶謄本同戶" },
-      { "with": "lin_son", "kind": "family", "clue": "除戶謄本同戶" },
-      { "with": "lin_daughter", "kind": "family", "clue": "除戶謄本同戶" }
+      {
+        "with": "lin_mother",
+        "kind": "family",
+        "clue": "除戶謄本同戶"
+      },
+      {
+        "with": "lin_son",
+        "kind": "family",
+        "clue": "除戶謄本同戶"
+      },
+      {
+        "with": "lin_daughter",
+        "kind": "family",
+        "clue": "除戶謄本同戶"
+      }
     ],
     "intro_line": "四個人。我們四個人要住一起。"
   },
@@ -123,13 +251,45 @@
     "death_cause": "火災",
     "address": "新北市八里區中山路二段 88 號 7F",
     "documents": [
-      { "id": "lin_mother_death", "type": "death_cert", "fields": { "姓名": "林陳美玉", "性別": "女", "出生": "1961-06-30", "死亡時間": "2004-08-14 03:20", "死亡地點": "新北市八里區中山路二段 88 號 7F", "死亡原因": "火災", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] }
+      {
+        "id": "lin_mother_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "林陳美玉",
+          "性別": "女",
+          "出生": "1961-06-30",
+          "死亡時間": "2004-08-14 03:20",
+          "死亡地點": "新北市八里區中山路二段 88 號 7F",
+          "死亡原因": "火災",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      }
     ],
-    "portrait": { "face": "mid_f_1", "hair": "perm", "outfit": "apron_burnt", "trait": "soot" },
-    "answers": { "q_why": { "text": "飯煮好了，一直沒人回來吃。" } },
+    "portrait": {
+      "face": "mid_f_1",
+      "hair": "perm",
+      "outfit": "apron_burnt",
+      "trait": "soot"
+    },
+    "answers": {
+      "q_why": {
+        "text": "飯煮好了，一直沒人回來吃。"
+      }
+    },
     "relations": [
-      { "with": "lin_father", "kind": "family", "clue": "" },
-      { "with": "a_mei", "kind": "hostile", "clue": "小妹那晚寄住林家。火是從廚房燒起來的。" }
+      {
+        "with": "lin_father",
+        "kind": "family",
+        "clue": ""
+      },
+      {
+        "with": "a_mei",
+        "kind": "hostile",
+        "clue": "小妹那晚寄住林家。火是從廚房燒起來的。"
+      }
     ],
     "intro_line": "我先生有來嗎？菜要涼了。"
   },
@@ -146,14 +306,70 @@
     "death_cause": "火災",
     "address": "新北市八里區中山路二段 88 號 7F",
     "documents": [
-      { "id": "lin_son_death", "type": "death_cert", "fields": { "姓名": "林志豪", "性別": "男", "出生": "1985-03-17", "死亡時間": "2004-08-14 03:22", "死亡地點": "新北市八里區中山路二段 88 號 7F", "死亡原因": "火災", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] },
-      { "id": "lin_son_id", "type": "id_card", "fields": { "姓名": "林志豪", "出生": "1985-03-17", "住址": "新北市八里區中山路二段 88 號 7F" }, "back_fields": { "父": "陳文雄", "母": "林陳美玉", "配偶": "", "役別": "" }, "stamps": ["cancelled"], "flaws": [{ "check": "parent_mismatch", "field": "父", "note": "父親欄是陳文雄，不是林建成——他是陳伯的兒子，林家是繼父家" }] }
+      {
+        "id": "lin_son_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "林志豪",
+          "性別": "男",
+          "出生": "1985-03-17",
+          "死亡時間": "2004-08-14 03:22",
+          "死亡地點": "新北市八里區中山路二段 88 號 7F",
+          "死亡原因": "火災",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "lin_son_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "林志豪",
+          "出生": "1985-03-17",
+          "住址": "新北市八里區中山路二段 88 號 7F"
+        },
+        "back_fields": {
+          "父": "陳文雄",
+          "母": "林陳美玉",
+          "配偶": "",
+          "役別": ""
+        },
+        "stamps": [
+          "cancelled"
+        ],
+        "flaws": [
+          {
+            "check": "parent_mismatch",
+            "field": "父",
+            "note": "父親欄是陳文雄，不是林建成——他是陳伯的兒子，林家是繼父家"
+          }
+        ]
+      }
     ],
-    "portrait": { "face": "young_m_1", "hair": "black_short", "outfit": "tshirt_burnt", "trait": "car_keys" },
-    "answers": { "q_why": { "text": "我爸……我親生的爸在等我。我答應他九月三號去接他。" } },
+    "portrait": {
+      "face": "young_m_1",
+      "hair": "black_short",
+      "outfit": "tshirt_burnt",
+      "trait": "car_keys"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我爸……我親生的爸在等我。我答應他九月三號去接他。"
+      }
+    },
     "relations": [
-      { "with": "chen_bo", "kind": "family", "clue": "身分證背面父親欄：陳文雄" },
-      { "with": "lin_father", "kind": "family", "clue": "" }
+      {
+        "with": "chen_bo",
+        "kind": "family",
+        "clue": "身分證背面父親欄：陳文雄"
+      },
+      {
+        "with": "lin_father",
+        "kind": "family",
+        "clue": ""
+      }
     ],
     "intro_line": "我可以不跟他們住同一層嗎？"
   },
@@ -170,14 +386,43 @@
     "death_cause": "火災",
     "address": "新北市八里區中山路二段 88 號 7F",
     "documents": [
-      { "id": "lin_daughter_death", "type": "death_cert", "fields": { "姓名": "林雅婷", "性別": "女", "出生": "1988-12-05", "死亡時間": "2004-08-14 03:18", "死亡地點": "新北市八里區中山路二段 88 號 7F", "死亡原因": "火災", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] }
+      {
+        "id": "lin_daughter_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "林雅婷",
+          "性別": "女",
+          "出生": "1988-12-05",
+          "死亡時間": "2004-08-14 03:18",
+          "死亡地點": "新北市八里區中山路二段 88 號 7F",
+          "死亡原因": "火災",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      }
     ],
-    "portrait": { "face": "teen_f_1", "hair": "ponytail", "outfit": "uniform_burnt", "trait": "none" },
-    "answers": { "q_why": { "text": "我只是想回家吃飯。" } },
-    "relations": [{ "with": "lin_father", "kind": "family", "clue": "" }],
+    "portrait": {
+      "face": "teen_f_1",
+      "hair": "ponytail",
+      "outfit": "uniform_burnt",
+      "trait": "none"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我只是想回家吃飯。"
+      }
+    },
+    "relations": [
+      {
+        "with": "lin_father",
+        "kind": "family",
+        "clue": ""
+      }
+    ],
     "intro_line": "……我們可以一起住嗎？"
   },
-
   {
     "id": "g_wang_ama",
     "name": "王阿嬤",
@@ -189,11 +434,49 @@
     "death_cause": "自然死亡",
     "address": "新北市八里區龍米路一段 12 號",
     "documents": [
-      { "id": "g_wang_death", "type": "death_cert", "fields": { "姓名": "王玉蘭", "性別": "女", "出生": "1936-01-08", "死亡時間": "2024-10-20 05:10", "死亡地點": "新北市八里區 自宅", "死亡原因": "自然死亡", "開立醫院": "八里區衛生所" }, "stamps": ["hospital"] },
-      { "id": "g_wang_id", "type": "id_card", "fields": { "姓名": "王玉蘭", "出生": "1936-01-08", "住址": "新北市八里區龍米路一段 12 號" }, "stamps": ["cancelled"] }
+      {
+        "id": "g_wang_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "王玉蘭",
+          "性別": "女",
+          "出生": "1936-01-08",
+          "死亡時間": "2024-10-20 05:10",
+          "死亡地點": "新北市八里區 自宅",
+          "死亡原因": "自然死亡",
+          "開立醫院": "八里區衛生所"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_wang_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "王玉蘭",
+          "出生": "1936-01-08",
+          "住址": "新北市八里區龍米路一段 12 號"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
     ],
-    "portrait": { "face": "old_f_1", "hair": "grey_bun", "outfit": "floral", "trait": "prayer_beads" },
-    "answers": { "q_name": { "text": "叫我阿嬤就好。" }, "q_why": { "text": "我孫子說土地公這裡可以等車。" } },
+    "portrait": {
+      "face": "old_f_1",
+      "hair": "grey_bun",
+      "outfit": "floral",
+      "trait": "prayer_beads"
+    },
+    "answers": {
+      "q_name": {
+        "text": "叫我阿嬤就好。"
+      },
+      "q_why": {
+        "text": "我孫子說土地公這裡可以等車。"
+      }
+    },
     "intro_line": "少年仔，這裡是不是要等很久？"
   },
   {
@@ -207,10 +490,34 @@
     "death_cause": "車禍",
     "address": "新北市八里區中華路 200 巷 5 號",
     "documents": [
-      { "id": "g_kai_death", "type": "death_cert", "fields": { "姓名": "張凱翔", "性別": "男", "出生": "2002-07-19", "死亡時間": "2024-11-01 23:50", "死亡地點": "新北市八里區 中華路", "死亡原因": "車禍", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] }
+      {
+        "id": "g_kai_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "張凱翔",
+          "性別": "男",
+          "出生": "2002-07-19",
+          "死亡時間": "2024-11-01 23:50",
+          "死亡地點": "新北市八里區 中華路",
+          "死亡原因": "車禍",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      }
     ],
-    "portrait": { "face": "young_m_2", "hair": "bleached", "outfit": "hoodie", "trait": "helmet" },
-    "answers": { "q_why": { "text": "我也不知道，就突然在這裡了。" } },
+    "portrait": {
+      "face": "young_m_2",
+      "hair": "bleached",
+      "outfit": "hoodie",
+      "trait": "helmet"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我也不知道，就突然在這裡了。"
+      }
+    },
     "intro_line": "欸，這裡有 Wi-Fi 嗎？"
   },
   {
@@ -224,11 +531,46 @@
     "death_cause": "過勞猝死",
     "address": "新北市淡水區",
     "documents": [
-      { "id": "g_nurse_death", "type": "death_cert", "fields": { "姓名": "李佳慧", "性別": "女", "出生": "1990-05-23", "死亡時間": "2024-08-09 04:30", "死亡地點": "淡水馬偕紀念醫院", "死亡原因": "心因性猝死", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] },
-      { "id": "g_nurse_id", "type": "id_card", "fields": { "姓名": "李佳慧", "出生": "1990-05-23", "住址": "新北市淡水區" }, "stamps": ["cancelled"] }
+      {
+        "id": "g_nurse_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "李佳慧",
+          "性別": "女",
+          "出生": "1990-05-23",
+          "死亡時間": "2024-08-09 04:30",
+          "死亡地點": "淡水馬偕紀念醫院",
+          "死亡原因": "心因性猝死",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_nurse_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "李佳慧",
+          "出生": "1990-05-23",
+          "住址": "新北市淡水區"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
     ],
-    "portrait": { "face": "mid_f_2", "hair": "bob", "outfit": "scrubs", "trait": "lanyard" },
-    "answers": { "q_why": { "text": "我下班了。終於。" } },
+    "portrait": {
+      "face": "mid_f_2",
+      "hair": "bob",
+      "outfit": "scrubs",
+      "trait": "lanyard"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我下班了。終於。"
+      }
+    },
     "intro_line": "有沒有房間可以直接睡的，我真的很累。"
   },
   {
@@ -242,13 +584,52 @@
     "death_cause": "車禍",
     "address": "桃園市蘆竹區",
     "documents": [
-      { "id": "g_truck_death", "type": "death_cert", "fields": { "姓名": "黃明德", "性別": "男", "出生": "1974-02-11", "死亡時間": "2024-11-02 00:05", "死亡地點": "新北市八里區 中華路", "死亡原因": "車禍", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] },
-      { "id": "g_truck_id", "type": "id_card", "fields": { "姓名": "黃明德", "出生": "1974-02-11", "住址": "桃園市蘆竹區" }, "stamps": ["cancelled"] }
+      {
+        "id": "g_truck_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "黃明德",
+          "性別": "男",
+          "出生": "1974-02-11",
+          "死亡時間": "2024-11-02 00:05",
+          "死亡地點": "新北市八里區 中華路",
+          "死亡原因": "車禍",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_truck_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "黃明德",
+          "出生": "1974-02-11",
+          "住址": "桃園市蘆竹區"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
     ],
-    "portrait": { "face": "mid_m_3", "hair": "cap", "outfit": "work_vest", "trait": "none" },
-    "answers": { "q_why": { "text": "……那個騎車的小孩有來嗎？" } },
+    "portrait": {
+      "face": "mid_m_3",
+      "hair": "cap",
+      "outfit": "work_vest",
+      "trait": "none"
+    },
+    "answers": {
+      "q_why": {
+        "text": "……那個騎車的小孩有來嗎？"
+      }
+    },
     "relations": [
-      { "with": "g_street_youth", "kind": "hostile", "clue": "同一天、同一條路：他撞死了阿凱" }
+      {
+        "with": "g_street_youth",
+        "kind": "hostile",
+        "clue": "同一天、同一條路：他撞死了阿凱"
+      }
     ],
     "intro_line": "我不是故意的。我真的沒看到他。"
   },
@@ -263,10 +644,34 @@
     "death_cause": "車禍",
     "address": "新北市五股區",
     "documents": [
-      { "id": "g_rider_death", "type": "death_cert", "fields": { "姓名": "吳志偉", "性別": "男", "出生": "1997-09-09", "死亡時間": "2024-10-30 21:15", "死亡地點": "新北市八里區 龍米路", "死亡原因": "車禍", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] }
+      {
+        "id": "g_rider_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "吳志偉",
+          "性別": "男",
+          "出生": "1997-09-09",
+          "死亡時間": "2024-10-30 21:15",
+          "死亡地點": "新北市八里區 龍米路",
+          "死亡原因": "車禍",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      }
     ],
-    "portrait": { "face": "young_m_3", "hair": "black_short", "outfit": "delivery_jacket", "trait": "thermal_bag" },
-    "answers": { "q_why": { "text": "這單還沒送到……7 樓的，四人份。" } },
+    "portrait": {
+      "face": "young_m_3",
+      "hair": "black_short",
+      "outfit": "delivery_jacket",
+      "trait": "thermal_bag"
+    },
+    "answers": {
+      "q_why": {
+        "text": "這單還沒送到……7 樓的，四人份。"
+      }
+    },
     "intro_line": "請問 7 樓怎麼走？客人在催。"
   },
   {
@@ -280,11 +685,48 @@
     "death_cause": "病逝",
     "address": "新北市八里區中山路二段 88 號 5F",
     "documents": [
-      { "id": "g_teacher_death", "type": "death_cert", "fields": { "姓名": "許文彬", "性別": "男", "出生": "1945-09-28", "死亡時間": "2024-09-28 14:00", "死亡地點": "新北市八里區 自宅", "死亡原因": "病逝", "開立醫院": "淡水馬偕紀念醫院" }, "stamps": ["hospital"] },
-      { "id": "g_teacher_hr", "type": "household_removal", "fields": { "戶長": "許文彬", "戶籍地址": "新北市八里區中山路二段 88 號 5F", "除戶原因": "死亡", "除戶日期": "2024-10-05", "遷入日期": "2006-03-01" }, "stamps": ["household_office"] }
+      {
+        "id": "g_teacher_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "許文彬",
+          "性別": "男",
+          "出生": "1945-09-28",
+          "死亡時間": "2024-09-28 14:00",
+          "死亡地點": "新北市八里區 自宅",
+          "死亡原因": "病逝",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_teacher_hr",
+        "type": "household_removal",
+        "fields": {
+          "戶長": "許文彬",
+          "戶籍地址": "新北市八里區中山路二段 88 號 5F",
+          "除戶原因": "死亡",
+          "除戶日期": "2024-10-05",
+          "遷入日期": "2006-03-01"
+        },
+        "stamps": [
+          "household_office"
+        ]
+      }
     ],
-    "portrait": { "face": "old_m_2", "hair": "grey_comb", "outfit": "cardigan", "trait": "glasses" },
-    "answers": { "q_why": { "text": "我住 88 號很多年了。那棟樓……不太平靜。" } },
+    "portrait": {
+      "face": "old_m_2",
+      "hair": "grey_comb",
+      "outfit": "cardigan",
+      "trait": "glasses"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我住 88 號很多年了。那棟樓……不太平靜。"
+      }
+    },
     "intro_line": "教師節那天走的。學生都沒來。"
   },
   {
@@ -298,13 +740,36 @@
     "death_cause": "溺水",
     "address": "新北市八里區",
     "documents": [
-      { "id": "g_fisher_death", "type": "death_cert", "fields": { "姓名": "郭水生", "性別": "男", "出生": "1966-04-04", "死亡時間": "2024-07-15（推定）", "死亡地點": "八里 外海", "死亡原因": "溺水", "開立醫院": "新北地檢署相驗" }, "stamps": ["prosecutor"] }
+      {
+        "id": "g_fisher_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "郭水生",
+          "性別": "男",
+          "出生": "1966-04-04",
+          "死亡時間": "2024-07-15（推定）",
+          "死亡地點": "八里 外海",
+          "死亡原因": "溺水",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      }
     ],
-    "portrait": { "face": "mid_m_4", "hair": "wet", "outfit": "raincoat", "trait": "dripping" },
-    "answers": { "q_why": { "text": "……冷。" } },
+    "portrait": {
+      "face": "mid_m_4",
+      "hair": "wet",
+      "outfit": "raincoat",
+      "trait": "dripping"
+    },
+    "answers": {
+      "q_why": {
+        "text": "……冷。"
+      }
+    },
     "intro_line": "（他沒有說話，地上一灘水。）"
   },
-
   {
     "id": "h_lin_debtor",
     "name": "欠債的男人",
@@ -313,15 +778,38 @@
     "age": 41,
     "address": "新北市八里區",
     "documents": [
-      { "id": "h_debtor_id", "type": "id_card", "fields": { "姓名": "蔡國強", "出生": "1983-08-08", "住址": "新北市八里區" }, "stamps": [] }
+      {
+        "id": "h_debtor_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "蔡國強",
+          "出生": "1983-08-08",
+          "住址": "新北市八里區"
+        },
+        "stamps": []
+      }
     ],
-    "portrait": { "face": "mid_m_5", "hair": "messy", "outfit": "suit_wrinkled", "trait": "cigarette" },
+    "portrait": {
+      "face": "mid_m_5",
+      "hair": "messy",
+      "outfit": "suit_wrinkled",
+      "trait": "cigarette"
+    },
     "has_shadow": true,
     "feet_on_ground": true,
     "answers": {
-      "q_name": { "text": "蔡國強。欸，你別問那麼多。", "contradicts": [] },
-      "q_date": { "text": "十一月八號啊，怎麼了？", "contradicts": [] },
-      "q_why": { "text": "我聽說住這裡的話，他們找不到我。", "contradicts": [] }
+      "q_name": {
+        "text": "蔡國強。欸，你別問那麼多。",
+        "contradicts": []
+      },
+      "q_date": {
+        "text": "十一月八號啊，怎麼了？",
+        "contradicts": []
+      },
+      "q_why": {
+        "text": "我聽說住這裡的話，他們找不到我。",
+        "contradicts": []
+      }
     },
     "intro_line": "我要一間房。多少錢都行，我只要他們找不到我。",
     "plea_line": "拜託。你不知道他們會對我做什麼。",
@@ -338,10 +826,34 @@
     "death_cause": "不明",
     "address": "新北市八里區",
     "documents": [
-      { "id": "h_debtor_death_r", "type": "death_cert", "fields": { "姓名": "蔡國強", "性別": "男", "出生": "1983-08-08", "死亡時間": "2024-11-09 03:00", "死亡地點": "福德宮 香客大樓", "死亡原因": "不明", "開立醫院": "新北地檢署相驗" }, "stamps": ["prosecutor"] }
+      {
+        "id": "h_debtor_death_r",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "蔡國強",
+          "性別": "男",
+          "出生": "1983-08-08",
+          "死亡時間": "2024-11-09 03:00",
+          "死亡地點": "福德宮 香客大樓",
+          "死亡原因": "不明",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      }
     ],
-    "portrait": { "face": "mid_m_5", "hair": "messy", "outfit": "suit_wrinkled", "trait": "pale" },
-    "answers": { "q_why": { "text": "你昨天讓我進來的。你記得吧。" } },
+    "portrait": {
+      "face": "mid_m_5",
+      "hair": "messy",
+      "outfit": "suit_wrinkled",
+      "trait": "pale"
+    },
+    "answers": {
+      "q_why": {
+        "text": "你昨天讓我進來的。你記得吧。"
+      }
+    },
     "intro_line": "……是你。你昨天讓我進來的。"
   },
   {
@@ -352,15 +864,35 @@
     "age": 20,
     "address": "台北市",
     "documents": [
-      { "id": "h_student_id", "type": "id_card", "fields": { "姓名": "周雨彤", "出生": "2004-02-29", "住址": "台北市大安區" }, "stamps": [] }
+      {
+        "id": "h_student_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "周雨彤",
+          "出生": "2004-02-29",
+          "住址": "台北市大安區"
+        },
+        "stamps": []
+      }
     ],
-    "portrait": { "face": "young_f_1", "hair": "long", "outfit": "backpack", "trait": "phone" },
+    "portrait": {
+      "face": "young_f_1",
+      "hair": "long",
+      "outfit": "backpack",
+      "trait": "phone"
+    },
     "has_shadow": true,
     "feet_on_ground": true,
     "answers": {
-      "q_name": { "text": "周雨彤。請問這裡有廁所嗎？" },
-      "q_date": { "text": "十一月八號，星期六。" },
-      "q_why": { "text": "我 Google Maps 導到這裡，說這裡有住宿……手機快沒電了。" }
+      "q_name": {
+        "text": "周雨彤。請問這裡有廁所嗎？"
+      },
+      "q_date": {
+        "text": "十一月八號，星期六。"
+      },
+      "q_why": {
+        "text": "我 Google Maps 導到這裡，說這裡有住宿……手機快沒電了。"
+      }
     },
     "intro_line": "不好意思，請問這裡是民宿嗎？我迷路了。",
     "plea_line": "可是山下已經沒公車了……",
@@ -377,10 +909,34 @@
     "death_cause": "不明",
     "address": "台北市大安區",
     "documents": [
-      { "id": "h_student_death_r", "type": "death_cert", "fields": { "姓名": "周雨彤", "性別": "女", "出生": "2004-02-29", "死亡時間": "2024-11-09 04:10", "死亡地點": "福德宮 香客大樓", "死亡原因": "不明", "開立醫院": "新北地檢署相驗" }, "stamps": ["prosecutor"] }
+      {
+        "id": "h_student_death_r",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "周雨彤",
+          "性別": "女",
+          "出生": "2004-02-29",
+          "死亡時間": "2024-11-09 04:10",
+          "死亡地點": "福德宮 香客大樓",
+          "死亡原因": "不明",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      }
     ],
-    "portrait": { "face": "young_f_1", "hair": "long", "outfit": "backpack", "trait": "pale" },
-    "answers": { "q_why": { "text": "我只是想借廁所。" } },
+    "portrait": {
+      "face": "young_f_1",
+      "hair": "long",
+      "outfit": "backpack",
+      "trait": "pale"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我只是想借廁所。"
+      }
+    },
     "intro_line": "……我只是想借個廁所而已。"
   },
   {
@@ -391,15 +947,43 @@
     "age": 52,
     "address": "新北市八里區中山路二段 88 號 12F",
     "documents": [
-      { "id": "h_mother_id", "type": "id_card", "fields": { "姓名": "林淑芬", "出生": "1972-10-10", "住址": "新北市八里區中山路二段 88 號 12F" }, "stamps": [] },
-      { "id": "h_mother_obit_copy", "type": "obituary", "title": "訃聞（影本）", "fields": { "亡者": "林小妹", "享年": "八歲", "家屬": "母 林淑芬 泣告", "公祭": "2004-08-28 八里殯儀館" } }
+      {
+        "id": "h_mother_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "林淑芬",
+          "出生": "1972-10-10",
+          "住址": "新北市八里區中山路二段 88 號 12F"
+        },
+        "stamps": []
+      },
+      {
+        "id": "h_mother_obit_copy",
+        "type": "obituary",
+        "title": "訃聞（影本）",
+        "fields": {
+          "亡者": "林小妹",
+          "享年": "八歲",
+          "家屬": "母 林淑芬 泣告",
+          "公祭": "2004-08-28 八里殯儀館"
+        }
+      }
     ],
-    "portrait": { "face": "mid_f_3", "hair": "grey_streak", "outfit": "coat", "trait": "photo" },
+    "portrait": {
+      "face": "mid_f_3",
+      "hair": "grey_streak",
+      "outfit": "coat",
+      "trait": "photo"
+    },
     "has_shadow": true,
     "feet_on_ground": true,
     "answers": {
-      "q_name": { "text": "林淑芬。我女兒是不是在這裡？她叫林小妹。" },
-      "q_why": { "text": "有人說……死的人會先來這裡。我等了二十年。" }
+      "q_name": {
+        "text": "林淑芬。我女兒是不是在這裡？她叫林小妹。"
+      },
+      "q_why": {
+        "text": "有人說……死的人會先來這裡。我等了二十年。"
+      }
     },
     "intro_line": "我女兒是不是在這裡？拜託你讓我見她一面就好。",
     "plea_line": "我知道我還活著。我就是想跟她說對不起。",
@@ -416,17 +1000,61 @@
     "death_place": "新北市林口區",
     "death_cause": "車禍",
     "documents": [
-      { "id": "h_runner_death", "type": "death_cert", "fields": { "姓名": "何志明", "性別": "男", "出生": "1986-03-03", "死亡時間": "2024-11-05 22:00", "死亡地點": "新北市林口區", "死亡原因": "車禍", "開立醫院": "林口長庚紀念醫院" }, "is_forged": true, "flaws": [{ "check": "seal_wrong", "field": "開立醫院", "note": "章是殯葬業者的，不是醫院的" }], "stamps": ["funeral_home"] },
-      { "id": "h_runner_id", "type": "id_card", "fields": { "姓名": "何志明", "出生": "1986-03-03", "住址": "新北市林口區" }, "stamps": [] }
+      {
+        "id": "h_runner_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "何志明",
+          "性別": "男",
+          "出生": "1986-03-03",
+          "死亡時間": "2024-11-05 22:00",
+          "死亡地點": "新北市林口區",
+          "死亡原因": "車禍",
+          "開立醫院": "林口長庚紀念醫院"
+        },
+        "is_forged": true,
+        "flaws": [
+          {
+            "check": "seal_wrong",
+            "field": "開立醫院",
+            "note": "章是殯葬業者的，不是醫院的"
+          }
+        ],
+        "stamps": [
+          "funeral_home"
+        ]
+      },
+      {
+        "id": "h_runner_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "何志明",
+          "出生": "1986-03-03",
+          "住址": "新北市林口區"
+        },
+        "stamps": []
+      }
     ],
-    "portrait": { "face": "mid_m_6", "hair": "slick", "outfit": "jacket_leather", "trait": "sunglasses" },
+    "portrait": {
+      "face": "mid_m_6",
+      "hair": "slick",
+      "outfit": "jacket_leather",
+      "trait": "sunglasses"
+    },
     "has_shadow": true,
     "feet_on_ground": true,
     "visual_tells": [],
     "answers": {
-      "q_name": { "text": "何志明。死亡證明在這，看清楚。" },
-      "q_date": { "text": "死人需要知道今天幾號嗎？", "contradicts": [] },
-      "q_why": { "text": "我死了。死了就來這裡，不是嗎？" }
+      "q_name": {
+        "text": "何志明。死亡證明在這，看清楚。"
+      },
+      "q_date": {
+        "text": "死人需要知道今天幾號嗎？",
+        "contradicts": []
+      },
+      "q_why": {
+        "text": "我死了。死了就來這裡，不是嗎？"
+      }
     },
     "intro_line": "我死了，這是證明。給我房間。",
     "plea_line": "你要我怎麼證明？切一塊給你看？",
@@ -443,13 +1071,36 @@
     "death_cause": "不明",
     "address": "新北市林口區",
     "documents": [
-      { "id": "h_runner_death_r", "type": "death_cert", "fields": { "姓名": "何志明", "性別": "男", "出生": "1986-03-03", "死亡時間": "2024-11-09 02:30", "死亡地點": "福德宮 香客大樓", "死亡原因": "不明", "開立醫院": "新北地檢署相驗" }, "stamps": ["prosecutor"] }
+      {
+        "id": "h_runner_death_r",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "何志明",
+          "性別": "男",
+          "出生": "1986-03-03",
+          "死亡時間": "2024-11-09 02:30",
+          "死亡地點": "福德宮 香客大樓",
+          "死亡原因": "不明",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      }
     ],
-    "portrait": { "face": "mid_m_6", "hair": "slick", "outfit": "jacket_leather", "trait": "pale" },
-    "answers": { "q_why": { "text": "這次是真的了。滿意了嗎。" } },
+    "portrait": {
+      "face": "mid_m_6",
+      "hair": "slick",
+      "outfit": "jacket_leather",
+      "trait": "pale"
+    },
+    "answers": {
+      "q_why": {
+        "text": "這次是真的了。滿意了嗎。"
+      }
+    },
     "intro_line": "這次是真的。你滿意了嗎。"
   },
-
   {
     "id": "inspector",
     "name": "管委會抽查員",
@@ -461,11 +1112,1024 @@
     "death_cause": "（不詳）",
     "address": "福德宮",
     "documents": [
-      { "id": "inspector_death", "type": "death_cert", "fields": { "姓名": "（空白）", "性別": "—", "出生": "—", "死亡時間": "1949-01-01", "死亡地點": "（不詳）", "死亡原因": "（不詳）", "開立醫院": "福德宮管理委員會" }, "stamps": ["committee"] },
-      { "id": "inspector_id", "type": "id_card", "fields": { "姓名": "（空白）", "出生": "—", "住址": "福德宮" }, "stamps": ["cancelled", "committee"] }
+      {
+        "id": "inspector_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "（空白）",
+          "性別": "—",
+          "出生": "—",
+          "死亡時間": "1949-01-01",
+          "死亡地點": "（不詳）",
+          "死亡原因": "（不詳）",
+          "開立醫院": "福德宮管理委員會"
+        },
+        "stamps": [
+          "committee"
+        ]
+      },
+      {
+        "id": "inspector_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "（空白）",
+          "出生": "—",
+          "住址": "福德宮"
+        },
+        "stamps": [
+          "cancelled",
+          "committee"
+        ]
+      }
     ],
-    "portrait": { "face": "none", "hair": "none", "outfit": "suit_black", "trait": "clipboard" },
-    "answers": { "q_name": { "text": "不重要。" }, "q_date": { "text": "最後一天。" }, "q_why": { "text": "看看你。" } },
+    "portrait": {
+      "face": "none",
+      "hair": "none",
+      "outfit": "suit_black",
+      "trait": "clipboard"
+    },
+    "answers": {
+      "q_name": {
+        "text": "不重要。"
+      },
+      "q_date": {
+        "text": "最後一天。"
+      },
+      "q_why": {
+        "text": "看看你。"
+      }
+    },
     "intro_line": "文件都齊了。你看一下，然後蓋章。"
+  },
+  {
+    "id": "g_temple_keeper",
+    "name": "老廟公",
+    "kind": "ghost",
+    "zodiac": "蛇",
+    "age": 82,
+    "death_date": "2024-10-02",
+    "death_place": "福德宮 廟埕",
+    "death_cause": "跌倒",
+    "address": "新北市八里區 福德宮旁",
+    "documents": [
+      {
+        "id": "g_tk_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "許添丁",
+          "性別": "男",
+          "出生": "1942-05-05",
+          "死亡時間": "2024-10-02 06:30",
+          "死亡地點": "福德宮 廟埕",
+          "死亡原因": "跌倒頭部外傷",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_tk_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "許添丁",
+          "出生": "1942-05-05",
+          "住址": "新北市八里區 福德宮旁"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "old_m_3",
+      "hair": "bald",
+      "outfit": "vest_blue",
+      "trait": "incense"
+    },
+    "answers": {
+      "q_name": {
+        "text": "我顧這間廟四十年。你是新來的？"
+      },
+      "q_why": {
+        "text": "我想看看接手的人做得怎樣。做得不好我會說。"
+      }
+    },
+    "intro_line": "香爐的灰，三天要清一次。你清了沒？"
+  },
+  {
+    "id": "g_bride",
+    "name": "紅衣新娘",
+    "kind": "ghost",
+    "zodiac": "雞",
+    "age": 26,
+    "death_date": "2019-02-14",
+    "death_place": "新北市八里區 龍米路 飯店",
+    "death_cause": "不明",
+    "address": "新北市八里區",
+    "documents": [
+      {
+        "id": "g_bride_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "劉婉婷",
+          "性別": "女",
+          "出生": "1992-11-11",
+          "死亡時間": "2019-02-14 23:59",
+          "死亡地點": "新北市八里區 龍米路 飯店",
+          "死亡原因": "不明",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "young_f_2",
+      "hair": "updo",
+      "outfit": "red_qipao",
+      "trait": "veil"
+    },
+    "answers": {
+      "q_name": {
+        "text": "……你可以叫我劉太太。"
+      },
+      "q_why": {
+        "text": "我在等一個人把戒指還我。"
+      }
+    },
+    "relations": [
+      {
+        "with": "g_groom",
+        "kind": "hostile",
+        "clue": "同一天、同一間飯店：他是逃婚的新郎，隔年也死在同一個地方"
+      }
+    ],
+    "intro_line": "有人來找過我嗎？姓蔡的。"
+  },
+  {
+    "id": "g_groom",
+    "name": "逃婚的男人",
+    "kind": "ghost",
+    "zodiac": "兔",
+    "age": 30,
+    "death_date": "2019-02-14",
+    "death_place": "新北市八里區 龍米路 飯店",
+    "death_cause": "墜樓",
+    "address": "台北市",
+    "documents": [
+      {
+        "id": "g_groom_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "蔡明哲",
+          "性別": "男",
+          "出生": "1989-06-06",
+          "死亡時間": "2020-02-14 00:40",
+          "死亡地點": "新北市八里區 龍米路 飯店",
+          "死亡原因": "墜樓",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      },
+      {
+        "id": "g_groom_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "蔡明哲",
+          "出生": "1989-06-06",
+          "住址": "台北市中山區"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "young_m_4",
+      "hair": "undercut",
+      "outfit": "suit_white",
+      "trait": "ring"
+    },
+    "answers": {
+      "q_date": {
+        "text": "二月十四。每年都是二月十四。"
+      },
+      "q_why": {
+        "text": "我回去找她了。真的。只是晚了一年。"
+      }
+    },
+    "intro_line": "這裡……有沒有一個穿紅色的女生？"
+  },
+  {
+    "id": "h_reporter",
+    "name": "記者",
+    "kind": "human",
+    "zodiac": "龍",
+    "age": 33,
+    "address": "台北市信義區",
+    "documents": [
+      {
+        "id": "h_rep_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "黃思涵",
+          "出生": "1991-08-21",
+          "住址": "台北市信義區"
+        },
+        "stamps": []
+      },
+      {
+        "id": "h_rep_press",
+        "type": "other",
+        "title": "記者證",
+        "fields": {
+          "姓名": "黃思涵",
+          "單位": "週刊編輯部",
+          "有效期限": "2025-12-31"
+        }
+      }
+    ],
+    "portrait": {
+      "face": "mid_f_4",
+      "hair": "bob_brown",
+      "outfit": "blazer",
+      "trait": "recorder"
+    },
+    "has_shadow": true,
+    "feet_on_ground": true,
+    "answers": {
+      "q_name": {
+        "text": "黃思涵，我住八里，就在山下。",
+        "contradicts": [
+          "h_rep_id.住址"
+        ]
+      },
+      "q_date": {
+        "text": "十一月十一號，禮拜一。"
+      },
+      "q_why": {
+        "text": "我聽說這裡晚上會有……特別的客人。只是想住一晚。"
+      }
+    },
+    "intro_line": "你好，我想住一晚。我有帶證件。",
+    "plea_line": "我不會寫出來的，我保證。",
+    "return_as": "g_reporter_returned"
+  },
+  {
+    "id": "g_reporter_returned",
+    "name": "黃思涵",
+    "kind": "ghost",
+    "zodiac": "龍",
+    "age": 33,
+    "death_date": "2024-11-12",
+    "death_place": "福德宮 香客大樓",
+    "death_cause": "不明",
+    "address": "台北市信義區",
+    "documents": [
+      {
+        "id": "h_rep_death_r",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "黃思涵",
+          "性別": "女",
+          "出生": "1991-08-21",
+          "死亡時間": "2024-11-12 03:33",
+          "死亡地點": "福德宮 香客大樓",
+          "死亡原因": "不明",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "mid_f_4",
+      "hair": "bob_brown",
+      "outfit": "blazer",
+      "trait": "pale"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我拿到獨家了。沒人能看。"
+      }
+    },
+    "intro_line": "……我拿到獨家了。"
+  },
+  {
+    "id": "h_drunk",
+    "name": "醉漢",
+    "kind": "human",
+    "zodiac": "猴",
+    "age": 47,
+    "address": "新北市八里區",
+    "documents": [
+      {
+        "id": "h_drunk_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "郭志成",
+          "出生": "1977-03-30",
+          "住址": "新北市八里區中華路"
+        },
+        "stamps": []
+      }
+    ],
+    "portrait": {
+      "face": "mid_m_7",
+      "hair": "messy_grey",
+      "outfit": "shirt_open",
+      "trait": "bottle"
+    },
+    "has_shadow": true,
+    "feet_on_ground": true,
+    "answers": {
+      "q_name": {
+        "text": "郭……郭志成啦。"
+      },
+      "q_date": {
+        "text": "今天？今天禮拜五啊，發薪水。",
+        "contradicts": [
+          "calendar"
+        ]
+      },
+      "q_why": {
+        "text": "我老婆把我鎖在外面。借我睡一晚。"
+      }
+    },
+    "intro_line": "老闆，一間房，便宜的。",
+    "plea_line": "我沒錢住旅館啦，拜託。",
+    "return_as": ""
+  },
+  {
+    "id": "g_loan_shark",
+    "name": "放高利貸的",
+    "kind": "ghost",
+    "zodiac": "狗",
+    "age": 55,
+    "death_date": "2023-12-24",
+    "death_place": "新北市八里區 中山路 店面",
+    "death_cause": "他殺",
+    "address": "新北市八里區",
+    "documents": [
+      {
+        "id": "g_ls_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "賴金龍",
+          "性別": "男",
+          "出生": "1969-01-15",
+          "死亡時間": "2023-12-24 21:00",
+          "死亡地點": "新北市八里區 中山路 店面",
+          "死亡原因": "他殺",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      },
+      {
+        "id": "g_ls_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "賴金龍",
+          "出生": "1969-01-15",
+          "住址": "新北市八里區"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "mid_m_8",
+      "hair": "slick_grey",
+      "outfit": "jacket_gold",
+      "trait": "gold_chain"
+    },
+    "answers": {
+      "q_name": {
+        "text": "賴董。叫我賴董。"
+      },
+      "q_why": {
+        "text": "有人欠我錢沒還就死了。我來收。"
+      }
+    },
+    "intro_line": "這裡有沒有一個姓鄭的？他欠我兩百萬。"
+  },
+  {
+    "id": "g_debtor_ghost",
+    "name": "欠債的老闆",
+    "kind": "ghost",
+    "zodiac": "虎",
+    "age": 49,
+    "death_date": "2024-01-10",
+    "death_place": "新北市八里區 自宅",
+    "death_cause": "不明",
+    "address": "新北市八里區 龍米路",
+    "documents": [
+      {
+        "id": "g_dg_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "鄭文龍",
+          "性別": "男",
+          "出生": "1975-07-07",
+          "死亡時間": "2024-01-10 04:00",
+          "死亡地點": "新北市八里區 自宅",
+          "死亡原因": "不明",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      },
+      {
+        "id": "g_dg_obit",
+        "type": "obituary",
+        "fields": {
+          "亡者": "鄭文龍",
+          "享年": "五十歲",
+          "家屬": "妻 鄭林美惠 泣告",
+          "治喪委員": "賴金龍、王大明、陳水木",
+          "公祭": "2024-01-25 八里殯儀館"
+        }
+      }
+    ],
+    "portrait": {
+      "face": "mid_m_9",
+      "hair": "thin",
+      "outfit": "polo_grey",
+      "trait": "briefcase"
+    },
+    "answers": {
+      "q_why": {
+        "text": "……賴董有來嗎？他說過，人死了帳就算了。"
+      }
+    },
+    "relations": [
+      {
+        "with": "g_loan_shark",
+        "kind": "debt",
+        "clue": "訃聞治喪委員第一個名字就是賴金龍——債主"
+      }
+    ],
+    "intro_line": "拜託，不要讓姓賴的知道我在哪一層。"
+  },
+  {
+    "id": "g_tiger_clash",
+    "name": "工地主任",
+    "kind": "ghost",
+    "zodiac": "虎",
+    "age": 44,
+    "death_date": "2024-11-10",
+    "death_place": "新北市八里區 工地",
+    "death_cause": "墜落",
+    "address": "新北市林口區",
+    "documents": [
+      {
+        "id": "g_tc_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "洪志雄",
+          "性別": "男",
+          "出生": "1980-02-02",
+          "死亡時間": "2024-11-10 15:20",
+          "死亡地點": "新北市八里區 工地",
+          "死亡原因": "高處墜落",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_tc_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "洪志雄",
+          "出生": "1980-02-02",
+          "住址": "新北市林口區"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "mid_m_10",
+      "hair": "helmet_yellow",
+      "outfit": "safety_vest",
+      "trait": "none"
+    },
+    "visual_tells": [
+      "almanac_clash"
+    ],
+    "answers": {
+      "q_why": {
+        "text": "今天不能住？農民曆？我不信那個。"
+      }
+    },
+    "intro_line": "我剛走。文件都齊了，快點。"
+  },
+  {
+    "id": "g_widow",
+    "name": "老太太",
+    "kind": "ghost",
+    "zodiac": "羊",
+    "age": 79,
+    "death_date": "2024-11-09",
+    "death_place": "新北市八里區 自宅",
+    "death_cause": "自然死亡",
+    "address": "新北市八里區 龍米路 12 號",
+    "documents": [
+      {
+        "id": "g_widow_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "林阿雪",
+          "性別": "女",
+          "出生": "1945-04-18",
+          "死亡時間": "2024-11-09 05:00",
+          "死亡地點": "新北市八里區 自宅",
+          "死亡原因": "自然死亡",
+          "開立醫院": "八里區衛生所"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_widow_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "林阿雪",
+          "出生": "1945-04-18",
+          "住址": "新北市八里區龍米路一段 12 號"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "old_f_2",
+      "hair": "grey_short",
+      "outfit": "cardigan_pink",
+      "trait": "cane"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我先生先走十年了。他有沒有來等我？"
+      }
+    },
+    "intro_line": "小姐，呃，先生……這裡有登記簿嗎？我想查一個人。"
+  },
+  {
+    "id": "h_medium",
+    "name": "靈媒",
+    "kind": "human",
+    "zodiac": "蛇",
+    "age": 58,
+    "address": "桃園市",
+    "documents": [
+      {
+        "id": "h_med_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "張金花",
+          "出生": "1966-09-09",
+          "住址": "桃園市中壢區"
+        },
+        "stamps": []
+      },
+      {
+        "id": "h_med_cert",
+        "type": "other",
+        "title": "宮廟證書",
+        "fields": {
+          "姓名": "張金花",
+          "宮名": "天靈宮",
+          "職稱": "乩身"
+        }
+      }
+    ],
+    "portrait": {
+      "face": "mid_f_5",
+      "hair": "perm_dyed",
+      "outfit": "robe_yellow",
+      "trait": "beads"
+    },
+    "has_shadow": true,
+    "feet_on_ground": true,
+    "answers": {
+      "q_name": {
+        "text": "張金花。我感應到這裡有很多……朋友。"
+      },
+      "q_why": {
+        "text": "有人付錢請我來帶話。讓我進去一下就好。"
+      }
+    },
+    "intro_line": "我知道這裡是什麼地方。我不會亂來。",
+    "plea_line": "外面那位太太付了很多錢。拜託。",
+    "return_as": ""
+  },
+  {
+    "id": "g_landlord_old",
+    "name": "老屋主",
+    "kind": "ghost",
+    "zodiac": "鼠",
+    "age": 68,
+    "death_date": "1998-06-20",
+    "death_place": "新北市八里區中山路二段 88 號 5F",
+    "death_cause": "病逝",
+    "address": "新北市八里區中山路二段 88 號 5F",
+    "documents": [
+      {
+        "id": "g_lo_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "吳坤山",
+          "性別": "男",
+          "出生": "1930-10-10",
+          "死亡時間": "1998-06-20 11:00",
+          "死亡地點": "新北市八里區中山路二段 88 號 5F",
+          "死亡原因": "病逝",
+          "開立醫院": "台北榮民總醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_lo_hr",
+        "type": "household_removal",
+        "fields": {
+          "戶長": "吳坤山",
+          "戶籍地址": "新北市八里區中山路二段 88 號 5F",
+          "除戶原因": "死亡",
+          "除戶日期": "1998-07-01",
+          "遷入日期": "1985-03-01"
+        },
+        "stamps": [
+          "household_office"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "old_m_4",
+      "hair": "grey_comb",
+      "outfit": "tang_suit",
+      "trait": "abacus"
+    },
+    "answers": {
+      "q_why": {
+        "text": "那間房子是我的。我兒子沒資格賣。"
+      }
+    },
+    "intro_line": "五樓的房子現在是誰在住？"
+  },
+  {
+    "id": "g_landlord_new",
+    "name": "新屋主",
+    "kind": "ghost",
+    "zodiac": "馬",
+    "age": 60,
+    "death_date": "2024-11-01",
+    "death_place": "新北市八里區中山路二段 88 號 5F",
+    "death_cause": "心肌梗塞",
+    "address": "新北市八里區中山路二段 88 號 5F",
+    "documents": [
+      {
+        "id": "g_ln_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "吳建國",
+          "性別": "男",
+          "出生": "1964-12-01",
+          "死亡時間": "2024-11-01 19:30",
+          "死亡地點": "新北市八里區中山路二段 88 號 5F",
+          "死亡原因": "心肌梗塞",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_ln_hr",
+        "type": "household_removal",
+        "fields": {
+          "戶長": "吳建國",
+          "戶籍地址": "新北市八里區中山路二段 88 號 5F",
+          "除戶原因": "死亡",
+          "除戶日期": "2024-11-05",
+          "遷入日期": "1998-08-01"
+        },
+        "stamps": [
+          "household_office"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "old_m_5",
+      "hair": "grey_side",
+      "outfit": "shirt_check",
+      "trait": "keys"
+    },
+    "answers": {
+      "q_why": {
+        "text": "我爸的房子。他一直不肯放手，死了都不肯。"
+      }
+    },
+    "relations": [
+      {
+        "with": "g_landlord_old",
+        "kind": "property",
+        "clue": "除戶謄本同一個地址：父親 1998 除戶、兒子同年 8 月遷入——為了房子二十六年沒說話"
+      }
+    ],
+    "intro_line": "如果有一個姓吳的老先生來，不要跟他說我在這。"
+  },
+  {
+    "id": "h_fake_monk",
+    "name": "假和尚",
+    "kind": "human_disguised",
+    "zodiac": "豬",
+    "age": 41,
+    "address": "不詳",
+    "death_date": "2024-11-08",
+    "death_place": "新北市八里區 山區",
+    "death_cause": "不明",
+    "documents": [
+      {
+        "id": "h_fm_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "釋法明",
+          "性別": "男",
+          "出生": "1983-01-01",
+          "死亡時間": "2024-11-08 00:00",
+          "死亡地點": "新北市八里區 山區",
+          "死亡原因": "不明",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "funeral_home"
+        ],
+        "is_forged": true,
+        "flaws": [
+          {
+            "check": "seal_wrong",
+            "field": "開立醫院",
+            "note": "寫馬偕，章卻是殯葬業者"
+          },
+          {
+            "check": "date_suspicious",
+            "field": "死亡時間",
+            "note": "00:00 整點，死亡證明不會這樣寫"
+          }
+        ]
+      },
+      {
+        "id": "h_fm_obit",
+        "type": "obituary",
+        "fields": {
+          "亡者": "釋法明",
+          "享年": "四十二歲",
+          "家屬": "（無）",
+          "公祭": "（無）"
+        },
+        "is_forged": true,
+        "flaws": [
+          {
+            "check": "font_wrong",
+            "field": "亡者",
+            "note": "字體是電腦標楷體，殯儀館不用這種"
+          }
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "mid_m_11",
+      "hair": "shaved",
+      "outfit": "kasaya",
+      "trait": "wooden_fish"
+    },
+    "has_shadow": true,
+    "feet_on_ground": true,
+    "answers": {
+      "q_name": {
+        "text": "貧僧法號法明。"
+      },
+      "q_date": {
+        "text": "出家人不記日子。"
+      },
+      "q_why": {
+        "text": "來超度這裡的眾生。讓我進去做一場法事。"
+      }
+    },
+    "intro_line": "阿彌陀佛。貧僧已圓寂，請安排一間靜室。",
+    "plea_line": "施主，你這樣是造業。",
+    "return_as": "g_fake_monk_returned"
+  },
+  {
+    "id": "g_fake_monk_returned",
+    "name": "釋法明",
+    "kind": "ghost",
+    "zodiac": "豬",
+    "age": 41,
+    "death_date": "2024-11-13",
+    "death_place": "福德宮 香客大樓",
+    "death_cause": "不明",
+    "address": "不詳",
+    "documents": [
+      {
+        "id": "h_fm_death_r",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "陳志良（法號法明）",
+          "性別": "男",
+          "出生": "1983-01-01",
+          "死亡時間": "2024-11-13 02:00",
+          "死亡地點": "福德宮 香客大樓",
+          "死亡原因": "不明",
+          "開立醫院": "新北地檢署相驗"
+        },
+        "stamps": [
+          "prosecutor"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "mid_m_11",
+      "hair": "shaved",
+      "outfit": "kasaya",
+      "trait": "pale"
+    },
+    "answers": {
+      "q_why": {
+        "text": "……這次是真的圓寂了。"
+      }
+    },
+    "intro_line": "阿彌陀佛。這次不用證明了吧。"
+  },
+  {
+    "id": "h_insurance",
+    "name": "保險調查員",
+    "kind": "human",
+    "zodiac": "牛",
+    "age": 39,
+    "address": "台北市",
+    "documents": [
+      {
+        "id": "h_ins_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "陳怡君",
+          "出生": "1985-05-15",
+          "住址": "台北市松山區"
+        },
+        "stamps": []
+      },
+      {
+        "id": "h_ins_badge",
+        "type": "other",
+        "title": "保險公司識別證",
+        "fields": {
+          "姓名": "陳怡君",
+          "部門": "理賠調查",
+          "編號": "CL-0882"
+        }
+      }
+    ],
+    "portrait": {
+      "face": "mid_f_6",
+      "hair": "ponytail_low",
+      "outfit": "suit_grey",
+      "trait": "folder"
+    },
+    "has_shadow": true,
+    "feet_on_ground": true,
+    "answers": {
+      "q_name": {
+        "text": "陳怡君。我是來確認一位保戶的死亡是否屬實。"
+      },
+      "q_date": {
+        "text": "十一月十三號。"
+      },
+      "q_why": {
+        "text": "何志明。他的死亡證明有問題。他是不是來過？",
+        "contradicts": []
+      }
+    },
+    "intro_line": "我需要查一位叫何志明的登記紀錄。",
+    "plea_line": "我只是要看名冊，不是要住。",
+    "return_as": ""
+  },
+  {
+    "id": "g_bus_driver",
+    "name": "公車司機",
+    "kind": "ghost",
+    "zodiac": "龍",
+    "age": 52,
+    "death_date": "2024-11-12",
+    "death_place": "新北市八里區 龍米路 公車站",
+    "death_cause": "心因性猝死",
+    "address": "新北市八里區",
+    "documents": [
+      {
+        "id": "g_bd_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "簡志豪",
+          "性別": "男",
+          "出生": "1972-08-08",
+          "死亡時間": "2024-11-12 17:45",
+          "死亡地點": "新北市八里區 龍米路 公車站",
+          "死亡原因": "心因性猝死",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      },
+      {
+        "id": "g_bd_id",
+        "type": "id_card",
+        "fields": {
+          "姓名": "簡志豪",
+          "出生": "1972-08-08",
+          "住址": "新北市八里區"
+        },
+        "stamps": [
+          "cancelled"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "mid_m_12",
+      "hair": "cap_blue",
+      "outfit": "uniform_bus",
+      "trait": "none"
+    },
+    "answers": {
+      "q_why": {
+        "text": "末班車我開完了。可以休息了吧。"
+      }
+    },
+    "intro_line": "紅 13 路，末班。到站了。"
+  },
+  {
+    "id": "g_girl_scout",
+    "name": "女大學生",
+    "kind": "ghost",
+    "zodiac": "狗",
+    "age": 21,
+    "death_date": "2024-11-12",
+    "death_place": "新北市八里區 龍米路 公車站",
+    "death_cause": "車禍",
+    "address": "新北市淡水區",
+    "documents": [
+      {
+        "id": "g_gs_death",
+        "type": "death_cert",
+        "fields": {
+          "姓名": "蘇雅文",
+          "性別": "女",
+          "出生": "2003-04-04",
+          "死亡時間": "2024-11-12 17:46",
+          "死亡地點": "新北市八里區 龍米路 公車站",
+          "死亡原因": "車禍",
+          "開立醫院": "淡水馬偕紀念醫院"
+        },
+        "stamps": [
+          "hospital"
+        ]
+      }
+    ],
+    "portrait": {
+      "face": "young_f_3",
+      "hair": "long_brown",
+      "outfit": "hoodie_univ",
+      "trait": "earbuds"
+    },
+    "answers": {
+      "q_why": {
+        "text": "公車突然衝上人行道。司機……他有來嗎？"
+      }
+    },
+    "relations": [
+      {
+        "with": "g_bus_driver",
+        "kind": "hostile",
+        "clue": "同一分鐘、同一站：司機猝死、車衝上人行道撞到她"
+      }
+    ],
+    "intro_line": "請問……這裡可以等人嗎？我在等一個道歉。"
   }
 ]

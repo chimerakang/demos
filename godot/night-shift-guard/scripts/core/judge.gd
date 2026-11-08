@@ -18,6 +18,13 @@ const STAMP_REPORT := "report"
 
 static func evaluate(a: Applicant, stamp: String, active_rules: Array[Rule]) -> Dictionary:
 	var should_admit := a.should_be_admitted() or a.kind == Applicant.Kind.INSPECTOR
+	# 農民曆沖煞：真鬼但今晚不能收（規則解鎖後才算）
+	var clash_tonight := false
+	for r in active_rules:
+		if r.kind == Rule.Kind.CHECK and r.check_id == "almanac_clash" and check_fires(r, a):
+			clash_tonight = true
+	if clash_tonight:
+		should_admit = false
 	var correct: bool
 	var reason := ""
 
@@ -25,7 +32,7 @@ static func evaluate(a: Applicant, stamp: String, active_rules: Array[Rule]) -> 
 		STAMP_APPROVE:
 			correct = should_admit
 			if not correct:
-				reason = "放了活人進來"
+				reason = "沖煞日收了不該收的客人" if clash_tonight else "放了活人進來"
 		STAMP_DENY:
 			correct = not should_admit
 			if not correct:
@@ -49,7 +56,7 @@ static func evaluate(a: Applicant, stamp: String, active_rules: Array[Rule]) -> 
 	if not correct:
 		result["missed_checks"] = available_tells(a, active_rules)
 		result["consequences"] = [{"kind": "strike", "reason": reason}, {"kind": "chaos", "value": 1}]
-		if stamp == STAMP_APPROVE and not should_admit:
+		if stamp == STAMP_APPROVE and not should_admit and not clash_tonight:
 			# 活人進來 → 當晚死亡，隔晚變鬼回來
 			result["consequences"].append({"kind": "human_admitted", "applicant": a.id, "return_as": a.return_as})
 	else:

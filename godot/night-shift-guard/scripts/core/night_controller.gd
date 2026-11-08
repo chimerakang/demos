@@ -70,7 +70,20 @@ func settle() -> void:
 	for id in GameState.axis.keys():
 		if GameState.find_room(id) == Vector2i(-1, -1) and GameState.residents.has(id):
 			GameState.push_axis(id, 5)
+	# 天亮：通用鬼被引路走進鬼門，房間空出；故事鬼留下（牠們還沒準備好）
+	var departed: Array[String] = []
+	for f in GameState.FLOORS:
+		for r in GameState.ROOMS_PER_FLOOR:
+			var id: String = GameState.rooms[f][r]
+			if id == "":
+				continue
+			var a: Applicant = GameState.residents.get(id)
+			if a and not a.is_story:
+				departed.append(a.display_name)
+				GameState.rooms[f][r] = ""
+				GameState.residents.erase(id)
 	var report := {
+		"departed": departed,
 		"night": GameState.night,
 		"correct": GameState.correct_count,
 		"wrong": GameState.wrong_count,

@@ -127,4 +127,44 @@ func _run() -> void:
 	_check(GameState.night == n_before, "讀回 night=%d" % GameState.night)
 	_check(GameState.known_relation("b", "a") == "hostile", "筆記本關係無序 key 正常")
 
+	# ── 七晚全跑：全知玩家，每位都判對，排房依序填 ──
+	print("== 七晚全跑 ==")
+	GameState.reset_all()
+	night.pending_returns.clear()
+	var holder := {"ending": ""}
+	var go_cb := func(reason): holder["ending"] = reason
+	EventBus.game_over.connect(go_cb)
+	for n in GameState.MAX_NIGHTS:
+		night.start_night()
+		night.open_desk()
+		var guard := 0
+		while night.current != null and guard < 50:
+			guard += 1
+			var a := night.current
+			var clash := Judge.available_tells(a, night.active_rules).has("almanac_clash")
+			if (a.should_be_admitted() or a.kind == Applicant.Kind.INSPECTOR) and not clash:
+				var placed := false
+				for f in GameState.FLOORS:
+					var slot := GameState.find_free_slot_for_test(f)
+					if slot != -1:
+						GameState.place(a, f, slot)
+						placed = true
+						break
+				_check(placed, "第 %d 晚有房給 %s" % [GameState.night, a.display_name])
+				night.stamp(Judge.STAMP_APPROVE)
+			elif a.kind == Applicant.Kind.HUMAN_DISGUISED:
+				night.stamp(Judge.STAMP_REPORT)
+			else:
+				night.stamp(Judge.STAMP_DENY)
+		_check(GameState.wrong_count == 0, "第 %d 晚全知玩家 0 錯（實際 %d）" % [GameState.night, GameState.wrong_count])
+		var story_left := 0
+		for id in GameState.residents.keys():
+			if (GameState.residents[id] as Applicant).is_story:
+				story_left += 1
+		_check(GameState.residents.size() == story_left, "第 %d 晚天亮後只剩故事鬼（%d 位）" % [GameState.night, story_left])
+		night.end_day()
+	EventBus.game_over.disconnect(go_cb)
+	_check(str(holder["ending"]).begins_with("ending_"), "七晚結束有結局：%s" % holder["ending"])
+	_check(GameState.axis.size() == 6, "六位故事鬼都有執念軸（實際 %d）" % GameState.axis.size())
+
 	print("\n%s：%d 個失敗" % ["FAIL" if fails > 0 else "PASS", fails])

@@ -3,7 +3,14 @@
     "night": 1,
     "title": "第一夜",
     "notice": "新人你好。規矩很簡單：有死亡證明的才能住。其他的，明天再說。——土地公（代）",
-    "applicants": ["chen_bo", "g_wang_ama", "h_lin_debtor", "g_street_youth", "g_nurse", "h_lost_student"],
+    "applicants": [
+      "chen_bo",
+      "g_wang_ama",
+      "h_lin_debtor",
+      "g_street_youth",
+      "g_nurse",
+      "h_lost_student"
+    ],
     "shuffle": false,
     "jiaobei_uses": 3
   },
@@ -11,20 +18,86 @@
     "night": 2,
     "title": "第二夜",
     "notice": "昨晚有人沒看身分證。活人的身分證沒有註銷章。另外，同一天同一個地方走的，不要排同一層。",
-    "applicants": ["a_mei", "g_truck_driver", "g_scooter_rider", "h_grief_mother", "g_old_teacher", "g_fisherman", "h_debt_runner"],
+    "applicants": [
+      "a_mei",
+      "g_truck_driver",
+      "g_scooter_rider",
+      "h_grief_mother",
+      "g_old_teacher",
+      "g_fisherman",
+      "h_debt_runner"
+    ],
     "shuffle": true,
     "jiaobei_uses": 3
   },
   {
     "night": 3,
     "title": "第三夜",
-    "notice": "（待填：林家四口分批來；解鎖影子、腳、生肖）",
-    "applicants": ["lin_father", "lin_mother", "lin_son", "lin_daughter"],
+    "notice": "七樓那家人今晚會來，分開來、一起住。看腳，看影子。還有，生肖六沖不同層，這是老規矩。",
+    "applicants": [
+      "lin_father",
+      "lin_mother",
+      "lin_daughter",
+      "g_temple_keeper",
+      "g_bride",
+      "h_drunk",
+      "g_groom"
+    ],
     "shuffle": false,
     "jiaobei_uses": 3
   },
-  { "night": 4, "title": "第四夜", "notice": "（待填）", "applicants": [], "shuffle": true, "jiaobei_uses": 3 },
-  { "night": 5, "title": "第五夜", "notice": "（待填：農曆七月最後一天）", "applicants": [], "shuffle": true, "jiaobei_uses": 2 },
-  { "night": 6, "title": "第六夜", "notice": "（待填）", "applicants": [], "shuffle": true, "jiaobei_uses": 2 },
-  { "night": 7, "title": "最後一夜", "notice": "（待填：鬼門關前；管委會抽查）", "applicants": ["inspector"], "shuffle": false, "jiaobei_uses": 1 }
+  {
+    "night": 4,
+    "title": "第四夜",
+    "notice": "多問一句。說的跟寫的不一樣，就有問題。家屬可以排同層，但先確認他們想不想見面。另外，前兩晚有兩個客人走到鬼門口被退回來，今晚會再登記一次——想想他們為什麼走不了。",
+    "applicants": [
+      "h_reporter",
+      "g_widow",
+      "g_street_youth",
+      "g_truck_driver",
+      "h_medium",
+      "g_scooter_rider"
+    ],
+    "shuffle": true,
+    "jiaobei_uses": 3
+  },
+  {
+    "night": 5,
+    "title": "第五夜 ‧ 農曆七月最後一天",
+    "notice": "今日沖虎。屬虎的今晚不收，叫他明天再來。訃聞治喪委員名單裡有債主的，不要跟債主同層。七樓那家人今晚要吃團圓飯，少一個人。",
+    "applicants": [
+      "lin_son",
+      "g_loan_shark",
+      "g_debtor_ghost",
+      "g_tiger_clash"
+    ],
+    "shuffle": true,
+    "jiaobei_uses": 2
+  },
+  {
+    "night": 6,
+    "title": "第六夜",
+    "notice": "最近有人偽造死亡證明。看章、看字體、看日期——沒有人會在整點死。除戶謄本同地址不同年代的，是前後任屋主，有糾紛。鬼門明天關。",
+    "applicants": [
+      "h_fake_monk",
+      "g_landlord_old",
+      "g_landlord_new",
+      "h_insurance",
+      "g_bus_driver",
+      "g_girl_scout"
+    ],
+    "shuffle": true,
+    "jiaobei_uses": 2
+  },
+  {
+    "night": 7,
+    "title": "最後一夜",
+    "notice": "鬼門今晚關。管委會派人來看你。文件都齊的，不一定是好事。還有一個一直沒走的，讓他走吧。",
+    "applicants": [
+      "inspector",
+      "g_fisherman"
+    ],
+    "shuffle": false,
+    "jiaobei_uses": 1
+  }
 ]

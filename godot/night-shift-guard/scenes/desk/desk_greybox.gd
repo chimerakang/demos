@@ -62,14 +62,14 @@ func _build_ui() -> void:
 		var row: Array = []
 		for r in GameState.ROOMS_PER_FLOOR:
 			var b := Button.new()
-			b.custom_minimum_size = Vector2(90, 48)
+			b.custom_minimum_size = Vector2(66, 44)
 			b.text = "%dF-%d" % [f + 1, r + 1]
 			b.pressed.connect(_on_room_pressed.bind(f, r))
 			grid.add_child(b)
 			row.append(b)
 		room_buttons.insert(0, row)
 	var hint := Label.new()
-	hint.text = "點一格 → 再蓋「准予入住」。再點同格可清空。"
+	hint.text = "空房：點選 → 蓋「准予入住」。\n已入住：點一下拿起，再點空房搬過去。"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	right_panel.add_child(hint)
 
@@ -223,6 +223,9 @@ func _on_stamp(stamp_id: String) -> void:
 	var a := night.current
 	if a == null:
 		return
+	if held_id != "":
+		_log("[color=orange]手上還拿著住戶，先放下[/color]")
+		return
 	if stamp_id == Judge.STAMP_APPROVE:
 		if selected_room == Vector2i(-1, -1):
 			_log("[color=orange]先在房間表選一格[/color]")
@@ -255,6 +258,8 @@ func _on_settlement(report: Dictionary) -> void:
 		lines.append("\n[color=orange]夜裡發生的事：[/color]")
 		for ev in report["events"]:
 			lines.append("  %dF：%s" % [ev["floor"] + 1, ev["text"]])
+	if not (report.get("departed", []) as Array).is_empty():
+		lines.append("\n天亮前被引路走的：%s" % "、".join(report["departed"]))
 	if not (report["axis"] as Dictionary).is_empty():
 		lines.append("\n執念：")
 		for id in report["axis"].keys():
@@ -301,10 +306,26 @@ func _on_clock_in_after_replace() -> void:
 
 # ───────────────────────── 小工具 ─────────────────────────
 
+var held_id: String = ""   # 拿起來準備搬房的住戶
+
 func _on_room_pressed(f: int, r: int) -> void:
-	if GameState.rooms[f][r] != "":
+	var occupant: String = GameState.rooms[f][r]
+	if held_id != "":
+		# 放下：空房才能放
+		if occupant == "":
+			var a: Applicant = GameState.residents.get(held_id)
+			GameState.place(a, f, r)
+			_log("%s 搬到 %dF-%d" % [a.display_name, f + 1, r + 1])
+			held_id = ""
+		elif occupant == held_id:
+			held_id = ""   # 放回原位
+		else:
+			_log("[color=orange]那間有人，先選空房[/color]")
+	elif occupant != "":
+		# 拿起來（住戶留在 residents，房間先空出）
+		held_id = occupant
 		GameState.remove_from_room(f, r)
-		_log("清空 %dF-%d" % [f + 1, r + 1])
+		_log("拿起 %s，點一間空房放下" % (GameState.residents[occupant] as Applicant).display_name)
 	else:
 		selected_room = Vector2i(f, r)
 	_refresh_rooms()
@@ -321,6 +342,8 @@ func _refresh_rooms() -> void:
 			else:
 				b.text = "%dF-%d" % [f + 1, r + 1]
 			b.modulate = Color(1, 0.9, 0.4) if selected_room == Vector2i(f, r) else Color.WHITE
+			if held_id != "" and id == "":
+				b.modulate = Color(0.6, 1, 0.7)
 			if GameState.damaged_floors.has(f):
 				b.modulate = Color(0.6, 0.3, 0.3)
 

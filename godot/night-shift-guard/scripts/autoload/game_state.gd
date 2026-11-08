@@ -6,7 +6,7 @@ const SAVE_PATH := "user://save.json"
 const MAX_NIGHTS := 7
 const MAX_STRIKES := 3
 const FLOORS := 3
-const ROOMS_PER_FLOOR := 3
+const ROOMS_PER_FLOOR := 4
 
 # ── 進度 ──
 var night: int = 1
@@ -62,8 +62,11 @@ func set_axis(resident_id: String, value: int) -> void:
 		EventBus.axis_changed.emit(resident_id, old, new_value)
 
 
+## 只有故事鬼有執念軸（在排隊時初始化）；通用鬼忽略。
 func push_axis(resident_id: String, delta: int) -> void:
-	set_axis(resident_id, axis.get(resident_id, 0) + delta)
+	if not axis.has(resident_id):
+		return
+	set_axis(resident_id, axis[resident_id] + delta)
 
 
 func add_chaos(delta: int) -> void:
